@@ -1,0 +1,22 @@
+{
+  "name": "GestFood — Gestão Inteligente",
+  "short_name": "GestFood",
+  "description": "Sistema de gestão para padarias e supermercados",
+  "start_url": "GESTFOOD_INDEX.html",
+  "display": "standalone",
+  "background_color": "#1B4332",
+  "theme_color": "#2D6A4F",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-gestfood.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-gestfood.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

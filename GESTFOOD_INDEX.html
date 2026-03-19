@@ -6,6 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#2D6A4F">
 <title>GestFood — Gestão Inteligente</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-gestfood.png">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -24,11 +26,12 @@ body{display:flex;flex-direction:column;}
 /* ══ HEADER TOPO ══ */
 .topbar{
   background:var(--white);
-  border-bottom:1.5px solid var(--border);
+  border-bottom:3px solid var(--accent);
   height:52px;flex-shrink:0;
   display:flex;align-items:center;
   padding:0 16px;gap:12px;
   z-index:300;
+  box-shadow:0 2px 8px rgba(0,0,0,.06);
 }
 .topbar-logo{display:flex;align-items:center;gap:8px;}
 .logo-mark{
@@ -70,67 +73,66 @@ body{display:flex;flex-direction:column;}
 /* ══ SIDEBAR ══ */
 .sidebar{
   width:220px;flex-shrink:0;
-  background:var(--white);
-  border-right:1.5px solid var(--border);
+  background:#1B4332;
   display:flex;flex-direction:column;
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
 }
 .sidebar-empresa{
-  padding:14px 16px;
-  border-bottom:1px solid var(--border);
+  padding:16px;
+  border-bottom:1px solid rgba(255,255,255,.08);
 }
 .empresa-logo{
-  width:36px;height:36px;background:var(--accent-l);
-  border-radius:10px;border:1.5px solid #C6E6D4;
+  width:38px;height:38px;background:rgba(255,255,255,.15);
+  border-radius:10px;border:1.5px solid rgba(255,255,255,.2);
   display:flex;align-items:center;justify-content:center;
-  font-size:1.2rem;margin-bottom:8px;overflow:hidden;
+  font-size:1.2rem;margin-bottom:8px;overflow:hidden;color:#fff;
 }
 .empresa-logo img{width:100%;height:100%;object-fit:cover;border-radius:8px;}
-.empresa-nome{font-size:.78rem;font-weight:700;color:var(--brown);line-height:1.3;}
-.empresa-sub{font-size:.62rem;color:var(--gray);margin-top:1px;}
+.empresa-nome{font-size:.78rem;font-weight:700;color:#fff;line-height:1.3;}
+.empresa-sub{font-size:.62rem;color:rgba(255,255,255,.45);margin-top:1px;}
 .sidebar-date{
-  padding:10px 16px;
-  font-size:.65rem;color:var(--gray);
-  border-bottom:1px solid var(--border);
-  font-weight:500;
+  padding:8px 16px;
+  font-size:.63rem;color:rgba(255,255,255,.4);
+  border-bottom:1px solid rgba(255,255,255,.07);
+  font-weight:400;
 }
 .sidebar-section{
-  padding:14px 16px 6px;
-  font-size:.58rem;font-weight:700;
-  text-transform:uppercase;letter-spacing:1px;
-  color:#B0B0AA;
+  padding:14px 16px 5px;
+  font-size:.56rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:1.2px;
+  color:rgba(255,255,255,.35);
 }
 .nav-item{
   display:flex;align-items:center;gap:10px;
   padding:10px 16px;
-  font-size:.8rem;font-weight:500;color:var(--gray);
+  font-size:.8rem;font-weight:500;color:rgba(255,255,255,.6);
   cursor:pointer;border-left:3px solid transparent;
   transition:all .15s;position:relative;
 }
-.nav-item:hover{background:var(--bg);color:var(--brown);}
+.nav-item:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.9);}
 .nav-item.active{
-  background:var(--accent-l);color:var(--accent-d);
-  border-left-color:var(--accent);font-weight:600;
+  background:rgba(255,255,255,.1);color:#fff;
+  border-left-color:#52B788;font-weight:600;
 }
-.nav-item.disabled{opacity:.45;cursor:not-allowed;}
+.nav-item.disabled{opacity:.35;cursor:not-allowed;}
 .nav-ico{font-size:1rem;width:20px;text-align:center;flex-shrink:0;}
 .nav-badge{
   margin-left:auto;font-size:.55rem;font-weight:700;
-  background:var(--accent);color:#fff;
+  background:rgba(255,255,255,.15);color:#fff;
   padding:1px 6px;border-radius:10px;
 }
 .nav-wip{
   margin-left:auto;font-size:.55rem;
-  background:var(--gray-l);color:var(--gray);
+  background:rgba(255,255,255,.08);color:rgba(255,255,255,.4);
   padding:1px 6px;border-radius:10px;font-weight:600;
 }
 .sidebar-footer{
   margin-top:auto;padding:12px 16px;
-  border-top:1px solid var(--border);
-  font-size:.62rem;color:var(--gray);
+  border-top:1px solid rgba(255,255,255,.07);
+  font-size:.62rem;color:rgba(255,255,255,.3);
 }
-.sidebar-footer strong{color:var(--accent);font-weight:700;}
+.sidebar-footer strong{color:#52B788;font-weight:700;}
 
 /* ══ CONTEÚDO ══ */
 .content{
@@ -141,13 +143,29 @@ body{display:flex;flex-direction:column;}
 /* ══ PAGE HEADER ══ */
 .page-header{
   margin-bottom:20px;
+  background:linear-gradient(135deg,#2D6A4F 0%,#1B4332 100%);
+  border-radius:16px;
+  padding:20px 18px;
+  color:#fff;
+  position:relative;
+  overflow:hidden;
+}
+.page-header::before{
+  content:'';position:absolute;top:-20px;right:-20px;
+  width:100px;height:100px;border-radius:50%;
+  background:rgba(255,255,255,.05);
+}
+.page-header::after{
+  content:'';position:absolute;bottom:-30px;right:30px;
+  width:70px;height:70px;border-radius:50%;
+  background:rgba(255,255,255,.04);
 }
 .page-breadcrumb{
-  font-size:.65rem;color:var(--gray);font-weight:500;
-  margin-bottom:6px;display:flex;align-items:center;gap:4px;
+  font-size:.65rem;color:rgba(255,255,255,.5);font-weight:500;
+  margin-bottom:8px;display:flex;align-items:center;gap:4px;
 }
-.page-title{font-size:1.3rem;font-weight:800;letter-spacing:-.4px;color:var(--brown);}
-.page-sub{font-size:.75rem;color:var(--gray);margin-top:3px;font-weight:400;}
+.page-title{font-size:1.35rem;font-weight:800;letter-spacing:-.4px;color:#fff;line-height:1.2;}
+.page-sub{font-size:.75rem;color:rgba(255,255,255,.6);margin-top:4px;font-weight:400;}
 
 /* ══ STATS ROW ══ */
 .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
@@ -157,7 +175,7 @@ body{display:flex;flex-direction:column;}
 }
 .stat-val{font-size:1.3rem;font-weight:800;color:var(--brown);display:block;line-height:1;}
 .stat-lbl{font-size:.6rem;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin-top:4px;display:block;font-weight:600;}
-.stat-card.green{border-color:var(--accent-l);}
+.stat-card.green{border-color:var(--accent);border-width:2px;}
 .stat-card.green .stat-val{color:var(--accent);}
 .stat-card.red{border-color:var(--red-l);}
 .stat-card.red .stat-val{color:var(--red);}
@@ -197,7 +215,7 @@ body{display:flex;flex-direction:column;}
 .m-prod .mod-chip{background:var(--accent-l);color:var(--accent-d);}
 .m-prod .mod-title{color:var(--accent-d);}
 .m-prod .mod-foot{border-color:var(--accent-l);color:var(--accent);}
-.m-prod{border-color:var(--accent-l);}
+.m-prod{border-color:var(--accent);border-left:4px solid var(--accent);}
 
 .m-desp .mod-chip{background:var(--red-l);color:var(--red);}
 .m-desp .mod-title{color:var(--red);}
@@ -262,6 +280,24 @@ body{display:flex;flex-direction:column;}
 </style>
 </head>
 <body>
+
+<!-- SPLASH SCREEN -->
+<div id="splash" style="position:fixed;inset:0;background:#1B4332;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .5s ease;">
+  <div style="animation:splashPop .5s ease forwards;">
+    <div style="width:72px;height:72px;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.25);border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:2rem;font-weight:900;color:#fff;letter-spacing:-2px;font-family:'Plus Jakarta Sans',sans-serif;">G</div>
+    <div style="text-align:center;">
+      <div style="font-size:1.4rem;font-weight:800;color:#fff;letter-spacing:-.5px;">Gest<span style="font-weight:300;color:#A7D9BC;">Food</span></div>
+      <div style="font-size:.72rem;color:rgba(255,255,255,.45);margin-top:4px;">Gestão Inteligente</div>
+    </div>
+  </div>
+  <div style="position:absolute;bottom:40px;display:flex;align-items:center;gap:6px;">
+    <div style="width:6px;height:6px;border-radius:50%;background:#52B788;animation:pulse 1s infinite;"></div>
+    <span style="font-size:.68rem;color:rgba(255,255,255,.4);">carregando...</span>
+  </div>
+</div>
+<style>
+@keyframes splashPop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+</style>
 
 <!-- ══ TOPBAR ══ -->
 <div class="topbar">
@@ -523,6 +559,13 @@ async function carregarStats(){
   }
 }
 carregarStats();
+// Esconder splash após load
+window.addEventListener('load',()=>{
+  setTimeout(()=>{
+    const s=document.getElementById('splash');
+    if(s){s.style.opacity='0';setTimeout(()=>s.style.display='none',500);}
+  },900);
+});
 </script>
 </body>
 </html>
