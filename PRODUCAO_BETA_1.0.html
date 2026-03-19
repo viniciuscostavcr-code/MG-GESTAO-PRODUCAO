@@ -5,34 +5,34 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#1A4D2E">
-<title>🍞 Produção BETA 1.0 — M. Graças</title>
+<meta name="theme-color" content="#2D6A4F">
+<title>🍞 Produção BETA 1.0 — Supermercado MG</title>
 <style>
 :root{
-  --bg:#F5FAF0;--white:#FFF;--brown:#2C1A0A;--brown2:#5A3820;
-  --gold:#C8960C;--gold-l:#F5E6C0;--cream:#F0F7E8;
-  --grn:#1A4D2E;--grn2:#276240;--grn-l:#D4EFDF;--grn-ll:#F0FAF4;
-  --red:#A93226;--red-l:#FADBD8;--blue:#1A3E6B;--blue-l:#D6EAF8;
-  --ora:#CA6F1E;--ora-l:#FDEBD0;--pur:#6C3483;--pur-l:#E8DAEF;
-  --teal:#117A65;--teal-l:#D1F2EB;--gray:#7F8C8D;--gray-l:#F2F3F4;
-  --sh:0 2px 16px rgba(26,77,46,.10);--r:14px;
+  --bg:#F7F7F5;--white:#FFF;--brown:#1C1C1A;--brown2:#4A4A46;
+  --gold:#B45309;--gold-l:#FFFBEB;--cream:#F7F7F5;
+  --grn:#2D6A4F;--grn2:#1B4332;--grn-l:#EAF4EF;--grn-ll:#F0FAF4;
+  --red:#C0392B;--red-l:#FDECEA;--blue:#1D4ED8;--blue-l:#EEF2FF;
+  --ora:#B45309;--ora-l:#FFFBEB;--pur:#6D28D9;--pur-l:#EDE9FE;
+  --teal:#0D7377;--teal-l:#D1F2EB;--gray:#6B7280;--gray-l:#F4F4F2;
+  --sh:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.07);--r:14px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow:hidden;}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--brown);display:flex;flex-direction:column;}
-header{background:var(--grn);color:#fff;padding:14px 16px 10px;flex-shrink:0;}
+body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--brown);display:flex;flex-direction:column;}
+header{background:var(--white);color:var(--brown);padding:10px 16px 8px;flex-shrink:0;border-bottom:1.5px solid var(--gray-l);}
 .h-top{display:flex;align-items:center;justify-content:space-between;}
-.h-top h1{font-size:1.05rem;font-weight:800;}
-.h-badge{background:var(--gold);color:var(--brown);font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap;}
-.h-sub{font-size:.7rem;opacity:.7;margin-top:2px;}
+.h-top h1{font-size:1.05rem;font-weight:800;color:var(--brown);}
+.h-badge{background:var(--grn-l);color:var(--grn2);font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap;}
+.h-sub{font-size:.7rem;color:var(--gray);margin-top:2px;}
 .h-meta{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
-.h-chip{background:rgba(255,255,255,.18);font-size:.72rem;padding:4px 10px;border-radius:20px;}
-.h-chip.hi{background:rgba(255,255,255,.3);font-weight:600;}
+.h-chip{background:var(--gray-l);color:var(--gray);font-size:.72rem;padding:4px 10px;border-radius:20px;}
+.h-chip.hi{background:var(--grn-l);color:var(--grn);font-weight:600;}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#4CAF50;margin-right:4px;}
 .dot.off{background:#f44336;}.dot.wait{background:var(--gold);}
-.tabs{display:flex;background:var(--grn2);flex-shrink:0;}
-.tab{flex:1;text-align:center;padding:10px 2px;font-size:.65rem;font-weight:700;color:rgba(255,255,255,.55);cursor:pointer;border-bottom:3px solid transparent;transition:.15s;}
-.tab.on{color:#fff;border-bottom-color:var(--gold);}
+.tabs{display:flex;background:var(--white);flex-shrink:0;border-bottom:1.5px solid var(--gray-l);}
+.tab{flex:1;text-align:center;padding:10px 2px;font-size:.65rem;font-weight:600;color:var(--gray);cursor:pointer;border-bottom:3px solid transparent;transition:.15s;}
+.tab.on{color:var(--grn);border-bottom-color:var(--grn);}
 .scr{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 12px 100px;}
 .vw{display:none;}.vw.on{display:block;}
 .card{background:var(--white);border-radius:var(--r);padding:14px;box-shadow:var(--sh);margin-bottom:12px;}
@@ -68,7 +68,7 @@ select:focus,input:focus{border-color:var(--gold);background:#fff;}
 .emp{text-align:center;padding:40px 20px;color:var(--gray);}
 .emp .big{font-size:2.2rem;margin-bottom:8px;}
 .emp p{font-size:.85rem;line-height:1.6;}
-.bar{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:2px solid var(--grn-l);padding:11px 14px;display:flex;gap:9px;align-items:center;box-shadow:0 -4px 20px rgba(26,77,46,.12);z-index:100;}
+.bar{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:1.5px solid var(--gray-l);padding:11px 14px;display:flex;gap:9px;align-items:center;box-shadow:0 -4px 20px rgba(26,77,46,.12);z-index:100;}
 .bt{flex:1;}.bt strong{font-size:.95rem;font-weight:700;display:block;}.bt span{font-size:.72rem;color:var(--gray);}
 .bsv{background:var(--grn);color:#fff;border:none;border-radius:11px;padding:12px 20px;font-size:.88rem;font-weight:700;cursor:pointer;}
 .bsv:disabled{opacity:.35;cursor:not-allowed;}
@@ -179,15 +179,53 @@ input:checked+.tsl:before{transform:translateX(17px);}
 .efp input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0;}
 .dis-info{background:var(--red-l);border-radius:8px;padding:8px 12px;font-size:.78rem;color:var(--red);margin-top:10px;text-align:center;}
 @media(min-width:520px){.scr,.bar{max-width:520px;}.bar{left:50%;transform:translateX(-50%);}.scr{margin:0 auto;}}
+
+/* ══ GESTFOOD TOPBAR ══ */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+.gf-topbar{
+  background:#fff;border-bottom:1.5px solid #E8E8E4;
+  height:48px;flex-shrink:0;display:flex;align-items:center;
+  padding:0 14px;gap:10px;z-index:200;
+  font-family:'Plus Jakarta Sans',sans-serif;
+}
+.gf-back{
+  display:flex;align-items:center;gap:6px;
+  background:#F4F4F2;border:1px solid #E8E8E4;
+  border-radius:8px;padding:5px 10px;
+  font-size:.72rem;font-weight:600;color:#4A4A46;
+  text-decoration:none;cursor:pointer;white-space:nowrap;
+  font-family:'Plus Jakarta Sans',sans-serif;
+}
+.gf-back:active{background:#E8E8E4;}
+.gf-logo{display:flex;align-items:center;gap:7px;}
+.gf-mark{
+  width:26px;height:26px;background:#2D6A4F;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:.72rem;font-weight:800;letter-spacing:-1px;
+  flex-shrink:0;overflow:hidden;
+}
+.gf-mark img{width:100%;height:100%;object-fit:cover;border-radius:5px;}
+.gf-name{font-size:.82rem;font-weight:700;color:#1C1C1A;letter-spacing:-.2px;}
+.gf-name span{color:#2D6A4F;font-weight:400;}
+.gf-modulo{
+  font-size:.72rem;font-weight:600;color:#6B7280;
+  background:#F4F4F2;border-radius:6px;
+  padding:3px 8px;margin-left:2px;
+}
+.gf-spacer{flex:1;}
+.gf-sync{
+  display:flex;align-items:center;gap:5px;
+  background:#F4F4F2;border:1px solid #E8E8E4;
+  border-radius:20px;padding:3px 9px;
+  font-size:.62rem;color:#6B7280;font-weight:500;
+}
+
 </style>
 </head>
 <body>
-<!-- Botão voltar para o hub -->
-<a href="MG_INDEX.html" style="position:fixed;top:8px;left:8px;z-index:9999;display:flex;align-items:center;gap:5px;background:#1A4D2E;color:#fff;text-decoration:none;padding:7px 13px;font-size:.72rem;font-weight:700;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.2);">← Hub</a>
-
 <header>
   <div class="h-top">
-    <div><h1>🍞 Produção <span style="font-size:.6rem;background:rgba(255,255,255,.2);padding:2px 7px;border-radius:10px;font-weight:600;">BETA 1.0</span></h1><div class="h-sub">Mercadinho M. Graças — Padaria</div></div>
+    <div><h1>🍞 Produção <span style="font-size:.6rem;background:rgba(255,255,255,.2);padding:2px 7px;border-radius:10px;font-weight:600;">BETA 1.0</span></h1><div class="h-sub">Supermercado MG — Padaria</div></div>
     <span class="h-badge" id="hBadge">0 itens</span>
   </div>
   <div class="h-meta">
@@ -711,6 +749,25 @@ function _confResp(ok){
 function tog(id){document.getElementById(id).classList.toggle('on');}
 function dl(c,f){const b=new Blob(['\ufeff'+c],{type:'text/csv;charset=utf-8'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=f;a.click();URL.revokeObjectURL(u);}
 function toast(msg,t=''){const el=document.getElementById('tst');el.textContent=msg;el.className='tst on'+(t?' '+t:'');setTimeout(()=>el.className='tst',2800);}
+
+// GestFood TopBar sync
+(function(){
+  document.getElementById('gfModulo').textContent='📝 Produção';
+  // Observar mudanças no syncDot original para refletir no gfDot
+  const orig=document.getElementById('syncDot');
+  const gfD=document.getElementById('gfDot');
+  const gfS=document.getElementById('gfSync');
+  const syncT=document.getElementById('syncTxt');
+  if(orig&&gfD){
+    const obs=new MutationObserver(()=>{
+      gfD.className=orig.className;
+      if(syncT&&gfS)gfS.textContent=syncT.textContent;
+    });
+    obs.observe(orig,{attributes:true,childList:true,subtree:true});
+    if(syncT&&gfS)gfS.textContent=syncT.textContent;
+  }
+})();
+
 </script>
 </body>
 </html>

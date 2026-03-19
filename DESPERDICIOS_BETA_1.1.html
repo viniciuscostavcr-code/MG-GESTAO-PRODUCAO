@@ -5,42 +5,42 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#7B1E1E">
-<title>🗑️ Desperdícios — M. Graças · BETA</title>
+<meta name="theme-color" content="#2D6A4F">
+<title>🗑️ Desperdícios — Supermercado MG · BETA</title>
 <style>
 :root{
-  --bg:#FBF5EE;--white:#FFF;--brown:#3D1C0A;--brown2:#6B3A1F;
-  --gold:#C8960C;--gold-l:#F5E6C0;--cream:#FAF0DC;
-  --red:#7B1E1E;--red2:#A93226;--red-l:#FADBD8;--red-ll:#FDF2F1;
-  --green:#1A5E38;--green-l:#D4EFDF;
-  --blue:#1A3E6B;--blue-l:#D6EAF8;
-  --orange:#B8530A;--orange-l:#FDEBD0;
-  --gray:#7F8C8D;--gray-l:#F2F3F4;
-  --sh:0 2px 16px rgba(61,28,10,.10);--r:14px;
+  --bg:#F7F7F5;--white:#FFF;--brown:#1C1C1A;--brown2:#4A4A46;
+  --gold:#B45309;--gold-l:#FFFBEB;--cream:#F7F7F5;
+  --red:#C0392B;--red2:#A93226;--red-l:#FDECEA;--red-ll:#FFF5F5;
+  --green:#2D6A4F;--green-l:#EAF4EF;
+  --blue:#1D4ED8;--blue-l:#EEF2FF;
+  --orange:#B45309;--orange-l:#FFFBEB;
+  --gray:#6B7280;--gray-l:#F4F4F2;
+  --sh:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.07);--r:14px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow:hidden;}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--brown);display:flex;flex-direction:column;}
+body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--brown);display:flex;flex-direction:column;}
 
 /* HEADER */
-header{background:linear-gradient(135deg,var(--red) 0%,#9B2828 100%);color:#fff;padding:14px 16px 10px;flex-shrink:0;box-shadow:0 2px 12px rgba(123,30,30,.3);}
+header{background:var(--white);color:var(--brown);padding:10px 16px 8px;flex-shrink:0;border-bottom:1.5px solid var(--gray-l);}
 .h-top{display:flex;align-items:center;justify-content:space-between;}
-.h-top h1{font-size:1.05rem;font-weight:800;letter-spacing:-.2px;}
-.h-badge{background:var(--gold);color:var(--brown);font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap;}
-.h-sub{font-size:.7rem;opacity:.7;margin-top:2px;}
+.h-top h1{font-size:1.05rem;font-weight:800;letter-spacing:-.2px;color:var(--brown);}
+.h-badge{background:var(--red-l);color:var(--red2);font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap;}
+.h-sub{font-size:.7rem;color:var(--gray);margin-top:2px;}
 .h-meta{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;}
-.h-chip{background:rgba(255,255,255,.18);font-size:.72rem;padding:4px 10px;border-radius:20px;}
-.h-chip.hi{background:rgba(255,255,255,.3);font-weight:600;}
+.h-chip{background:var(--gray-l);color:var(--gray);font-size:.72rem;padding:4px 10px;border-radius:20px;}
+.h-chip.hi{background:var(--green-l);color:var(--green);font-weight:600;}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#4CAF50;margin-right:4px;vertical-align:middle;}
 .dot.off{background:#f44336;}
 .dot.wait{background:var(--gold);animation:pulse 1s infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.beta-pill{background:var(--gold);color:var(--brown);font-size:.6rem;font-weight:800;padding:2px 7px;border-radius:10px;letter-spacing:.5px;margin-left:6px;}
+.beta-pill{background:var(--green-l);color:var(--green);font-size:.6rem;font-weight:800;padding:2px 7px;border-radius:10px;letter-spacing:.5px;margin-left:6px;}
 
 /* TABS */
-.tabs{display:flex;background:var(--red2);flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.15);}
-.tab{flex:1;text-align:center;padding:10px 2px 9px;font-size:.68rem;font-weight:700;color:rgba(255,255,255,.55);cursor:pointer;border-bottom:3px solid transparent;transition:.15s;display:flex;flex-direction:column;align-items:center;gap:2px;}
-.tab.on{color:#fff;border-bottom-color:var(--gold);}
+.tabs{display:flex;background:var(--white);flex-shrink:0;border-bottom:1.5px solid var(--gray-l);}
+.tab{flex:1;text-align:center;padding:10px 2px 9px;font-size:.68rem;font-weight:600;color:var(--gray);cursor:pointer;border-bottom:3px solid transparent;transition:.15s;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.tab.on{color:var(--green);border-bottom-color:var(--green);}
 .tab-ico{font-size:.9rem;}
 
 /* SCROLL */
@@ -63,7 +63,7 @@ select:focus,input:focus{border-color:var(--gold);background:#fff;}
 .spills{display:flex;gap:7px;margin-bottom:12px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;}
 .spills::-webkit-scrollbar{display:none;}
 .sp{flex-shrink:0;padding:8px 14px;border-radius:10px;font-size:.73rem;font-weight:700;border:2px solid var(--gold-l);background:var(--white);color:var(--gray);cursor:pointer;transition:.15s;white-space:nowrap;}
-.sp.on{color:#fff;border-color:transparent;}
+.sp.on{color:#fff;border-color:transparent;background:var(--green);}
 .sp[data-s="TODOS"].on{background:var(--brown);}
 .sp[data-s="PADARIA"].on{background:var(--blue);}
 .sp[data-s="CONFEITARIA"].on{background:var(--red2);}
@@ -117,7 +117,7 @@ select:focus,input:focus{border-color:var(--gold);background:#fff;}
 .emp p{font-size:.85rem;line-height:1.6;}
 
 /* BAR */
-.bar{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:2px solid var(--red-l);padding:11px 14px;display:flex;gap:9px;align-items:center;box-shadow:0 -4px 20px rgba(61,28,10,.12);z-index:100;}
+.bar{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:1.5px solid var(--gray-l);padding:11px 14px;display:flex;gap:9px;align-items:center;box-shadow:0 -4px 20px rgba(61,28,10,.12);z-index:100;}
 .bt{flex:1;}
 .bt strong{font-size:.95rem;font-weight:700;display:block;}
 .bt span{font-size:.72rem;color:var(--gray);}
@@ -444,18 +444,55 @@ canvas{width:100%!important;max-height:200px;}
 .dash-pdf-btn{width:100%;background:linear-gradient(135deg,var(--red) 0%,#9B2828 100%);color:#fff;border:none;border-radius:12px;padding:13px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 12px rgba(123,30,30,.25);transition:.15s;}
 .dash-pdf-btn:active{transform:scale(.98);}
 .dash-pdf-btn span{font-size:1.1rem;}
+
+/* ══ GESTFOOD TOPBAR ══ */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+.gf-topbar{
+  background:#fff;border-bottom:1.5px solid #E8E8E4;
+  height:48px;flex-shrink:0;display:flex;align-items:center;
+  padding:0 14px;gap:10px;z-index:200;
+  font-family:'Plus Jakarta Sans',sans-serif;
+}
+.gf-back{
+  display:flex;align-items:center;gap:6px;
+  background:#F4F4F2;border:1px solid #E8E8E4;
+  border-radius:8px;padding:5px 10px;
+  font-size:.72rem;font-weight:600;color:#4A4A46;
+  text-decoration:none;cursor:pointer;white-space:nowrap;
+  font-family:'Plus Jakarta Sans',sans-serif;
+}
+.gf-back:active{background:#E8E8E4;}
+.gf-logo{display:flex;align-items:center;gap:7px;}
+.gf-mark{
+  width:26px;height:26px;background:#2D6A4F;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:.72rem;font-weight:800;letter-spacing:-1px;
+  flex-shrink:0;overflow:hidden;
+}
+.gf-mark img{width:100%;height:100%;object-fit:cover;border-radius:5px;}
+.gf-name{font-size:.82rem;font-weight:700;color:#1C1C1A;letter-spacing:-.2px;}
+.gf-name span{color:#2D6A4F;font-weight:400;}
+.gf-modulo{
+  font-size:.72rem;font-weight:600;color:#6B7280;
+  background:#F4F4F2;border-radius:6px;
+  padding:3px 8px;margin-left:2px;
+}
+.gf-spacer{flex:1;}
+.gf-sync{
+  display:flex;align-items:center;gap:5px;
+  background:#F4F4F2;border:1px solid #E8E8E4;
+  border-radius:20px;padding:3px 9px;
+  font-size:.62rem;color:#6B7280;font-weight:500;
+}
+
 </style>
 </head>
 <body>
-<!-- Botão voltar para o hub -->
-<a href="MG_INDEX.html" style="position:fixed;top:8px;left:8px;z-index:9999;display:flex;align-items:center;gap:5px;background:#7B1E1E;color:#fff;text-decoration:none;padding:7px 13px;font-size:.72rem;font-weight:700;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.2);">← Hub</a>
-
-
 <header>
   <div class="h-top">
     <div>
       <h1>🗑️ Controle de Desperdícios <span class="beta-pill">BETA</span></h1>
-      <div class="h-sub">Mercadinho M. Graças</div>
+      <div class="h-sub">Supermercado MG</div>
     </div>
     <span class="h-badge" id="hBadge">0 itens</span>
   </div>
@@ -1210,7 +1247,7 @@ function expDashPDF(){
 
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-  <title>Dashboard — Desperdícios M. Graças</title>
+  <title>Dashboard — Desperdícios Supermercado MG</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:Arial,sans-serif;font-size:11px;color:#222;background:#fff;padding:20px 24px;}
@@ -1229,11 +1266,8 @@ function expDashPDF(){
     .col2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
     @media print{body{padding:12px;}@page{margin:1cm;size:A4;}}
   </style></head><body>
-<!-- Botão voltar para o hub -->
-<a href="MG_INDEX.html" style="position:fixed;top:8px;left:8px;z-index:9999;display:flex;align-items:center;gap:5px;background:#7B1E1E;color:#fff;text-decoration:none;padding:7px 13px;font-size:.72rem;font-weight:700;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.2);">← Hub</a>
-
   <h1>🗑️ Dashboard de Desperdícios</h1>
-  <div class="sub">Mercadinho M. Graças · Gerado em ${new Date().toLocaleString('pt-BR')} · ${D.hist.length} dias · ${D.hist.reduce((a,h)=>a+h.regs.length,0)} registros</div>
+  <div class="sub">Supermercado MG · Gerado em ${new Date().toLocaleString('pt-BR')} · ${D.hist.length} dias · ${D.hist.reduce((a,h)=>a+h.regs.length,0)} registros</div>
 
   <h2>📊 Indicadores Gerais</h2>
   <div class="kpi-row">
@@ -1261,7 +1295,7 @@ function expDashPDF(){
   <svg width="100%" height="80" viewBox="0 0 500 80" style="background:#FBF5EE;border-radius:6px;margin-bottom:4px">${sparkline}</svg>
   ${ultimos14.length?`<div style="font-size:8px;color:#888;text-align:right">Pico: ${Math.max(...vals14).toFixed(2)} kg · Média: ${(vals14.reduce((a,v)=>a+v,0)/vals14.length).toFixed(2)} kg/dia</div>`:''}
 
-  <div class="footer">Mercadinho M. Graças · Sistema de Controle de Desperdícios · ${new Date().toLocaleDateString('pt-BR')}</div>
+  <div class="footer">Supermercado MG · Sistema de Controle de Desperdícios · ${new Date().toLocaleDateString('pt-BR')}</div>
   </body></html>`);
   w.document.close();
   setTimeout(()=>w.print(),500);
@@ -1288,16 +1322,13 @@ function expTudoPDF(){
   .tot{background:#FAF0DC;font-weight:bold;}
   .footer{margin-top:20px;font-size:9px;color:#888;text-align:center;}
   @media print{body{padding:0;}}</style></head><body>
-<!-- Botão voltar para o hub -->
-<a href="MG_INDEX.html" style="position:fixed;top:8px;left:8px;z-index:9999;display:flex;align-items:center;gap:5px;background:#7B1E1E;color:#fff;text-decoration:none;padding:7px 13px;font-size:.72rem;font-weight:700;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.2);">← Hub</a>
-
-  <h1>🗑️ Relatório de Desperdícios — Mercadinho M. Graças</h1>
+  <h1>🗑️ Relatório de Desperdícios — Supermercado MG</h1>
   <p style="color:#666;font-size:10px;">Gerado em: ${new Date().toLocaleString('pt-BR')} · Total de registros: ${hist.length} dias · ${hist.reduce((a,h)=>a+h.regs.length,0)} itens</p>
   <h2>📊 Resumo por Setor</h2>
   <table><tr><th>Setor</th><th>Total (kg)</th></tr>${setRows}<tr class="tot"><td>🏪 TOTAL GERAL</td><td style="text-align:right">${tot.toFixed(3)} kg</td></tr></table>
   <h2>📋 Registros Detalhados</h2>
   <table><tr><th>Data</th><th>Produto</th><th>Setor</th><th>Qtd (kg)</th><th>Motivo</th><th>Responsável</th></tr>${rows}</table>
-  <div class="footer">Mercadinho M. Graças · Controle de Desperdícios BETA · ${new Date().toLocaleDateString('pt-BR')}</div>
+  <div class="footer">Supermercado MG · Controle de Desperdícios BETA · ${new Date().toLocaleDateString('pt-BR')}</div>
   </body></html>`);
   w.document.close();
   setTimeout(()=>w.print(),400);
@@ -1314,14 +1345,11 @@ function gerarPDF(titulo,resp,mot,itens){
   table{width:100%;border-collapse:collapse;}th{background:#7B1E1E;color:#fff;padding:5px 8px;text-align:left;font-size:10px;}
   td{padding:5px 8px;border-bottom:1px solid #F5E6C0;}tr:nth-child(even){background:#FBF5EE;}
   .tot{background:#FAF0DC;font-weight:bold;}@media print{body{padding:0;}}</style></head><body>
-<!-- Botão voltar para o hub -->
-<a href="MG_INDEX.html" style="position:fixed;top:8px;left:8px;z-index:9999;display:flex;align-items:center;gap:5px;background:#7B1E1E;color:#fff;text-decoration:none;padding:7px 13px;font-size:.72rem;font-weight:700;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.2);">← Hub</a>
-
   <h1>🗑️ ${titulo}</h1>
   <p><b>Responsável:</b> ${resp} · <b>Motivo:</b> ${mot} · <b>Total:</b> ${tot.toFixed(3)} kg</p>
   <table><tr><th>Produto</th><th>Cód</th><th>Setor</th><th>Qtd (kg)</th></tr>
   ${rows}<tr class="tot"><td colspan="3"><b>TOTAL</b></td><td style="text-align:right"><b>${tot.toFixed(3)}</b></td></tr></table>
-  <p style="font-size:9px;color:#888;margin-top:16px;">Mercadinho M. Graças · ${new Date().toLocaleString('pt-BR')}</p>
+  <p style="font-size:9px;color:#888;margin-top:16px;">Supermercado MG · ${new Date().toLocaleString('pt-BR')}</p>
   </body></html>`);
   w.document.close();setTimeout(()=>w.print(),400);toast('📄 PDF aberto!','ok');
 }
@@ -2085,6 +2113,25 @@ async function restaurarBase(){
 function tog(id){document.getElementById(id).classList.toggle('on');}
 function dl(content,filename){const b=new Blob(['\ufeff'+content],{type:'text/csv;charset=utf-8'});const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=filename;a.click();URL.revokeObjectURL(u);}
 function toast(msg,t=''){const el=document.getElementById('tst');el.textContent=msg;el.className='tst on'+(t?' '+t:'');setTimeout(()=>el.className='tst',2800);}
+
+// GestFood TopBar sync
+(function(){
+  document.getElementById('gfModulo').textContent='🗑️ Desperdícios';
+  // Observar mudanças no syncDot original para refletir no gfDot
+  const orig=document.getElementById('syncDot');
+  const gfD=document.getElementById('gfDot');
+  const gfS=document.getElementById('gfSync');
+  const syncT=document.getElementById('syncTxt');
+  if(orig&&gfD){
+    const obs=new MutationObserver(()=>{
+      gfD.className=orig.className;
+      if(syncT&&gfS)gfS.textContent=syncT.textContent;
+    });
+    obs.observe(orig,{attributes:true,childList:true,subtree:true});
+    if(syncT&&gfS)gfS.textContent=syncT.textContent;
+  }
+})();
+
 </script>
 </body>
 </html>
