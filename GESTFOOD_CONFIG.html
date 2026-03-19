@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2D6A4F">
+<title>⚙️ Configurações · GestFood</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F7F5;--white:#FFF;--brown:#1C1C1A;--brown2:#4A4A46;
+  --border:#E8E8E4;--gray:#6B7280;--gray-l:#F4F4F2;
+  --grn:#2D6A4F;--grn2:#1B4332;--grn-l:#EAF4EF;
+  --red:#C0392B;--red-l:#FDECEA;
+  --blue:#1D4ED8;--blue-l:#EEF2FF;
+  --amber:#B45309;--amber-l:#FFFBEB;
+  --sh:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--brown);display:flex;flex-direction:column;overflow:hidden;}
+
+/* TOPBAR */
+.topbar{background:var(--white);border-bottom:1.5px solid var(--border);height:48px;flex-shrink:0;display:flex;align-items:center;padding:0 14px;gap:10px;z-index:200;}
+.gf-back{display:flex;align-items:center;gap:6px;background:var(--gray-l);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.72rem;font-weight:600;color:var(--brown2);text-decoration:none;white-space:nowrap;}
+.logo-mark{width:26px;height:26px;background:var(--grn);border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.72rem;font-weight:800;}
+.logo-name{font-size:.82rem;font-weight:700;color:var(--brown);}
+.logo-name span{color:var(--grn);font-weight:400;}
+.mod-label{font-size:.72rem;font-weight:600;color:var(--gray);background:var(--gray-l);border-radius:6px;padding:3px 8px;}
+.spacer{flex:1;}
+.sync-pill{display:flex;align-items:center;gap:5px;background:var(--gray-l);border:1px solid var(--border);border-radius:20px;padding:3px 9px;font-size:.62rem;color:var(--gray);}
+.dot{width:6px;height:6px;border-radius:50%;background:#22C55E;}
+.dot.off{background:#EF4444;}
+.dot.wait{background:#F59E0B;animation:pulse 1.2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* TABS */
+.tabs{display:flex;background:var(--white);border-bottom:1.5px solid var(--border);flex-shrink:0;}
+.tab{flex:1;text-align:center;padding:10px 4px;font-size:.7rem;font-weight:600;color:var(--gray);cursor:pointer;border-bottom:3px solid transparent;transition:.15s;}
+.tab.on{color:var(--grn);border-bottom-color:var(--grn);}
+
+/* SCROLL */
+.scr{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 80px;}
+.vw{display:none;}.vw.on{display:block;}
+
+/* CARDS */
+.card{background:var(--white);border:1.5px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:var(--sh);}
+.card-title{font-size:.8rem;font-weight:700;color:var(--brown);margin-bottom:4px;}
+.card-sub{font-size:.7rem;color:var(--gray);margin-bottom:12px;line-height:1.5;}
+
+/* FORM */
+label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--brown2);display:block;margin-bottom:4px;}
+input,select{width:100%;border:1.5px solid var(--border);border-radius:9px;padding:9px 11px;font-size:.88rem;color:var(--brown);background:var(--gray-l);outline:none;font-family:inherit;appearance:none;-webkit-appearance:none;}
+input:focus,select:focus{border-color:var(--grn);background:#fff;}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.fg{margin-top:8px;}
+
+/* BOTÕES */
+.btn{border:none;border-radius:10px;padding:11px 16px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.btn-grn{background:var(--grn);color:#fff;}
+.btn-red{background:var(--red-l);color:var(--red);}
+.btn-gray{background:var(--gray-l);color:var(--brown2);}
+.btn-full{width:100%;margin-top:10px;}
+.btn-sm{padding:6px 10px;font-size:.72rem;}
+
+/* BUSCA */
+.sw{position:relative;margin-bottom:10px;}
+.sw input{padding-left:36px;background:#fff;}
+.si{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:.9rem;opacity:.4;}
+
+/* SETOR PILLS */
+.pills{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-bottom:10px;padding-bottom:2px;}
+.pills::-webkit-scrollbar{display:none;}
+.pill{flex-shrink:0;padding:6px 12px;border-radius:9px;font-size:.72rem;font-weight:600;border:1.5px solid var(--border);background:var(--white);color:var(--gray);cursor:pointer;white-space:nowrap;}
+.pill.on{background:var(--grn);color:#fff;border-color:var(--grn);}
+
+/* LISTA PRODUTOS */
+.prod-item{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:11px 12px;margin-bottom:7px;display:flex;align-items:center;gap:10px;}
+.prod-item.inativo{opacity:.4;}
+.prod-ico{width:36px;height:36px;border-radius:9px;background:var(--grn-l);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+.prod-info{flex:1;min-width:0;}
+.prod-nm{font-size:.83rem;font-weight:600;word-break:break-word;}
+.prod-mt{font-size:.62rem;color:var(--gray);margin-top:2px;}
+.prod-acts{display:flex;gap:5px;flex-shrink:0;}
+.prod-btn{border:none;border-radius:7px;padding:5px 8px;font-size:.75rem;cursor:pointer;font-family:inherit;font-weight:600;}
+.prod-btn.ed{background:var(--blue-l);color:var(--blue);}
+.prod-btn.in{background:var(--amber-l);color:var(--amber);}
+.prod-btn.rv{background:var(--grn-l);color:var(--grn);}
+
+/* STATUS */
+.status-bar{background:var(--grn-l);border:1px solid #C6E6D4;border-radius:10px;padding:10px 12px;font-size:.75rem;color:var(--grn2);font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.status-bar.er{background:var(--red-l);border-color:#F5B7B1;color:var(--red);}
+.status-bar.wa{background:var(--amber-l);border-color:#FBBF24;color:var(--amber);}
+
+/* MODAL */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(28,28,26,.45);backdrop-filter:blur(4px);z-index:900;align-items:flex-end;justify-content:center;padding:10px;}
+.modal-ov.on{display:flex;}
+.modal-box{background:var(--white);border-radius:20px 20px 16px 16px;padding:20px 16px 24px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;animation:slideUp .22s ease;}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-handle{width:32px;height:3px;background:var(--border);border-radius:2px;margin:0 auto 16px;}
+.modal-title{font-size:.95rem;font-weight:700;margin-bottom:14px;letter-spacing:-.2px;}
+.modal-btns{display:flex;gap:8px;margin-top:16px;}
+
+/* TOAST */
+.tst{position:fixed;top:60px;left:50%;transform:translateX(-50%) translateY(-10px);background:var(--brown);color:#fff;padding:9px 18px;border-radius:20px;font-size:.8rem;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:999;white-space:nowrap;}
+.tst.on{opacity:1;transform:translateX(-50%) translateY(0);}
+.tst.ok{background:var(--grn);}
+.tst.er{background:var(--red);}
+
+/* CONF MODAL */
+.conf-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:950;align-items:center;justify-content:center;padding:20px;}
+.conf-ov.on{display:flex;}
+.conf-box{background:#fff;border-radius:18px;width:88%;max-width:340px;padding:24px 20px 18px;text-align:center;}
+.conf-ico{font-size:2rem;margin-bottom:8px;}
+.conf-ttl{font-size:.95rem;font-weight:700;margin-bottom:6px;}
+.conf-msg{font-size:.78rem;color:var(--gray);margin-bottom:18px;line-height:1.6;}
+.conf-btns{display:flex;gap:8px;}
+.conf-ok{flex:1;background:var(--red);color:#fff;border:none;border-radius:10px;padding:12px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.conf-ok.grn{background:var(--grn);}
+.conf-cn{flex:1;background:var(--gray-l);color:var(--brown);border:none;border-radius:10px;padding:12px;font-size:.88rem;cursor:pointer;font-family:inherit;}
+
+/* PROGRESS */
+.progress-wrap{background:var(--border);border-radius:10px;height:8px;margin:10px 0;}
+.progress-bar{background:var(--grn);height:8px;border-radius:10px;transition:width .3s;}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <a href="GESTFOOD_INDEX.html" class="gf-back">← Hub</a>
+  <div class="logo-mark">G</div>
+  <div class="logo-name">Gest<span>Food</span></div>
+  <span class="mod-label">⚙️ Configurações</span>
+  <div class="spacer"></div>
+  <div class="sync-pill">
+    <span class="dot wait" id="syncDot"></span>
+    <span id="syncTxt">conectando</span>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab on" onclick="go('produtos')">📦 Produtos</div>
+  <div class="tab" onclick="go('setores')">🏪 Setores</div>
+  <div class="tab" onclick="go('resps')">👤 Responsáveis</div>
+  <div class="tab" onclick="go('sync')">☁️ Sync</div>
+</div>
+
+<div class="scr">
+
+<!-- ═══ ABA PRODUTOS ═══ -->
+<div class="vw on" id="v-produtos">
+  <div id="statusBar" style="display:none;" class="status-bar"></div>
+
+  <!-- Busca + filtro setor -->
+  <div class="sw"><span class="si">🔍</span><input type="text" id="prodSrc" placeholder="Buscar produto..." oninput="renderProds()"></div>
+  <div class="pills" id="setorPills"></div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <span id="prodCount" style="font-size:.72rem;color:var(--gray);font-weight:500;"></span>
+    <button class="btn btn-grn btn-sm" onclick="abrirNovoProd()">+ Novo produto</button>
+  </div>
+
+  <div id="prodList"></div>
+</div>
+
+<!-- ═══ ABA SETORES ═══ -->
+<div class="vw" id="v-setores">
+  <div class="card">
+    <div class="card-title">🏪 Setores</div>
+    <div class="card-sub">Setores usados em Produção e Desperdícios.</div>
+    <div id="setoresList"></div>
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <input type="text" id="novoSetor" placeholder="Nome do setor (ex: AÇOUGUE)" style="flex:1;text-transform:uppercase;">
+      <button class="btn btn-grn" onclick="addSetor()">+ Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ABA RESPONSÁVEIS ═══ -->
+<div class="vw" id="v-resps">
+  <div class="card">
+    <div class="card-title">👤 Responsáveis</div>
+    <div class="card-sub">Pessoas que registram produção e desperdícios.</div>
+    <div id="respsList"></div>
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <input type="text" id="novoResp" placeholder="Nome do responsável" style="flex:1;text-transform:uppercase;">
+      <button class="btn btn-grn" onclick="addResp()">+ Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ABA SYNC ═══ -->
+<div class="vw" id="v-sync">
+  <div class="card">
+    <div class="card-title">☁️ Sincronização Supabase</div>
+    <div class="card-sub">Status da conexão e operações de dados.</div>
+    <div id="syncStatus" style="margin-bottom:12px;font-size:.78rem;color:var(--gray);">Verificando...</div>
+    <button class="btn btn-grn btn-full" onclick="popularProdutos()">📥 Popular banco com 144 produtos base</button>
+    <p style="font-size:.65rem;color:var(--gray);margin-top:6px;text-align:center;">Use apenas na primeira vez ou para restaurar os dados base.</p>
+    <div id="progressWrap" style="display:none;margin-top:10px;">
+      <div class="progress-wrap"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+      <p id="progressTxt" style="font-size:.7rem;color:var(--gray);text-align:center;margin-top:4px;"></p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">📊 Estatísticas</div>
+    <div id="statsBox" style="font-size:.78rem;color:var(--gray);">Carregando...</div>
+  </div>
+</div>
+
+</div><!-- /scr -->
+
+<!-- TOAST -->
+<div class="tst" id="tst"></div>
+
+<!-- MODAL PRODUTO -->
+<div class="modal-ov" id="modalProd">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalProdTitulo">Novo produto</div>
+    <input type="hidden" id="mpId">
+    <div class="fg"><label>Nome *</label><input type="text" id="mpNome" placeholder="Nome do produto" style="text-transform:uppercase;"></div>
+    <div class="r2" style="margin-top:8px;">
+      <div class="fg"><label>Código</label><input type="text" id="mpCod" placeholder="0000"></div>
+      <div class="fg"><label>Setor</label>
+        <select id="mpSetor"></select>
+      </div>
+    </div>
+    <div class="r3" style="margin-top:8px;">
+      <div class="fg"><label>Unidade</label>
+        <select id="mpUnd">
+          <option value="KG">⚖️ KG</option>
+          <option value="UND">📦 UND</option>
+        </select>
+      </div>
+      <div class="fg"><label>Mínimo</label><input type="number" id="mpMin" min="0" step="any" placeholder="0"></div>
+      <div class="fg"><label>Máximo</label><input type="number" id="mpMax" min="0" step="any" placeholder="0"></div>
+    </div>
+    <div class="r2" style="margin-top:8px;">
+      <div class="fg"><label>Validade (dias)</label><input type="number" id="mpVal" min="1" step="1" placeholder="1"></div>
+      <div class="fg"><label>ABC</label>
+        <select id="mpAbc">
+          <option value="A">🔴 A</option>
+          <option value="B">🟡 B</option>
+          <option value="C" selected>🟢 C</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-gray" style="flex:1" onclick="fecharModalProd()">Cancelar</button>
+      <button class="btn btn-grn" style="flex:2" onclick="salvarProd()">✅ Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAÇÃO -->
+<div class="conf-ov" id="confOv">
+  <div class="conf-box">
+    <div class="conf-ico" id="confIco">⚠️</div>
+    <div class="conf-ttl" id="confTtl">Confirmar</div>
+    <div class="conf-msg" id="confMsg"></div>
+    <div class="conf-btns">
+      <button class="conf-cn" onclick="_confResp(false)">Cancelar</button>
+      <button class="conf-ok" id="confOk" onclick="_confResp(true)">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPA_URL='https://rjkseydseuotdkavskss.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqa3NleWRzZXVvdGRrYXZza3NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTE4OTAsImV4cCI6MjA4Nzc4Nzg5MH0.wEzZ9sZhXJhu0jjNx2OeW7RacGi8djUj-9r9u1-8KYY';
+const H={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'};
+
+const PRODUTOS_BASE = [{"id": "6953", "cod": "6953", "nome": "PÃO 12 GRÃOS LIGHT KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5366", "cod": "5366", "nome": "PÃO DA FAZENDA KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "3657", "cod": "3657", "nome": "PÃO DE CAIXA INTEGRAL LIGHT", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "1710", "cod": "1710", "nome": "PÃO DE BATATA KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "1034", "cod": "1034", "nome": "PÃO ITALIANO", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6952", "cod": "6952", "nome": "PÃO CENTEIO LIGHT KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6636", "cod": "6636", "nome": "BISCOITO AMANTEIGADO KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "4299", "cod": "4299", "nome": "BISCOITO POLVILHO KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "7460", "cod": "7460", "nome": "BOLACHA 7 CAPAS KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "4355", "cod": "4355", "nome": "BOLACHA DE ALHO", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "4346", "cod": "4346", "nome": "BOLACHA DE CEBOLA", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "526", "cod": "526", "nome": "BOLACHA DE COCO", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "9652", "cod": "9652", "nome": "BOLACHA INTEGRAL DA CASA KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5656", "cod": "5656", "nome": "BOLACHA MARAGOGI KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5264", "cod": "5264", "nome": "BOLACHA PORTUGUESA KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "1545", "cod": "1545", "nome": "BOLACHA PRAEIRA DA CASA KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "1546", "cod": "1546", "nome": "BOLACHA SODA DA CASA KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "858", "cod": "858", "nome": "BOLACHA SUIÇA DA CASA KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "7949", "cod": "7949", "nome": "COOKIES CHOCOLATE / LARANJA", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5246", "cod": "5246", "nome": "CROASSAINT", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "3536", "cod": "3536", "nome": "CROISSANTE SANDUICHE", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "1556", "cod": "1556", "nome": "PANETONE DA CASA KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "4242", "cod": "4242", "nome": "PANETONE DE CHOCOLATE KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6713", "cod": "6713", "nome": "PÃO AÇAI C/GUARANA", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "4206", "cod": "4206", "nome": "PÃO AUSTRALIANO KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "4576", "cod": "4576", "nome": "PÃO BOLACHÃO KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5529", "cod": "5529", "nome": "PÃO BRIOCHE KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "1543", "cod": "1543", "nome": "PÃO CACHORRO QUENTE KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5829", "cod": "5829", "nome": "PÃO DE ALHO KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6955", "cod": "6955", "nome": "PÃO DE CAIXA CENTEIO LIGHT KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "1542", "cod": "1542", "nome": "PÃO DE CAIXA KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6954", "cod": "6954", "nome": "PÃO DE CAIXA MULTIGRÃOS KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "8662", "cod": "8662", "nome": "PÃO DE CHIA KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "1544", "cod": "1544", "nome": "PÃO DE HAMBURGUER KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "714", "cod": "714", "nome": "PÃO DOCE KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "715", "cod": "715", "nome": "PÃO FRANCES INTEGRAL KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "708", "cod": "708", "nome": "PÃO FRANCES KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "9542", "cod": "9542", "nome": "PÃO MINI DOG KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "4098", "cod": "4098", "nome": "PÃO PIZZA FATIA", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "2540", "cod": "2540", "nome": "PÃO QUINOA", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "9666", "cod": "9666", "nome": "PÃO RECIFE KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6276", "cod": "6276", "nome": "ROSQUINHAS", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "9636", "cod": "9636", "nome": "TARECO", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "1557", "cod": "1557", "nome": "TORRADA DA CASA KG", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "1566", "cod": "1566", "nome": "TORRADA DE ALHO", "setor": "PADARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5362", "cod": "5362", "nome": "BOLO DE BANANA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5221", "cod": "5221", "nome": "BOLO DE PAMONHA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5421", "cod": "5421", "nome": "BRIGADEIRÃO", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5368", "cod": "5368", "nome": "BOLO DE AMEIXA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "2657", "cod": "2657", "nome": "BOLO DE MACAXEIRA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "9599", "cod": "9599", "nome": "BOLO DE MILHO", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "auto_BOLO_DE_NO", "cod": "", "nome": "BOLO DE NOIVA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5364", "cod": "5364", "nome": "BOLO DE COCADA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "1574", "cod": "1574", "nome": "DONUTS", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "9526", "cod": "9526", "nome": "BOLO MESCLADO", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "9525", "cod": "9525", "nome": "BOLO DE TRIGO", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "2658", "cod": "2658", "nome": "BOLO DE MANDIOCA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "3634", "cod": "3634", "nome": "BOLO SURPRESA DE AMEIXA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5697", "cod": "5697", "nome": "BOLO ENGORDA MARIDO", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5363", "cod": "5363", "nome": "BOLO DE ABACAXI", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5452", "cod": "5452", "nome": "PUDIM", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5458", "cod": "5458", "nome": "TORTA DOCE DE LEITE KG", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "3592", "cod": "3592", "nome": "BANOFFE UND", "setor": "CONFEITARIA", "unidade": "UND", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6655", "cod": "6655", "nome": "BISCOITO CHAMPANHE", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "1756", "cod": "1756", "nome": "BOLO BACIA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "1666", "cod": "1666", "nome": "BOLO BEM BOCADO MACAXEIRA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "9527", "cod": "9527", "nome": "BOLO DE AIMPIM", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "9648", "cod": "9648", "nome": "BOLO DE BANANA COM CANELA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5367", "cod": "5367", "nome": "BOLO DE CANJICA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5360", "cod": "5360", "nome": "BOLO DE CENOURA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "2147", "cod": "2147", "nome": "BOLO DE CHURROS", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "9296", "cod": "9296", "nome": "BOLO DE COCO", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "9643", "cod": "9643", "nome": "BOLO DE FRUTAS VERMELHAS", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "9531", "cod": "9531", "nome": "BOLO DE LARANJA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "4273", "cod": "4273", "nome": "BOLO DE LEITE CONDENSADO", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "4529", "cod": "4529", "nome": "BOLO DE LIMÃO", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6696", "cod": "6696", "nome": "BOLO DE MAÇÃ", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6612", "cod": "6612", "nome": "BOLO DE MAÇÃ COM CANELA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "9534", "cod": "9534", "nome": "BOLO DE MARACUJA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6746", "cod": "6746", "nome": "BOLO DE MILHO CREMOSO", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5986", "cod": "5986", "nome": "BOLO DE MILHO VERDE", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6164", "cod": "6164", "nome": "BOLO DE NAPOLITANO", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6676", "cod": "6676", "nome": "BOLO DE PAÇOCA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "2652", "cod": "2652", "nome": "BOLO DE PÉ DE MOLEQUE", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5518", "cod": "5518", "nome": "BOLO DE POTE DE CHOCOLATE", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5029", "cod": "5029", "nome": "BOLO DE PRESTIGIO", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6413", "cod": "6413", "nome": "BOLO DE QUEIJO", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6988", "cod": "6988", "nome": "BOLO DE TAPIOCA COM LEITE CONDENSADO", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5640", "cod": "5640", "nome": "BOLO DE TAPIOCA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "9521", "cod": "9521", "nome": "BOLO FORMIGUEIRO", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6764", "cod": "6764", "nome": "BOLO GIENECCHINE", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6394", "cod": "6394", "nome": "BOLO INGLÊS", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "2457", "cod": "2457", "nome": "BOLO PUDIM KG", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6761", "cod": "6761", "nome": "BOLO PUDIM UND", "setor": "CONFEITARIA", "unidade": "UND", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "4477", "cod": "4477", "nome": "BOLO SOUZA LEÃO", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6371", "cod": "6371", "nome": "BOLO SURPRESA AMENDOIM", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6723", "cod": "6723", "nome": "BOLO SURPRESA CASTANHA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6544", "cod": "6544", "nome": "BOLO SURPRESA DE COCO", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6449", "cod": "6449", "nome": "BOLO SURPRESA NATA GOIABA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "1593", "cod": "1593", "nome": "BOLO XADREZ", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "1547", "cod": "1547", "nome": "BROA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6792", "cod": "6792", "nome": "COCADA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "4599", "cod": "4599", "nome": "DELICIA DE ABACAXI UND", "setor": "CONFEITARIA", "unidade": "UND", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6762", "cod": "6762", "nome": "DOCE DE BANANA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6026", "cod": "6026", "nome": "MINI BROA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5455", "cod": "5455", "nome": "MOUSSES", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6040", "cod": "6040", "nome": "PALHA ITALIANA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5865", "cod": "5865", "nome": "PALMIER", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5065", "cod": "5065", "nome": "PÃO DE MEL", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "7626", "cod": "7626", "nome": "QUEIJADINHA", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "1595", "cod": "1595", "nome": "TORTA CHOCOLATE KG", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5459", "cod": "5459", "nome": "TORTA LIMÃO KG", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6765", "cod": "6765", "nome": "TORTA MARACUJA KG", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6861", "cod": "6861", "nome": "TORTA MORANGO KG", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5982", "cod": "5982", "nome": "TORTAS ESPECIAL KG", "setor": "CONFEITARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "9452", "cod": "9452", "nome": "MINI COXINHA DE FRANGO", "setor": "LANCHONETE", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5051", "cod": "5051", "nome": "FOLHADOS", "setor": "LANCHONETE", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "auto_BOLINHO_DE", "cod": "", "nome": "BOLINHO DE BACALHAU", "setor": "LANCHONETE", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "9774", "cod": "9774", "nome": "CAMARÃO EMPANADO", "setor": "LANCHONETE", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "4773", "cod": "4773", "nome": "MINI CHURROS", "setor": "LANCHONETE", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6759", "cod": "6759", "nome": "BOLINHO DE QUEIJO", "setor": "LANCHONETE", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5331", "cod": "5331", "nome": "MINI COXINHA DE FRANGO COM REQUEIJÃO", "setor": "LANCHONETE", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6582", "cod": "6582", "nome": "MINI COXINHA DE CHARQUE", "setor": "LANCHONETE", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6849", "cod": "6849", "nome": "BOLINHO DE QUEIJO COM CALABRESA", "setor": "LANCHONETE", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6540", "cod": "6540", "nome": "CANJICA", "setor": "LANCHONETE", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "9453", "cod": "9453", "nome": "COXINHA", "setor": "LANCHONETE", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5705", "cod": "5705", "nome": "EMPADA UND", "setor": "LANCHONETE", "unidade": "UND", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "9455", "cod": "9455", "nome": "ENROLADINHO", "setor": "LANCHONETE", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "4203", "cod": "4203", "nome": "MINI CROASSANT KG", "setor": "LANCHONETE", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "4370", "cod": "4370", "nome": "MINI CROISSANT DOCE KG", "setor": "LANCHONETE", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "9681", "cod": "9681", "nome": "MINI EMPADA KG", "setor": "LANCHONETE", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "7561", "cod": "7561", "nome": "MINI FRANCES KG", "setor": "LANCHONETE", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "715", "cod": "715", "nome": "MINI INTEGRAL DA CASA KG", "setor": "LANCHONETE", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "7846", "cod": "7846", "nome": "MINI PIZZA UNIDADE", "setor": "LANCHONETE", "unidade": "UND", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "4451", "cod": "4451", "nome": "PÃO DE QUEIJO KG", "setor": "LANCHONETE", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "5129", "cod": "5129", "nome": "PASTEL DE CARNE", "setor": "LANCHONETE", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "9439", "cod": "9439", "nome": "QUICHE DE ALHO PORO", "setor": "LANCHONETE", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6330", "cod": "6330", "nome": "SALGADO DE BATATA COM FRANGO UND", "setor": "LANCHONETE", "unidade": "UND", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "633", "cod": "633", "nome": "SALGADO DE BATATA CALABRESA", "setor": "LANCHONETE", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6631", "cod": "6631", "nome": "SALGADO DE BATATA MISTO UND", "setor": "LANCHONETE", "unidade": "UND", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6331", "cod": "6331", "nome": "SALGADO DE BATATA MISTO", "setor": "LANCHONETE", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "7485", "cod": "7485", "nome": "SONHO DA CASA KG", "setor": "LANCHONETE", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "6957", "cod": "6957", "nome": "TORTA SALGADA KG", "setor": "LANCHONETE", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}, {"id": "7226", "cod": "7226", "nome": "BROA SALGADA", "setor": "PASTELARIA", "unidade": "KG", "min_estoque": 0, "max_estoque": 0, "validade": 1, "abc": "C", "ativo": true, "categoria": ""}];
+
+// Estado
+let PRODS = [];
+let SETORES = ['PADARIA','CONFEITARIA','LANCHONETE','PASTELARIA'];
+let RESPS = [];
+let _setorFiltro = 'TODOS';
+let _editId = null;
+
+// ── Supabase helpers ──
+async function sbSelect(table, filters=''){
+  const r=await fetch(`${SUPA_URL}/rest/v1/${table}?${filters}`,{headers:H});
+  if(!r.ok)throw new Error(await r.text());
+  return r.json();
+}
+async function sbUpsert(table, data){
+  const r=await fetch(`${SUPA_URL}/rest/v1/${table}`,{
+    method:'POST',
+    headers:{...H,'Prefer':'resolution=merge-duplicates,return=minimal'},
+    body:JSON.stringify(Array.isArray(data)?data:[data])
+  });
+  if(!r.ok)throw new Error(await r.text());
+}
+async function sbUpdate(table, id, data){
+  const r=await fetch(`${SUPA_URL}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`,{
+    method:'PATCH',headers:{...H,'Prefer':'return=minimal'},
+    body:JSON.stringify(data)
+  });
+  if(!r.ok)throw new Error(await r.text());
+}
+async function sbDelete(table, id){
+  const r=await fetch(`${SUPA_URL}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`,{
+    method:'DELETE',headers:H
+  });
+  if(!r.ok)throw new Error(await r.text());
+}
+
+// ── Toast ──
+let _tst;
+function toast(msg, tipo='ok'){
+  clearTimeout(_tst);
+  const el=document.getElementById('tst');
+  el.textContent=msg;el.className='tst on '+(tipo||'');
+  _tst=setTimeout(()=>el.className='tst',2800);
+}
+
+// ── Confirmar ──
+let _confResolve=null;
+function confirmar(msg,titulo='Confirmar',ico='⚠️',okTxt='Confirmar',verde=false){
+  return new Promise(resolve=>{
+    _confResolve=resolve;
+    document.getElementById('confIco').textContent=ico;
+    document.getElementById('confTtl').textContent=titulo;
+    document.getElementById('confMsg').textContent=msg;
+    document.getElementById('confOk').textContent=okTxt;
+    document.getElementById('confOk').className='conf-ok'+(verde?' grn':'');
+    document.getElementById('confOv').classList.add('on');
+  });
+}
+function _confResp(ok){
+  document.getElementById('confOv').classList.remove('on');
+  if(_confResolve){_confResolve(ok);_confResolve=null;}
+}
+
+// ── Tabs ──
+function go(t){
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('on',['produtos','setores','resps','sync'][i]===t));
+  document.querySelectorAll('.vw').forEach(v=>v.classList.remove('on'));
+  document.getElementById('v-'+t).classList.add('on');
+  if(t==='setores')renderSetores();
+  if(t==='resps')renderResps();
+  if(t==='sync')renderSyncStats();
+}
+
+// ── INIT ──
+(async()=>{
+  setSyncUI('wait');
+  try{
+    const[prods,resps]=await Promise.all([
+      sbSelect('produtos','order=nome.asc&limit=500'),
+      sbSelect('responsaveis','limit=100')
+    ]);
+    PRODS=prods||[];
+    RESPS=(resps||[]).map(r=>r.nome);
+    // Extrair setores únicos dos produtos
+    const setoresDB=[...new Set(PRODS.map(p=>p.setor).filter(Boolean))];
+    if(setoresDB.length)SETORES=[...new Set([...SETORES,...setoresDB])];
+    setSyncUI('ok');
+    renderPills();
+    renderProds();
+    // Se banco vazio, avisar
+    if(!PRODS.length){
+      showStatus('⚠️ Banco de produtos vazio. Vá em ☁️ Sync para popular.','wa');
+    }
+  }catch(e){
+    setSyncUI('off');
+    showStatus('❌ Sem conexão com Supabase. Verifique a internet.','er');
+  }
+})();
+
+function setSyncUI(st){
+  const dot=document.getElementById('syncDot'),txt=document.getElementById('syncTxt');
+  if(st==='ok'){dot.className='dot';txt.textContent='online';}
+  else if(st==='wait'){dot.className='dot wait';txt.textContent='conectando';}
+  else{dot.className='dot off';txt.textContent='offline';}
+  const el=document.getElementById('syncStatus');
+  if(el){
+    if(st==='ok')el.textContent='✅ Conectado ao Supabase — '+PRODS.length+' produtos carregados';
+    else if(st==='off')el.textContent='❌ Sem conexão com Supabase';
+    else el.textContent='⏳ Conectando...';
+  }
+}
+
+function showStatus(msg, tipo='ok'){
+  const el=document.getElementById('statusBar');
+  el.textContent=msg;el.className='status-bar '+tipo;el.style.display='flex';
+  setTimeout(()=>el.style.display='none', 4000);
+}
+
+// ── PILLS DE SETOR ──
+function renderPills(){
+  const setores=['TODOS',...SETORES];
+  const el=document.getElementById('setorPills');
+  el.innerHTML=setores.map(s=>`<div class="pill ${s===_setorFiltro?'on':''}" onclick="filtrarSetor('${s}')">${s==='TODOS'?'🏪 Todos':s}</div>`).join('');
+}
+function filtrarSetor(s){_setorFiltro=s;renderPills();renderProds();}
+
+// ── RENDER PRODUTOS ──
+const ICO_SETOR={PADARIA:'🍞',CONFEITARIA:'🎂',LANCHONETE:'🥟',PASTELARIA:'🥐'};
+
+function renderProds(){
+  const q=(document.getElementById('prodSrc').value||'').toLowerCase().trim();
+  let list=[...PRODS];
+  if(_setorFiltro!=='TODOS')list=list.filter(p=>p.setor===_setorFiltro);
+  if(q)list=list.filter(p=>p.nome.toLowerCase().includes(q)||(p.cod||'').includes(q));
+  list.sort((a,b)=>a.nome.localeCompare(b.nome));
+
+  const nInat=list.filter(p=>!p.ativo).length;
+  document.getElementById('prodCount').textContent=`${list.length} produtos · ${nInat} inativos`;
+
+  if(!list.length){
+    document.getElementById('prodList').innerHTML=`<div style="text-align:center;padding:30px;color:var(--gray);font-size:.82rem;">Nenhum produto encontrado</div>`;
+    return;
+  }
+
+  document.getElementById('prodList').innerHTML=list.map(p=>`
+    <div class="prod-item ${p.ativo?'':'inativo'}">
+      <div class="prod-ico">${ICO_SETOR[p.setor]||'📦'}</div>
+      <div class="prod-info">
+        <div class="prod-nm">${p.nome}${!p.ativo?' <span style="font-size:.58rem;background:var(--red-l);color:var(--red);padding:1px 5px;border-radius:4px;">inativo</span>':''}</div>
+        <div class="prod-mt">${p.setor} · ${p.unidade} · COD: ${p.cod||'—'} · ${p.abc||'C'}</div>
+      </div>
+      <div class="prod-acts">
+        <button class="prod-btn ed" onclick="editarProd('${p.id}')">✏️</button>
+        <button class="prod-btn ${p.ativo?'in':'rv'}" onclick="toggleAtivo('${p.id}')">${p.ativo?'⏸':'▶'}</button>
+      </div>
+    </div>`).join('');
+}
+
+// ── EDITAR / NOVO PRODUTO ──
+function abrirNovoProd(){
+  _editId=null;
+  document.getElementById('modalProdTitulo').textContent='➕ Novo produto';
+  document.getElementById('mpId').value='';
+  document.getElementById('mpNome').value='';
+  document.getElementById('mpCod').value='';
+  document.getElementById('mpMin').value='';
+  document.getElementById('mpMax').value='';
+  document.getElementById('mpVal').value='1';
+  document.getElementById('mpAbc').value='C';
+  _preencherSetorSelect('mpSetor','PADARIA');
+  document.getElementById('mpUnd').value='KG';
+  document.getElementById('modalProd').classList.add('on');
+  setTimeout(()=>document.getElementById('mpNome').focus(),80);
+}
+function editarProd(id){
+  const p=PRODS.find(x=>x.id===id);if(!p)return;
+  _editId=id;
+  document.getElementById('modalProdTitulo').textContent='✏️ Editar produto';
+  document.getElementById('mpId').value=id;
+  document.getElementById('mpNome').value=p.nome;
+  document.getElementById('mpCod').value=p.cod||'';
+  document.getElementById('mpMin').value=p.min_estoque||0;
+  document.getElementById('mpMax').value=p.max_estoque||0;
+  document.getElementById('mpVal').value=p.validade||1;
+  document.getElementById('mpAbc').value=p.abc||'C';
+  document.getElementById('mpUnd').value=p.unidade||'KG';
+  _preencherSetorSelect('mpSetor',p.setor);
+  document.getElementById('modalProd').classList.add('on');
+}
+function _preencherSetorSelect(selId, valorAtual){
+  const sel=document.getElementById(selId);
+  sel.innerHTML=SETORES.map(s=>`<option value="${s}" ${s===valorAtual?'selected':''}>${s}</option>`).join('');
+}
+function fecharModalProd(){document.getElementById('modalProd').classList.remove('on');_editId=null;}
+
+async function salvarProd(){
+  const nome=document.getElementById('mpNome').value.trim().toUpperCase();
+  if(!nome){toast('⚠️ Nome obrigatório','er');return;}
+  const cod=document.getElementById('mpCod').value.trim();
+  const setor=document.getElementById('mpSetor').value;
+  const und=document.getElementById('mpUnd').value;
+  const min=parseFloat(document.getElementById('mpMin').value)||0;
+  const max=parseFloat(document.getElementById('mpMax').value)||0;
+  const val=parseInt(document.getElementById('mpVal').value)||1;
+  const abc=document.getElementById('mpAbc').value;
+  const id=_editId||(cod||Date.now().toString());
+  const dados={id,nome,cod,setor,unidade:und,min_estoque:min,max_estoque:max,validade:val,abc,ativo:true,categoria:''};
+  try{
+    await sbUpsert('produtos',dados);
+    if(_editId){
+      const idx=PRODS.findIndex(p=>p.id===_editId);
+      if(idx>=0)PRODS[idx]={...PRODS[idx],...dados};
+    } else {
+      PRODS.push(dados);
+    }
+    fecharModalProd();renderProds();
+    toast(_editId?'✅ Produto atualizado':'✅ Produto adicionado','ok');
+  }catch(e){toast('❌ Erro: '+e.message.slice(0,40),'er');}
+}
+
+async function toggleAtivo(id){
+  const p=PRODS.find(x=>x.id===id);if(!p)return;
+  const novoAtivo=!p.ativo;
+  const acao=novoAtivo?'Reativar':'Inativar';
+  const ok=await confirmar(`${acao} "${p.nome}"?`,acao,novoAtivo?'▶':'⏸',acao,novoAtivo);
+  if(!ok)return;
+  try{
+    await sbUpdate('produtos',id,{ativo:novoAtivo});
+    p.ativo=novoAtivo;renderProds();
+    toast(`${novoAtivo?'▶ Reativado':'⏸ Inativado'}: ${p.nome}`,novoAtivo?'ok':'er');
+  }catch(e){toast('❌ Erro','er');}
+}
+
+// ── SETORES ──
+function renderSetores(){
+  document.getElementById('setoresList').innerHTML=SETORES.map(s=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+      <span style="font-size:1.1rem">${ICO_SETOR[s]||'📦'}</span>
+      <span style="flex:1;font-size:.82rem;font-weight:600;">${s}</span>
+      <span style="font-size:.65rem;color:var(--gray);">${PRODS.filter(p=>p.setor===s).length} produtos</span>
+    </div>`).join('');
+}
+async function addSetor(){
+  const v=document.getElementById('novoSetor').value.trim().toUpperCase();
+  if(!v||SETORES.includes(v)){toast(v?'Já existe':'⚠️ Digite o nome','er');return;}
+  SETORES.push(v);
+  document.getElementById('novoSetor').value='';
+  renderSetores();renderPills();
+  toast('✅ '+v+' adicionado','ok');
+}
+
+// ── RESPONSÁVEIS ──
+function renderResps(){
+  document.getElementById('respsList').innerHTML=RESPS.map(r=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+      <span style="font-size:1.1rem">👤</span>
+      <span style="flex:1;font-size:.82rem;font-weight:600;">${r}</span>
+      <button class="prod-btn" style="background:var(--red-l);color:var(--red);" onclick="delResp('${r}')">🗑</button>
+    </div>`).join('');
+}
+async function addResp(){
+  const v=document.getElementById('novoResp').value.trim().toUpperCase();
+  if(!v||RESPS.includes(v)){toast(v?'Já existe':'⚠️ Digite o nome','er');return;}
+  try{
+    await sbUpsert('responsaveis',{nome:v});
+    RESPS.push(v);document.getElementById('novoResp').value='';
+    renderResps();toast('✅ '+v+' adicionado','ok');
+  }catch(e){toast('❌ Erro','er');}
+}
+async function delResp(r){
+  const ok=await confirmar('Remover "'+r+'"?','Remover','🗑️','Remover');
+  if(!ok)return;
+  try{
+    await fetch(`${SUPA_URL}/rest/v1/responsaveis?nome=eq.${encodeURIComponent(r)}`,{method:'DELETE',headers:H});
+    RESPS=RESPS.filter(x=>x!==r);renderResps();toast(r+' removido','er');
+  }catch(e){toast('❌ Erro','er');}
+}
+
+// ── SYNC STATS ──
+async function renderSyncStats(){
+  try{
+    const[nP,nD,nPr]=await Promise.all([
+      fetch(`${SUPA_URL}/rest/v1/produtos?select=id`,{headers:{...H,'Prefer':'count=exact','Range-Unit':'items','Range':'0-0'}}).then(r=>{const cr=r.headers.get('content-range');return cr?cr.split('/')[1]:'?';}),
+      fetch(`${SUPA_URL}/rest/v1/desperdicios?select=id`,{headers:{...H,'Prefer':'count=exact','Range-Unit':'items','Range':'0-0'}}).then(r=>{const cr=r.headers.get('content-range');return cr?cr.split('/')[1]:'?';}),
+      fetch(`${SUPA_URL}/rest/v1/producao?select=id`,{headers:{...H,'Prefer':'count=exact','Range-Unit':'items','Range':'0-0'}}).then(r=>{const cr=r.headers.get('content-range');return cr?cr.split('/')[1]:'?';}),
+    ]);
+    document.getElementById('statsBox').innerHTML=`
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+          <span>📦 Produtos cadastrados</span><strong>${nP}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+          <span>🗑️ Registros de desperdício</span><strong>${nD}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;">
+          <span>📝 Registros de produção</span><strong>${nPr}</strong>
+        </div>
+      </div>`;
+  }catch(e){
+    document.getElementById('statsBox').textContent='Erro ao carregar estatísticas.';
+  }
+}
+
+// ── POPULAR BANCO ──
+async function popularProdutos(){
+  const ok=await confirmar(
+    'Isso vai inserir '+PRODUTOS_BASE.length+' produtos no banco.\nProdutos existentes serão mantidos (upsert).',
+    'Popular banco','📥','Confirmar',true
+  );
+  if(!ok)return;
+
+  document.getElementById('progressWrap').style.display='block';
+  const bar=document.getElementById('progressBar');
+  const txt=document.getElementById('progressTxt');
+  const CHUNK=20;
+  let ok_count=0;
+
+  for(let i=0;i<PRODUTOS_BASE.length;i+=CHUNK){
+    const batch=PRODUTOS_BASE.slice(i,i+CHUNK).map(p=>({
+      id:p.id||p.cod||('auto_'+p.nome.slice(0,10)),
+      nome:p.nome,cod:p.cod||'',setor:p.setor,
+      unidade:p.unidade||'KG',
+      min_estoque:p.min_estoque||0,max_estoque:p.max_estoque||0,
+      validade:p.validade||1,abc:p.abc||'C',
+      ativo:true,categoria:p.categoria||''
+    }));
+    try{
+      await sbUpsert('produtos',batch);
+      ok_count+=batch.length;
+    }catch(e){console.warn('Erro batch',i,e.message);}
+    const pct=Math.round((i+CHUNK)/PRODUTOS_BASE.length*100);
+    bar.style.width=Math.min(pct,100)+'%';
+    txt.textContent=`${Math.min(i+CHUNK,PRODUTOS_BASE.length)} de ${PRODUTOS_BASE.length} produtos...`;
+  }
+
+  // Recarregar
+  PRODS=await sbSelect('produtos','order=nome.asc&limit=500');
+  renderProds();renderPills();
+  document.getElementById('progressWrap').style.display='none';
+  toast(`✅ ${ok_count} produtos sincronizados!`,'ok');
+  setSyncUI('ok');
+}
+</script>
+</body>
+</html>
