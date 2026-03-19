@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1A4D2E">
+<title>📋 Checklist & Projeção — M. Graças</title>
+<style>
+:root{
+  --bg:#F5FAF0;--white:#FFF;--brown:#2C1A0A;--brown2:#5A3820;
+  --gold:#C8960C;--gold-l:#F5E6C0;--cream:#F0F7E8;
+  --grn:#1A4D2E;--grn2:#276240;--grn-l:#D4EFDF;--grn-ll:#F0FAF4;
+  --red:#A93226;--red-l:#FADBD8;--red-ll:#FDF2F1;
+  --ora:#CA6F1E;--ora-l:#FDEBD0;
+  --blue:#1A3E6B;--blue-l:#D6EAF8;
+  --gray:#7F8C8D;--gray-l:#F2F3F4;
+  --sh:0 2px 16px rgba(26,77,46,.10);--r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--brown);display:flex;flex-direction:column;}
+
+/* HEADER */
+header{background:linear-gradient(135deg,var(--grn) 0%,#276240 100%);color:#fff;padding:14px 16px 10px;flex-shrink:0;box-shadow:0 2px 12px rgba(26,77,46,.3);}
+.h-top{display:flex;align-items:center;justify-content:space-between;}
+.h-top h1{font-size:1rem;font-weight:800;}
+.h-badge{background:var(--gold);color:var(--brown);font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap;}
+.h-sub{font-size:.7rem;opacity:.7;margin-top:2px;}
+.h-meta{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;}
+.h-chip{background:rgba(255,255,255,.18);font-size:.72rem;padding:4px 10px;border-radius:20px;}
+.h-chip.hi{background:rgba(255,255,255,.3);font-weight:600;}
+
+/* TABS */
+.tabs{display:flex;background:var(--grn2);flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.15);}
+.tab{flex:1;text-align:center;padding:10px 2px 9px;font-size:.68rem;font-weight:700;color:rgba(255,255,255,.55);cursor:pointer;border-bottom:3px solid transparent;transition:.15s;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.tab.on{color:#fff;border-bottom-color:var(--gold);}
+.tab-ico{font-size:.9rem;}
+
+/* SCROLL */
+.scr{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 12px 100px;}
+.vw{display:none;}.vw.on{display:block;}
+
+/* SETOR PILLS */
+.spills{display:flex;gap:7px;margin-bottom:12px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;}
+.spills::-webkit-scrollbar{display:none;}
+.sp{flex-shrink:0;padding:8px 14px;border-radius:10px;font-size:.73rem;font-weight:700;border:2px solid var(--gold-l);background:var(--white);color:var(--gray);cursor:pointer;transition:.15s;white-space:nowrap;}
+.sp.on{color:#fff;border-color:transparent;background:var(--grn);}
+
+/* CARD GERAL */
+.card{background:var(--white);border-radius:var(--r);padding:14px;box-shadow:var(--sh);margin-bottom:12px;}
+label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--brown2);display:block;margin-bottom:4px;}
+select,input[type=date],input[type=text],input[type=number]{width:100%;border:2px solid var(--gold-l);border-radius:9px;padding:9px 11px;font-size:.9rem;color:var(--brown);background:var(--cream);outline:none;appearance:none;-webkit-appearance:none;font-family:inherit;}
+select:focus,input:focus{border-color:var(--gold);background:#fff;}
+.fg{margin-top:8px;}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+/* CHECKLIST */
+.cl-header{display:flex;gap:6px;align-items:center;margin-bottom:8px;}
+.cl-titulo{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gray);flex:1;}
+.cl-stats{font-size:.65rem;font-weight:700;color:var(--grn);}
+.cl-item{background:var(--white);border-radius:11px;padding:11px 12px;margin-bottom:7px;box-shadow:0 1px 8px rgba(26,77,46,.06);border-left:4px solid var(--gold-l);transition:all .15s;}
+.cl-item.ok{border-left-color:var(--grn);background:var(--grn-ll);}
+.cl-item.alerta{border-left-color:var(--red);background:var(--red-ll);}
+.cl-item.atencao{border-left-color:var(--ora);background:#FFFBF5;}
+.cl-top{display:flex;align-items:center;gap:8px;}
+.cl-check{width:28px;height:28px;border-radius:7px;border:2px solid var(--gold-l);background:var(--cream);display:flex;align-items:center;justify-content:center;font-size:1rem;cursor:pointer;flex-shrink:0;transition:.15s;}
+.cl-item.ok .cl-check{background:var(--grn);border-color:var(--grn);color:#fff;}
+.cl-info{flex:1;min-width:0;}
+.cl-nome{font-weight:600;font-size:.85rem;word-break:break-word;line-height:1.3;}
+.cl-meta{font-size:.65rem;color:var(--gray);margin-top:2px;}
+.cl-abc{font-size:.58rem;font-weight:800;padding:2px 5px;border-radius:4px;display:inline-block;margin-left:4px;}
+.abc-A{background:#FADBD8;color:#A93226;}
+.abc-B{background:#FDEBD0;color:#CA6F1E;}
+.abc-C{background:var(--gray-l);color:var(--gray);}
+.cl-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
+.cl-status-tag{font-size:.6rem;font-weight:800;padding:3px 8px;border-radius:8px;text-transform:uppercase;letter-spacing:.5px;}
+.tag-ok{background:var(--grn-l);color:var(--grn);}
+.tag-alerta{background:var(--red-l);color:var(--red);}
+.tag-atencao{background:var(--ora-l);color:var(--ora);}
+.tag-normal{background:var(--gray-l);color:var(--gray);}
+/* INPUT ESTOQUE no checklist */
+.cl-body{display:flex;gap:8px;align-items:center;margin-top:10px;padding-top:8px;border-top:1px solid var(--gold-l);}
+.cl-lbl-est{font-size:.65rem;font-weight:700;color:var(--gray);flex-shrink:0;}
+.cl-inp{width:80px;text-align:center;border:2px solid var(--gold-l);border-radius:8px;padding:6px;font-size:.88rem;font-weight:700;background:var(--cream);outline:none;font-family:inherit;color:var(--brown);}
+.cl-inp:focus{border-color:var(--grn);background:#fff;}
+.cl-inp.alerta{border-color:var(--red);background:var(--red-ll);color:var(--red);}
+.cl-inp.atencao{border-color:var(--ora);background:#FFF5EC;}
+.cl-inp.ok{border-color:var(--grn);background:var(--grn-ll);color:var(--grn);}
+.cl-minmax{font-size:.62rem;color:var(--gray);flex:1;}
+.cl-minmax span{display:block;line-height:1.5;}
+.cl-produzir{font-size:.72rem;font-weight:700;color:var(--red);background:var(--red-ll);padding:3px 8px;border-radius:6px;white-space:nowrap;}
+.cl-produzir.ok{color:var(--grn);background:var(--grn-ll);}
+
+/* CATEGORIA HEADER */
+.cat-hdr{font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--grn2);background:var(--grn-l);padding:6px 12px;border-radius:8px;margin:14px 0 8px;display:flex;justify-content:space-between;align-items:center;}
+.cat-hdr span{font-size:.62rem;font-weight:400;color:var(--grn);}
+
+/* PROJEÇÃO SEMANAL */
+.proj-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.proj-semana{font-size:.9rem;font-weight:700;color:var(--brown);}
+.proj-btn{background:var(--cream);border:2px solid var(--gold-l);border-radius:8px;padding:6px 14px;font-size:.9rem;cursor:pointer;font-family:inherit;color:var(--brown);}
+.proj-btn:active{background:var(--gold-l);}
+.proj-card{background:var(--white);border-radius:12px;box-shadow:var(--sh);margin-bottom:10px;overflow:hidden;}
+.proj-cat{background:var(--grn);color:#fff;font-size:.65rem;font-weight:800;padding:6px 12px;text-transform:uppercase;letter-spacing:.8px;}
+.proj-table{width:100%;border-collapse:collapse;}
+.proj-table th{font-size:.6rem;font-weight:700;padding:6px 4px;text-align:center;color:var(--gray);border-bottom:2px solid var(--gold-l);background:var(--cream);}
+.proj-table th.hoje{background:var(--grn);color:#fff;}
+.proj-table td{font-size:.72rem;padding:7px 4px;text-align:center;border-bottom:1px solid var(--gold-l);}
+.proj-table tr:last-child td{border:none;}
+.proj-table td.prod-nome{text-align:left;padding-left:10px;font-weight:600;font-size:.75rem;max-width:110px;word-break:break-word;line-height:1.3;}
+.proj-table td.hoje{background:rgba(26,77,46,.06);font-weight:700;color:var(--grn);}
+.proj-table td.zero{color:var(--gray);font-size:.65rem;}
+.proj-table td.ajustado{background:var(--gold-l);font-weight:700;}
+.proj-und{font-size:.55rem;color:var(--gray);}
+.proj-edit{font-size:.7rem;cursor:pointer;color:var(--grn);padding:2px 4px;}
+/* Input de ajuste manual */
+.proj-inp{width:48px;text-align:center;border:2px solid var(--grn);border-radius:5px;padding:3px;font-size:.75rem;font-weight:700;background:#fff;outline:none;font-family:inherit;color:var(--grn);}
+.total-row td{font-weight:700;background:var(--grn-ll);font-size:.72rem;color:var(--grn2);border-top:2px solid var(--grn-l);}
+
+/* RESUMO DIÁRIO */
+.dia-total{background:var(--grn);color:#fff;border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;}
+.dia-total-lbl{font-size:.72rem;opacity:.85;}
+.dia-total-val{font-size:1.1rem;font-weight:800;}
+
+/* ALERTAS TOPO */
+.alerta-box{border-radius:12px;padding:11px 13px;margin-bottom:8px;display:flex;gap:9px;align-items:flex-start;}
+.alerta-box.er{background:var(--red-ll);border-left:4px solid var(--red);}
+.alerta-box.wa{background:var(--ora-l);border-left:4px solid var(--ora);}
+.alerta-box.ok{background:var(--grn-ll);border-left:4px solid var(--grn);}
+.alerta-ico{font-size:1.2rem;flex-shrink:0;}
+.alerta-body{flex:1;}
+.alerta-ttl{font-size:.78rem;font-weight:700;}
+.alerta-msg{font-size:.7rem;color:var(--brown2);margin-top:2px;line-height:1.4;}
+
+/* CÉLULA DUPLA NA PROJEÇÃO — projeção em cima, produzido embaixo */
+.proj-cell{display:flex;flex-direction:column;gap:0;min-width:62px;}
+.proj-cell-top{font-size:.75rem;font-weight:700;color:var(--grn2);text-align:center;padding:3px 4px 1px;background:var(--grn-ll);border-radius:5px 5px 0 0;}
+.proj-cell-top.zero{color:var(--gray);background:transparent;font-weight:400;}
+.proj-cell-bot{border:none;border-top:1.5px solid var(--grn-l);border-bottom:2px solid var(--brown2);background:transparent;width:100%;text-align:center;font-size:.78rem;font-weight:700;padding:4px 2px;outline:none;font-family:inherit;color:var(--brown);min-width:52px;}
+.proj-cell-bot:focus{background:var(--cream);border-bottom-color:var(--grn);}
+.proj-cell-bot.ok{color:var(--grn);background:var(--grn-ll);}
+td.hoje .proj-cell-top{background:rgba(26,77,46,.12);}
+
+/* ABAS DE DIA NA PROJEÇÃO */
+.dia-tabs{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin-bottom:12px;}
+.dia-tabs::-webkit-scrollbar{display:none;}
+.dia-tab{flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:8px 12px;border-radius:10px;border:2px solid var(--gold-l);background:var(--white);cursor:pointer;transition:.15s;min-width:54px;}
+.dia-tab.on{background:var(--grn);border-color:var(--grn);color:#fff;}
+.dia-tab.hoje{border-color:var(--grn);}
+.dia-tab.tem-prod{position:relative;}
+.dia-tab.tem-prod::after{content:'';position:absolute;top:4px;right:4px;width:7px;height:7px;background:var(--gold);border-radius:50%;}
+.dia-tab.on.tem-prod::after{background:#fff;}
+.dia-tab-dn{font-size:.72rem;font-weight:800;}
+.dia-tab-dt{font-size:.6rem;opacity:.7;margin-top:1px;}
+.dia-tab-tot{font-size:.62rem;font-weight:700;margin-top:3px;background:rgba(0,0,0,.06);padding:1px 6px;border-radius:8px;}
+.dia-tab.on .dia-tab-tot{background:rgba(255,255,255,.2);}
+
+/* CARD DE ITEM NA ABA DIA */
+.dia-item{background:var(--white);border-radius:11px;padding:12px;margin-bottom:8px;box-shadow:0 1px 8px rgba(26,77,46,.06);border-left:4px solid var(--grn-l);}
+.dia-item.tem-qtd{border-left-color:var(--grn);}
+.dia-item-top{display:flex;align-items:flex-start;gap:10px;}
+.dia-item-ico{width:38px;height:38px;border-radius:8px;background:var(--grn-l);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;}
+.dia-item-info{flex:1;min-width:0;}
+.dia-item-nm{font-weight:600;font-size:.85rem;line-height:1.3;word-break:break-word;}
+.dia-item-meta{font-size:.65rem;color:var(--gray);margin-top:2px;}
+.dia-item-proj{font-size:.78rem;font-weight:700;color:var(--grn2);background:var(--grn-l);padding:3px 9px;border-radius:7px;white-space:nowrap;flex-shrink:0;}
+.dia-item-reg{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:8px;border-top:1px solid var(--gold-l);}
+.dia-item-reg label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray);flex-shrink:0;margin:0;}
+.dia-reg-inp{flex:1;border:2px solid var(--gold-l);border-radius:8px;padding:7px 10px;font-size:.88rem;font-weight:700;background:var(--cream);outline:none;font-family:inherit;color:var(--brown);text-align:center;}
+.dia-reg-inp:focus{border-color:var(--grn);background:#fff;}
+.dia-reg-inp.preenchido{border-color:var(--grn);background:var(--grn-ll);color:var(--grn);}
+.dia-reg-und{font-size:.72rem;font-weight:700;color:var(--gray);flex-shrink:0;}
+.dia-cat-hdr{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--grn2);background:var(--grn-l);padding:5px 10px;border-radius:7px;margin:12px 0 6px;display:flex;justify-content:space-between;}
+.dia-total-bar{background:var(--grn);color:#fff;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+.dia-total-lbl{font-size:.72rem;opacity:.85;}
+.dia-total-val{font-size:1rem;font-weight:800;}
+.dia-empty{text-align:center;padding:32px 20px;color:var(--gray);}
+.dia-empty .ico{font-size:2.2rem;margin-bottom:8px;}
+.dia-empty p{font-size:.85rem;line-height:1.6;}
+.dia-bsv{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:2px solid var(--grn-l);padding:11px 14px;box-shadow:0 -4px 20px rgba(26,77,46,.12);z-index:100;display:none;}
+.dia-bsv.show{display:flex;gap:9px;align-items:center;}
+.dia-bsv-info{flex:1;}
+.dia-bsv-info strong{font-size:.9rem;display:block;}
+.dia-bsv-info span{font-size:.7rem;color:var(--gray);}
+
+/* FOTO NOS MODAIS */
+.foto-wrap{width:80px;height:80px;border-radius:12px;background:var(--cream);border:2px dashed var(--gold);display:flex;align-items:center;justify-content:center;font-size:2rem;cursor:pointer;overflow:hidden;position:relative;margin:0 auto 14px;}
+.foto-wrap img{width:100%;height:100%;object-fit:cover;border-radius:10px;}
+.foto-wrap input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0;}
+.foto-del{display:block;width:100%;text-align:center;font-size:.72rem;color:var(--red);background:none;border:none;cursor:pointer;margin-bottom:10px;padding:2px;}
+.cfg-item .cfg-ico img{width:100%;height:100%;object-fit:cover;border-radius:8px;}
+
+.cfg-item{background:var(--white);border-radius:11px;padding:10px 12px;margin-bottom:7px;box-shadow:0 1px 6px rgba(26,77,46,.06);display:flex;align-items:center;gap:10px;}
+.cfg-item.inativo{opacity:.4;}
+.cfg-item.inativo .cfg-nm{text-decoration:line-through;}
+.cfg-ico{width:36px;height:36px;border-radius:8px;background:var(--grn-l);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+.cfg-info{flex:1;min-width:0;}
+.cfg-nm{font-size:.84rem;font-weight:600;word-break:break-word;}
+.cfg-mt{font-size:.63rem;color:var(--gray);margin-top:2px;}
+.cfg-acts{display:flex;gap:5px;flex-shrink:0;}
+.cfg-btn{border:none;border-radius:7px;padding:5px 8px;font-size:.75rem;cursor:pointer;font-family:inherit;font-weight:600;}
+.cfg-btn.ed{background:var(--blue-l);color:var(--blue);}
+.cfg-btn.in{background:var(--ora-l);color:var(--ora);}
+.cfg-btn.rv{background:var(--grn-l);color:var(--grn);}
+/* MODAL CONF */
+.conf-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;align-items:center;justify-content:center;}
+.conf-ov.on{display:flex;}
+.conf-box{background:var(--white);border-radius:18px;width:88%;max-width:340px;padding:24px 20px 18px;box-shadow:0 8px 40px rgba(26,77,46,.25);animation:up .2s ease;text-align:center;}
+.conf-ico{font-size:2rem;margin-bottom:8px;}
+.conf-ttl{font-size:.95rem;font-weight:800;color:var(--brown);margin-bottom:6px;}
+.conf-msg{font-size:.78rem;color:var(--brown2);line-height:1.6;margin-bottom:18px;white-space:pre-line;}
+.conf-btns{display:flex;gap:8px;}
+.conf-ok{flex:1;background:var(--grn);color:#fff;border:none;border-radius:10px;padding:12px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.conf-cn{flex:1;background:var(--gray-l);color:var(--brown);border:none;border-radius:10px;padding:12px;font-size:.88rem;cursor:pointer;font-family:inherit;}
+@keyframes up{from{transform:translateY(36px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* TOAST */
+.tst{position:fixed;top:75px;left:50%;transform:translateX(-50%) translateY(-16px);background:var(--brown);color:#fff;padding:10px 20px;border-radius:24px;font-size:.84rem;font-weight:600;opacity:0;pointer-events:none;transition:.28s;z-index:999;white-space:nowrap;}
+.tst.on{opacity:1;transform:translateX(-50%) translateY(0);}
+.tst.ok{background:var(--grn);}
+.tst.er{background:var(--red);}
+
+/* CONFIG */
+.cs{background:var(--white);border-radius:12px;padding:14px;box-shadow:var(--sh);margin-bottom:12px;}
+.cs-hdr{font-size:.82rem;font-weight:700;margin-bottom:12px;color:var(--grn2);}
+.ci{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--gold-l);}
+.ci:last-child{border:none;}
+.ci-info{flex:1;min-width:0;}
+.ci-nm{font-size:.85rem;font-weight:600;}
+.ci-mt{font-size:.68rem;color:var(--gray);}
+.ci-inp{width:72px;border:2px solid var(--gold-l);border-radius:7px;padding:5px 7px;font-size:.82rem;text-align:center;background:var(--cream);outline:none;font-family:inherit;color:var(--brown);}
+.ci-inp:focus{border-color:var(--grn);}
+.badd{width:100%;background:var(--cream);color:var(--brown);border:2px solid var(--gold-l);border-radius:10px;padding:10px;font-size:.85rem;font-weight:700;cursor:pointer;margin-top:8px;font-family:inherit;}
+.sw{position:relative;margin-bottom:10px;}
+.sw input{width:100%;border:2px solid var(--gold-l);border-radius:10px;padding:10px 12px 10px 38px;font-size:.9rem;background:var(--white);outline:none;}
+.si{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:1rem;opacity:.45;}
+.sh2{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gray);margin:4px 2px 10px;display:flex;justify-content:space-between;}
+.bsv-fixed{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:2px solid var(--grn-l);padding:11px 14px;display:flex;gap:9px;align-items:center;box-shadow:0 -4px 20px rgba(26,77,46,.12);z-index:100;}
+.bsv{flex:1;background:var(--grn);color:#fff;border:none;border-radius:11px;padding:12px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.bsv:disabled{opacity:.35;cursor:not-allowed;}
+.bsv.gold{background:var(--gold);color:var(--brown);}
+.pdf-btn{width:100%;background:linear-gradient(135deg,var(--grn),var(--grn2));color:#fff;border:none;border-radius:12px;padding:13px;font-size:.9rem;font-weight:700;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;}
+</style>
+</head>
+<body>
+<!-- Botão voltar para o hub -->
+<a href="MG_INDEX.html" style="position:fixed;top:8px;left:8px;z-index:9999;display:flex;align-items:center;gap:5px;background:#1A3E6B;color:#fff;text-decoration:none;padding:7px 13px;font-size:.72rem;font-weight:700;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.2);">← Hub</a>
+
+
+<header>
+  <div class="h-top">
+    <div>
+      <h1>📋 Checklist & Projeção</h1>
+      <div class="h-sub">Mercadinho M. Graças</div>
+    </div>
+    <span class="h-badge" id="hBadge">—</span>
+  </div>
+  <div class="h-meta">
+    <span class="h-chip hi" id="hDate">—</span>
+    <span class="h-chip" id="hDia">—</span>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab on" onclick="go('chk')"><span class="tab-ico">✅</span>Checklist</div>
+  <div class="tab" onclick="go('proj')"><span class="tab-ico">📅</span>Projeção</div>
+  <div class="tab" onclick="go('cfg')"><span class="tab-ico">⚙️</span>Config</div>
+</div>
+
+<div class="scr">
+
+  <!-- CHECKLIST -->
+  <div class="vw on" id="v-chk">
+    <div class="card">
+      <div class="r2">
+        <div><label>📅 Data</label><input type="date" id="iData" oninput="syncHdr();renderChk()"></div>
+        <div><label>🏪 Setor</label>
+          <select id="iSetor" onchange="renderChk()">
+            <option value="PADARIA">🍞 Padaria</option>
+            <option value="CONFEITARIA">🎂 Confeitaria</option>
+            <option value="LANCHONETE">🥟 Lanchonete</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div id="alertasChk"></div>
+    <div id="chkList"></div>
+    <div class="bsv-fixed">
+      <div style="flex:1">
+        <strong id="chkCnt" style="font-size:.9rem;display:block;">— itens</strong>
+        <span id="chkSub" style="font-size:.7rem;color:var(--gray);">Preencha o estoque</span>
+      </div>
+      <button class="bsv gold" onclick="expChkPDF()">📄 PDF</button>
+      <button class="bsv" onclick="salvarChk()">💾 Salvar</button>
+    </div>
+  </div>
+
+  <!-- PROJEÇÃO SEMANAL -->
+  <div class="vw" id="v-proj">
+    <div class="card" style="margin-bottom:10px;">
+      <div class="r2">
+        <div><label>🏪 Setor</label>
+          <select id="iSetorProj" onchange="renderProj()">
+            <option value="PADARIA">🍞 Padaria</option>
+            <option value="CONFEITARIA">🎂 Confeitaria</option>
+            <option value="LANCHONETE">🥟 Lanchonete</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;justify-content:flex-end;gap:6px;">
+          <div style="display:flex;gap:6px;">
+            <button class="proj-btn" onclick="navSemana(-1)" style="flex:1;font-size:.75rem;">◀ Ant</button>
+            <button class="proj-btn" onclick="navSemana(1)" style="flex:1;font-size:.75rem;">Próx ▶</button>
+          </div>
+          <div class="proj-semana" id="projSemana" style="font-size:.72rem;text-align:center;color:var(--gray);">—</div>
+        </div>
+      </div>
+    </div>
+    <button class="pdf-btn" onclick="expProjPDF()"><span>📄</span> Exportar Projeção em PDF</button>
+    <div id="projList"></div>
+    <div class="bsv-fixed" id="projBsv" style="display:none;">
+      <div style="flex:1"><strong id="projBsvCnt" style="font-size:.9rem;display:block;">—</strong><span id="projBsvSub" style="font-size:.7rem;color:var(--gray);">semana atual</span></div>
+      <button class="bsv" onclick="salvarProj()">💾 Salvar</button>
+    </div>
+  </div>
+
+  <!-- CONFIG -->
+  <div class="vw" id="v-cfg">
+
+    <!-- Setor + busca -->
+    <div class="card" style="margin-bottom:10px;">
+      <div class="r2">
+        <div><label>🏪 Setor</label>
+          <select id="cfgSetor" onchange="renderCfg()">
+            <option value="PADARIA">🍞 Padaria</option>
+            <option value="CONFEITARIA">🎂 Confeitaria</option>
+            <option value="LANCHONETE">🥟 Lanchonete</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:flex-end;">
+          <button onclick="abrirAddProd()" style="width:100%;background:var(--grn);color:#fff;border:none;border-radius:9px;padding:9px;font-size:.82rem;font-weight:700;cursor:pointer;">+ Adicionar produto</button>
+        </div>
+      </div>
+      <div class="sw" style="margin-top:10px;margin-bottom:0;">
+        <span class="si">🔍</span>
+        <input type="text" id="cfgSrc" placeholder="Buscar produto..." oninput="renderCfg()">
+      </div>
+    </div>
+
+    <!-- Lista de produtos -->
+    <div id="cfgList"></div>
+
+    <!-- Alerta % -->
+    <div class="cs" style="margin-top:10px;">
+      <div class="cs-hdr">🔔 Limite de Alerta</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <label style="flex:1;text-transform:none;font-size:.82rem;">% acima do mínimo → alerta laranja:</label>
+        <input type="number" id="cfgPct" min="10" max="80" step="5" style="width:72px;border:2px solid var(--gold-l);border-radius:8px;padding:7px;text-align:center;font-size:.88rem;background:var(--cream);outline:none;" onchange="D.alertaPct=parseInt(this.value)||30;saveLocal()">
+        <span style="font-size:.88rem;font-weight:700;">%</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MODAL EDITAR PRODUTO -->
+  <div class="conf-ov" id="editProdOv">
+    <div class="conf-box" style="text-align:left;max-width:380px;max-height:90vh;overflow-y:auto;">
+      <div class="conf-ttl" id="editProdTtl" style="text-align:center;margin-bottom:12px;">✏️ Editar produto</div>
+      <div class="foto-wrap" id="epFotoWrap" onclick="document.getElementById('epFotoInp').click()">
+        <span id="epFotoIco">📷</span>
+        <input type="file" id="epFotoInp" accept="image/*" onchange="prevFotoProd('ep',this)">
+      </div>
+      <button class="foto-del" id="epFotoDel" style="display:none;" onclick="delFotoProd('ep')">🗑 Remover foto</button>
+      <div class="fg"><label>Nome *</label><input type="text" id="epNm" placeholder="Nome do produto" style="text-transform:uppercase;"></div>
+      <div class="r2" style="margin-top:8px;">
+        <div class="fg"><label>Unidade</label>
+          <select id="epUnd">
+            <option value="KG">⚖️ KG</option>
+            <option value="UND">📦 UND</option>
+          </select>
+        </div>
+        <div class="fg"><label>Validade (dias)</label>
+          <input type="number" id="epVal" min="1" step="1" placeholder="1">
+        </div>
+      </div>
+      <div class="r2" style="margin-top:8px;">
+        <div class="fg"><label>Estoque Mínimo</label>
+          <input type="number" id="epMin" min="0" step="any" placeholder="0">
+        </div>
+        <div class="fg"><label>Estoque Máximo</label>
+          <input type="number" id="epMax" min="0" step="any" placeholder="0">
+        </div>
+      </div>
+      <div class="conf-btns" style="margin-top:16px;">
+        <button class="conf-cn" onclick="fecharEditProd()">Cancelar</button>
+        <button class="conf-ok" onclick="salvarEditProd()">✅ Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ADICIONAR PRODUTO -->
+  <div class="conf-ov" id="addProdOv">
+    <div class="conf-box" style="text-align:left;max-width:380px;max-height:90vh;overflow-y:auto;">
+      <div class="conf-ttl" style="text-align:center;margin-bottom:12px;">➕ Novo produto</div>
+      <div class="foto-wrap" id="apFotoWrap" onclick="document.getElementById('apFotoInp').click()">
+        <span id="apFotoIco">📷</span>
+        <input type="file" id="apFotoInp" accept="image/*" onchange="prevFotoProd('ap',this)">
+      </div>
+      <button class="foto-del" id="apFotoDel" style="display:none;" onclick="delFotoProd('ap')">🗑 Remover foto</button>
+      <div class="fg"><label>Nome *</label><input type="text" id="apNm" placeholder="Nome do produto" style="text-transform:uppercase;"></div>
+      <div class="r2" style="margin-top:8px;">
+        <div class="fg"><label>Unidade</label>
+          <select id="apUnd">
+            <option value="KG">⚖️ KG</option>
+            <option value="UND">📦 UND</option>
+          </select>
+        </div>
+        <div class="fg"><label>Validade (dias)</label>
+          <input type="number" id="apVal" min="1" step="1" placeholder="1">
+        </div>
+      </div>
+      <div class="r2" style="margin-top:8px;">
+        <div class="fg"><label>Estoque Mínimo</label>
+          <input type="number" id="apMin" min="0" step="any" placeholder="0">
+        </div>
+        <div class="fg"><label>Estoque Máximo</label>
+          <input type="number" id="apMax" min="0" step="any" placeholder="0">
+        </div>
+      </div>
+      <div class="conf-btns" style="margin-top:16px;">
+        <button class="conf-cn" onclick="fecharAddProd()">Cancelar</button>
+        <button class="conf-ok" style="background:var(--grn);" onclick="salvarAddProd()">➕ Adicionar</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL CONFIRMAÇÃO -->
+<div class="conf-ov" id="confOv">
+  <div class="conf-box">
+    <div class="conf-ico" id="confIco">⚠️</div>
+    <div class="conf-ttl" id="confTtl">Confirmar</div>
+    <div class="conf-msg" id="confMsg"></div>
+    <div class="conf-btns">
+      <button class="conf-cn" onclick="_confResp(false)">Cancelar</button>
+      <button class="conf-ok" id="confOk" onclick="_confResp(true)">Confirmar</button>
+    </div>
+  </div>
+</div>
+<div class="tst" id="tst"></div>
+
+<script>
+const DIAS_FULL=['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+const DIAS_ABR=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+const DIAS_PROJ=['seg','ter','qua','qui','sex','sab','dom']; // índice 0=seg
+const K='mg_chk_v1';
+
+// ═══ DADOS PADARIA — gerados da planilha ═══
+const PRODS_PADARIA=[
+  {id:100,n:"PÃO 12 GRÃOS LIGHT KG",c:"6953",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🥐 PÃO ESPECIAL"},
+  {id:101,n:"PÃO DA FAZENDA KG",c:"5366",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🥐 PÃO ESPECIAL"},
+  {id:102,n:"PÃO DE CAIXA INTEGRAL LIGHT",c:"3657",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥐 PÃO ESPECIAL"},
+  {id:103,n:"PÃO DE BATATA KG",c:"1710",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🍞 PÃO DIÁRIO"},
+  {id:104,n:"PÃO ITALIANO",c:"1034",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥐 PÃO ESPECIAL"},
+  {id:105,n:"PÃO CENTEIO LIGHT KG",c:"6952",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🥐 PÃO ESPECIAL"},
+  {id:106,n:"BISCOITO AMANTEIGADO KG",c:"6636",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🍪 BOLACHA"},
+  {id:107,n:"BISCOITO POLVILHO KG",c:"4299",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🍪 BOLACHA"},
+  {id:108,n:"BOLACHA 7 CAPAS KG",c:"7460",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🍪 BOLACHA"},
+  {id:109,n:"BOLACHA DE ALHO",c:"4355",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🍪 BOLACHA"},
+  {id:110,n:"BOLACHA DE CEBOLA",c:"4346",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🍪 BOLACHA"},
+  {id:111,n:"BOLACHA DE COCO",c:"526",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🍪 BOLACHA"},
+  {id:112,n:"BOLACHA INTEGRAL DA CASA KG",c:"9652",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🍪 BOLACHA"},
+  {id:113,n:"BOLACHA MARAGOGI KG",c:"5656",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🍪 BOLACHA"},
+  {id:114,n:"BOLACHA PORTUGUESA KG",c:"5264",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🍪 BOLACHA"},
+  {id:115,n:"BOLACHA PRAEIRA DA CASA KG",c:"1545",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🍪 BOLACHA"},
+  {id:116,n:"BOLACHA SODA DA CASA KG",c:"1546",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🍪 BOLACHA"},
+  {id:117,n:"BOLACHA SUIÇA DA CASA KG",c:"858",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🍪 BOLACHA"},
+  {id:118,n:"COOKIES CHOCOLATE / LARANJA",c:"7949",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🍪 BOLACHA"},
+  {id:119,n:"CROASSAINT",c:"5246",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥐 CROISSANT"},
+  {id:120,n:"CROISSANTE SANDUICHE",c:"3536",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥐 CROISSANT"},
+  {id:121,n:"PANETONE DA CASA KG",c:"1556",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 ESPECIAL"},
+  {id:122,n:"PANETONE DE CHOCOLATE KG",c:"4242",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 ESPECIAL"},
+  {id:123,n:"PÃO AÇAI C/GUARANA",c:"6713",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥐 PÃO ESPECIAL"},
+  {id:124,n:"PÃO AUSTRALIANO KG",c:"4206",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🥐 PÃO ESPECIAL"},
+  {id:125,n:"PÃO BOLACHÃO KG",c:"4576",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🥐 PÃO ESPECIAL"},
+  {id:126,n:"PÃO BRIOCHE KG",c:"5529",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🥐 PÃO ESPECIAL"},
+  {id:127,n:"PÃO CACHORRO QUENTE KG",c:"1543",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🍞 PÃO DIÁRIO"},
+  {id:128,n:"PÃO DE ALHO KG",c:"5829",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🥐 PÃO ESPECIAL"},
+  {id:129,n:"PÃO DE CAIXA CENTEIO LIGHT KG",c:"6955",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🥐 PÃO ESPECIAL"},
+  {id:130,n:"PÃO DE CAIXA KG",c:"1542",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🍞 PÃO DIÁRIO"},
+  {id:131,n:"PÃO DE CAIXA MULTIGRÃOS KG",c:"6954",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🥐 PÃO ESPECIAL"},
+  {id:132,n:"PÃO DE CHIA KG",c:"8662",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🥐 PÃO ESPECIAL"},
+  {id:133,n:"PÃO DE HAMBURGUER KG",c:"1544",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🍞 PÃO DIÁRIO"},
+  {id:134,n:"PÃO DOCE KG",c:"714",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🍞 PÃO DIÁRIO"},
+  {id:135,n:"PÃO FRANCES INTEGRAL KG",c:"715",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🥐 PÃO ESPECIAL"},
+  {id:136,n:"PÃO FRANCES KG",c:"708",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🍞 PÃO DIÁRIO"},
+  {id:137,n:"PÃO MINI DOG KG",c:"9542",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🥐 PÃO ESPECIAL"},
+  {id:138,n:"PÃO PIZZA FATIA",c:"4098",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥐 PÃO ESPECIAL"},
+  {id:139,n:"PÃO QUINOA",c:"2540",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥐 PÃO ESPECIAL"},
+  {id:140,n:"PÃO RECIFE KG",c:"9666",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🍞 PÃO DIÁRIO"},
+  {id:141,n:"ROSQUINHAS",c:"6276",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🍪 BOLACHA"},
+  {id:142,n:"TARECO",c:"9636",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🍪 BOLACHA"},
+  {id:143,n:"TORRADA DA CASA KG",c:"1557",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🍞 TORRADA"},
+  {id:144,n:"TORRADA DE ALHO",c:"1566",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🍞 TORRADA"}
+];
+
+// Projeção semanal baseada na planilha (seg=0, ter=1, ... dom=6)
+const PROJ_PADARIA=[
+  {n:"PAO FRANCES",u:"KG",dias:[240.8,240.8,240.8,240.8,240.8,460,240.8]},
+  {n:"PAO DOCE",u:"KG",dias:[25,0,25,0,25,25,0]},
+  {n:"PAO CACH QUENTE",u:"KG",dias:[25,0,25,0,25,0,0]},
+  {n:"PAO HAMBURGUER",u:"KG",dias:[25,0,25,0,25,0,0]},
+  {n:"PAO DE CAIXA",u:"KG",dias:[15,0,15,0,15,5.2,0]},
+  {n:"PAO RECIFE",u:"KG",dias:[10,0,10,0,10,0,0]},
+  {n:"PAO DE BATATA",u:"KG",dias:[5,0,5,0,5,0,0]},
+  {n:"PAO FRANCES INTEGRAL",u:"KG",dias:[4,4,4,4,4,4,0]},
+  {n:"PAO FAZENDA",u:"KG",dias:[0,1.4,0,0,1.4,0,0]},
+  {n:"PAO PIZZA FGO",u:"KG",dias:[0,0,0,1.2,0,1.2,0]},
+  {n:"PAO ITALIANO",u:"KG",dias:[0,1.5,0,0,0,1.5,0]},
+  {n:"MINI CROISSANT",u:"KG",dias:[8,0,8,0,8,12,0]},
+  {n:"SANDUICHE CROISSANT",u:"KG",dias:[3,0,3,0,3,5,0]},
+  {n:"SALGADOS FOLHADOS",u:"UND",dias:[62,0,62,0,62,93,0]},
+  {n:"SALG BATATA/FGO",u:"UND",dias:[46,0,46,0,46,69,0]},
+  {n:"SALG DE QUEIJO",u:"UND",dias:[0,7,0,0,7,10,0]},
+  {n:"PIZZA DA CASA PQ",u:"UND",dias:[0,0,0,8,0,8,0]},
+  {n:"PASTEL DE CARNE",u:"UND",dias:[0,0,0,0,2,2,0]},
+  {n:"BOL PRAEIRA DA CASA",u:"KG",dias:[0,12.5,0,12.5,0,0,0]},
+  {n:"BOL SODA DA CASA",u:"KG",dias:[0,3.5,0,3.5,0,0,0]},
+  {n:"TORRADA ALHO",u:"KG",dias:[0,7,0,7,0,0,0]},
+  {n:"CHOCOTONE DA CASA",u:"KG",dias:[0,0,24.6,0,0,0,0]},
+  {n:"PANETONE DA CASA",u:"KG",dias:[0,0,24.6,0,0,0,0]},
+  {n:"PAO DE QUEIJO",u:"KG",dias:[0,5.3,0,0,5.3,0,0]}
+];
+
+// Placeholder para Confeitaria e Lanchonete (a ser preenchido)
+const PRODS_CONFEITARIA=[
+  {id:200,n:"BOLO DE BANANA",c:"5362",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:201,n:"BOLO DE PAMONHA",c:"5221",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:202,n:"BRIGADEIRÃO",c:"5421",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 DOCES"},
+  {id:203,n:"BOLO DE AMEIXA",c:"5368",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:204,n:"BOLO DE MACAXEIRA",c:"2657",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:205,n:"BOLO DE MILHO",c:"9599",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:206,n:"BOLO DE NOIVA",c:"",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:207,n:"BOLO DE COCADA",c:"5364",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:208,n:"DONUTS",c:"1574",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 OUTROS"},
+  {id:209,n:"BOLO MESCLADO",c:"9526",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:210,n:"BOLO DE TRIGO",c:"9525",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:211,n:"BOLO DE MANDIOCA",c:"2658",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:212,n:"BOLO SURPRESA DE AMEIXA",c:"3634",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLO SURPRESA"},
+  {id:213,n:"BOLO ENGORDA MARIDO",c:"5697",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:214,n:"BOLO DE ABACAXI",c:"5363",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:215,n:"PUDIM",c:"5452",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 DOCES"},
+  {id:216,n:"TORTA DOCE DE LEITE KG",c:"5458",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 TORTAS"},
+  {id:217,n:"BANOFFE UND",c:"3592",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 DOCES"},
+  {id:218,n:"BISCOITO CHAMPANHE",c:"6655",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 OUTROS"},
+  {id:219,n:"BOLO BACIA",c:"1756",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:220,n:"BOLO BEM BOCADO MACAXEIRA",c:"1666",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:221,n:"BOLO DE AIMPIM",c:"9527",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:222,n:"BOLO DE BANANA COM CANELA",c:"9648",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:223,n:"BOLO DE CANJICA",c:"5367",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:224,n:"BOLO DE CENOURA",c:"5360",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:225,n:"BOLO DE CHURROS",c:"2147",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:226,n:"BOLO DE COCO",c:"9296",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:227,n:"BOLO DE FRUTAS VERMELHAS",c:"9643",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:228,n:"BOLO DE LARANJA",c:"9531",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:229,n:"BOLO DE LEITE CONDENSADO",c:"4273",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:230,n:"BOLO DE LIMÃO",c:"4529",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:231,n:"BOLO DE MAÇÃ",c:"6696",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:232,n:"BOLO DE MAÇÃ COM CANELA",c:"6612",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:233,n:"BOLO DE MARACUJA",c:"9534",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:234,n:"BOLO DE MILHO CREMOSO",c:"6746",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:235,n:"BOLO DE MILHO VERDE",c:"5986",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:236,n:"BOLO DE NAPOLITANO",c:"6164",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:237,n:"BOLO DE PAÇOCA",c:"6676",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:238,n:"BOLO DE PÉ DE MOLEQUE",c:"2652",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:239,n:"BOLO DE POTE DE CHOCOLATE",c:"5518",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:240,n:"BOLO DE PRESTIGIO",c:"5029",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:241,n:"BOLO DE QUEIJO",c:"6413",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:242,n:"BOLO DE TAPIOCA COM LEITE CONDENSADO",c:"6988",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:243,n:"BOLO DE TAPIOCA",c:"5640",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:244,n:"BOLO FORMIGUEIRO",c:"9521",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:245,n:"BOLO GIENECCHINE",c:"6764",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:246,n:"BOLO INGLÊS",c:"6394",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:247,n:"BOLO PUDIM KG",c:"2457",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:248,n:"BOLO PUDIM UND",c:"6761",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:249,n:"BOLO SOUZA LEÃO",c:"4477",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:250,n:"BOLO SURPRESA AMENDOIM",c:"6371",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLO SURPRESA"},
+  {id:251,n:"BOLO SURPRESA CASTANHA",c:"6723",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLO SURPRESA"},
+  {id:252,n:"BOLO SURPRESA DE COCO",c:"6544",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLO SURPRESA"},
+  {id:253,n:"BOLO SURPRESA NATA GOIABA",c:"6449",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLO SURPRESA"},
+  {id:254,n:"BOLO XADREZ",c:"1593",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 BOLOS"},
+  {id:255,n:"BROA",c:"1547",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 DOCES"},
+  {id:256,n:"COCADA",c:"6792",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 DOCES"},
+  {id:257,n:"DELICIA DE ABACAXI UND",c:"4599",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 OUTROS"},
+  {id:258,n:"DOCE DE BANANA",c:"6762",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 DOCES"},
+  {id:259,n:"MINI BROA",c:"6026",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 DOCES"},
+  {id:260,n:"MOUSSES",c:"5455",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 DOCES"},
+  {id:261,n:"PALHA ITALIANA",c:"6040",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 DOCES"},
+  {id:262,n:"PALMIER",c:"5865",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 DOCES"},
+  {id:263,n:"PÃO DE MEL",c:"5065",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 OUTROS"},
+  {id:264,n:"QUEIJADINHA",c:"7626",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 DOCES"},
+  {id:265,n:"TORTA CHOCOLATE KG",c:"1595",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 TORTAS"},
+  {id:266,n:"TORTA LIMÃO KG",c:"5459",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 TORTAS"},
+  {id:267,n:"TORTA MARACUJA KG",c:"6765",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 TORTAS"},
+  {id:268,n:"TORTA MORANGO KG",c:"6861",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 TORTAS"},
+  {id:269,n:"TORTAS ESPECIAL KG",c:"5982",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🎂 TORTAS"}
+];
+const PRODS_LANCHONETE=[
+  {id:300,n:"MINI COXINHA DE FRANGO",c:"9452",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥟 FRITOS"},
+  {id:301,n:"FOLHADOS",c:"5051",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥟 FRITOS"},
+  {id:302,n:"BOLINHO DE BACALHAU",c:"",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥟 FRITOS"},
+  {id:303,n:"CAMARÃO EMPANADO",c:"9774",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥟 FRITOS"},
+  {id:304,n:"MINI CHURROS",c:"4773",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥟 ASSADOS"},
+  {id:305,n:"BOLINHO DE QUEIJO",c:"6759",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥟 FRITOS"},
+  {id:306,n:"MINI COXINHA DE FRANGO COM REQUEIJÃO",c:"5331",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥟 FRITOS"},
+  {id:307,n:"MINI COXINHA DE CHARQUE",c:"6582",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥟 FRITOS"},
+  {id:308,n:"BOLINHO DE QUEIJO COM CALABRESA",c:"6849",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥟 FRITOS"},
+  {id:309,n:"CANJICA",c:"6540",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥟 ASSADOS"},
+  {id:310,n:"COXINHA",c:"9453",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥟 FRITOS"},
+  {id:311,n:"EMPADA UND",c:"5705",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥟 FRITOS"},
+  {id:312,n:"ENROLADINHO",c:"9455",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥟 FRITOS"},
+  {id:313,n:"MINI CROASSANT KG",c:"4203",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🥐 PÃES/CROISSANT"},
+  {id:314,n:"MINI CROISSANT DOCE KG",c:"4370",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🥐 PÃES/CROISSANT"},
+  {id:315,n:"MINI EMPADA KG",c:"9681",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🥟 FRITOS"},
+  {id:316,n:"MINI FRANCES KG",c:"7561",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🥐 PÃES/CROISSANT"},
+  {id:317,n:"MINI INTEGRAL DA CASA KG",c:"715",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🥐 PÃES/CROISSANT"},
+  {id:318,n:"MINI PIZZA UNIDADE",c:"7846",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥟 OUTROS"},
+  {id:319,n:"PÃO DE QUEIJO KG",c:"4451",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🥐 PÃES/CROISSANT"},
+  {id:320,n:"PASTEL DE CARNE",c:"5129",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥟 ASSADOS"},
+  {id:321,n:"QUICHE DE ALHO PORO",c:"9439",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥟 ASSADOS"},
+  {id:322,n:"SALGADO DE BATATA COM FRANGO UND",c:"6330",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥟 SALGADO DE BATATA"},
+  {id:323,n:"SALGADO DE BATATA CALABRESA",c:"633",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥟 SALGADO DE BATATA"},
+  {id:324,n:"SALGADO DE BATATA MISTO UND",c:"6631",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥟 SALGADO DE BATATA"},
+  {id:325,n:"SALGADO DE BATATA MISTO",c:"6331",u:"UND",abc:"C",val:1,media:1,min:1,max:5,cat:"🥟 SALGADO DE BATATA"},
+  {id:326,n:"SONHO DA CASA KG",c:"7485",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🥟 ASSADOS"},
+  {id:327,n:"TORTA SALGADA KG",c:"6957",u:"KG",abc:"C",val:1,media:1,min:1,max:5,cat:"🥟 ASSADOS"}
+];
+const PROJ_CONFEITARIA=[];
+const PROJ_LANCHONETE=[];
+
+// ═══ ESTADO ═══
+let D={
+  estoques:{},    // {data: {prodId: qty}}
+  ajustes:{},     // {semanaKey: {prodIdx: {diaIdx: qty}}} — ajustes manuais projeção
+  alertaPct:30,   // % acima do mínimo para alerta laranja
+  setor:'PADARIA'
+};
+let _semanaOffset=0;
+let _cfgResolve=null;
+
+// ═══ INIT ═══
+(function(){
+  const t=new Date(),y=t.getFullYear(),m=String(t.getMonth()+1).padStart(2,'0'),d=String(t.getDate()).padStart(2,'0');
+  document.getElementById('iData').value=`${y}-${m}-${d}`;
+  const saved=JSON.parse(localStorage.getItem(K)||'null');
+  if(saved){Object.assign(D,saved);}
+  document.getElementById('cfgPct').value=D.alertaPct||30;
+  syncHdr();renderChk();
+})();
+
+function saveLocal(){
+  localStorage.setItem(K,JSON.stringify(D));
+}
+
+// ═══ NAVEGAÇÃO ═══
+function go(t){
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('on',['chk','proj','cfg'][i]===t));
+  document.querySelectorAll('.vw').forEach(v=>v.classList.remove('on'));
+  document.getElementById('v-'+t).classList.add('on');
+  if(t==='proj')renderProj();
+  if(t==='cfg'){const cfgS=document.getElementById('cfgSetor');if(cfgS){const cs=document.getElementById('iSetor');if(cs)cfgS.value=cs.value;}renderCfg();}
+}
+
+function syncHdr(){
+  const v=document.getElementById('iData').value;if(!v)return;
+  const dt=new Date(v+'T12:00:00');
+  document.getElementById('hDate').textContent=dt.toLocaleDateString('pt-BR');
+  document.getElementById('hDia').textContent=DIAS_FULL[dt.getDay()];
+}
+
+// ═══ HELPERS ═══
+function getProds(setor){
+  const inativos=D.inativos||{};
+  const extras=(D.extras||{})[setor]||[];
+  let base=[];
+  if(setor==='PADARIA')base=PRODS_PADARIA;
+  else if(setor==='CONFEITARIA')base=PRODS_CONFEITARIA;
+  else if(setor==='LANCHONETE')base=PRODS_LANCHONETE;
+  // aplicar overrides de edição
+  const ov=D.overrideEdit||{};
+  base=base.map(p=>{const k=setor+'|'+p.id;return ov[k]?{...p,...ov[k]}:p;});
+  return [...base,...extras].filter(p=>!inativos[setor+'|'+p.id]);
+}
+function getProj(setor){
+  if(setor==='PADARIA')return PROJ_PADARIA;
+  if(setor==='CONFEITARIA')return PROJ_CONFEITARIA;
+  if(setor==='LANCHONETE')return PROJ_LANCHONETE;
+  return[];
+}
+function getProdMin(setor,id){
+  const ov=D.overrideMin||{};
+  const key=setor+'|'+id;
+  return ov[key]!==undefined?ov[key]:null;
+}
+function getProdMax(setor,id){
+  const ov=D.overrideMax||{};
+  const key=setor+'|'+id;
+  return ov[key]!==undefined?ov[key]:null;
+}
+function fmtQty(v,u){
+  if(v===0||v===null||v===undefined)return'—';
+  return u==='UND'?Number(v).toFixed(0)+' un':Number(v).toFixed(2)+' '+u.toLowerCase();
+}
+
+// ═══ CHECKLIST ═══
+function renderChk(){
+  const data=document.getElementById('iData').value;
+  const setor=document.getElementById('iSetor').value;
+  const prods=getProds(setor);
+  if(!prods.length){
+    document.getElementById('chkList').innerHTML=`<div style="text-align:center;padding:40px 20px;color:var(--gray)"><div style="font-size:2rem;margin-bottom:8px;">🚧</div><p style="font-size:.85rem">Produtos do setor ${setor}<br>em breve!</p></div>`;
+    return;
+  }
+  const estoqHoje=D.estoques[data]||{};
+  // Calcular alertas
+  let nAlerta=0,nAtencao=0,nOk=0,nVazio=0;
+  prods.forEach(p=>{
+    const v=estoqHoje[setor+'|'+p.id];
+    const min=getProdMin(setor,p.id)??p.min;
+    if(v===undefined||v===null){nVazio++;return;}
+    if(v<min)nAlerta++;
+    else if(v<min*(1+(D.alertaPct||30)/100))nAtencao++;
+    else nOk++;
+  });
+  // Banner alertas
+  const alertasEl=document.getElementById('alertasChk');
+  const alertas=[];
+  if(nAlerta>0)alertas.push(`<div class="alerta-box er"><div class="alerta-ico">🚨</div><div class="alerta-body"><div class="alerta-ttl">${nAlerta} produto${nAlerta>1?'s':''} ABAIXO do estoque mínimo — produzir agora!</div></div></div>`);
+  if(nAtencao>0)alertas.push(`<div class="alerta-box wa"><div class="alerta-ico">⚠️</div><div class="alerta-body"><div class="alerta-ttl">${nAtencao} produto${nAtencao>1?'s':''} próximo${nAtencao>1?'s':''} do limite — programar produção</div></div></div>`);
+  if(nVazio===0&&nAlerta===0&&nAtencao===0)alertas.push(`<div class="alerta-box ok"><div class="alerta-ico">✅</div><div class="alerta-body"><div class="alerta-ttl">Estoque em dia! Todos os produtos OK</div></div></div>`);
+  alertasEl.innerHTML=alertas.join('');
+  // Atualizar badge
+  document.getElementById('hBadge').textContent=nAlerta>0?`🚨 ${nAlerta} alerta${nAlerta>1?'s':''}`:nAtencao>0?`⚠️ ${nAtencao} atenção`:'✅ OK';
+  document.getElementById('chkCnt').textContent=prods.length+' produtos · '+nOk+' OK · '+(nAlerta+nAtencao)+' alertas';
+  document.getElementById('chkSub').textContent=nVazio>0?`${nVazio} sem estoque preenchido`:'Todos preenchidos';
+  // Agrupar por categoria
+  const cats={};
+  prods.forEach(p=>{cats[p.cat]=cats[p.cat]||[];cats[p.cat].push(p);});
+  let html='';
+  Object.entries(cats).forEach(([cat,lista])=>{
+    const nAl=lista.filter(p=>{const v=estoqHoje[setor+'|'+p.id];const min=getProdMin(setor,p.id)??p.min;return v!==undefined&&v<min;}).length;
+    const nAt=lista.filter(p=>{const v=estoqHoje[setor+'|'+p.id];const min=getProdMin(setor,p.id)??p.min;return v!==undefined&&v>=min&&v<min*(1+(D.alertaPct||30)/100);}).length;
+    html+=`<div class="cat-hdr">${cat}<span>${nAl>0?'🚨 '+nAl+' alerta':nAt>0?'⚠️ '+nAt+' atenção':'✅ OK'}</span></div>`;
+    lista.forEach(p=>{
+      const key=setor+'|'+p.id;
+      const v=estoqHoje[key];
+      const min=getProdMin(setor,p.id)??p.min;
+      const max=getProdMax(setor,p.id)??p.max;
+      let status='normal',tagTxt='—',produzir='';
+      if(v!==undefined&&v!==null&&v!==''){
+        const vf=parseFloat(v);
+        if(vf<min){status='alerta';tagTxt='PRODUZIR';produzir=fmtQty(Math.ceil((max-vf)*10)/10,p.u);}
+        else if(vf<min*(1+(D.alertaPct||30)/100)){status='atencao';tagTxt='ATENÇÃO';}
+        else if(vf>max){status='normal';tagTxt='EXCESSO';}
+        else{status='ok';tagTxt='OK';}
+      }
+      const checked=estoqHoje[key+'_ok']?'✓':'○';
+      const tagClass=status==='alerta'?'tag-alerta':status==='atencao'?'tag-atencao':status==='ok'?'tag-ok':'tag-normal';
+      html+=`<div class="cl-item ${status}" id="cli${key.replace(/[^a-z0-9]/gi,'_')}">
+        <div class="cl-top">
+          <div class="cl-check" onclick="toggleChkOk('${key}','${data}')">${checked}</div>
+          <div class="cl-info">
+            <div class="cl-nome">${p.n}<span class="cl-abc abc-${p.abc}">${p.abc}</span></div>
+            <div class="cl-meta">Mín: ${fmtQty(min,p.u)} · Máx: ${fmtQty(max,p.u)} · Val: ${p.val}d</div>
+          </div>
+          <div class="cl-right">
+            <span class="cl-status-tag ${tagClass}">${tagTxt}</span>
+            ${produzir?`<span class="cl-produzir">Produzir: ${produzir}</span>`:''}
+          </div>
+        </div>
+        <div class="cl-body">
+          <span class="cl-lbl-est">Estoque atual:</span>
+          <input class="cl-inp ${status!=='normal'?status:''}" type="number" min="0" step="any"
+            value="${v!==undefined?v:''}" placeholder="0"
+            oninput="updChk('${key}','${data}',this)"
+            onfocus="this.select()">
+          <div class="cl-minmax">
+            <span>Min: <strong>${fmtQty(min,p.u)}</strong></span>
+            <span>Máx: <strong>${fmtQty(max,p.u)}</strong></span>
+          </div>
+        </div>
+      </div>`;
+    });
+  });
+  document.getElementById('chkList').innerHTML=html;
+}
+
+function updChk(key,data,el){
+  if(!D.estoques[data])D.estoques[data]={};
+  const v=el.value!==''?parseFloat(el.value):undefined;
+  if(v!==undefined)D.estoques[data][key]=v;
+  else delete D.estoques[data][key];
+  saveLocal();
+  // Atualizar visual do item sem re-render completo
+  renderChk();
+}
+
+function toggleChkOk(key,data){
+  if(!D.estoques[data])D.estoques[data]={};
+  const k=key+'_ok';
+  D.estoques[data][k]=!D.estoques[data][k];
+  saveLocal();renderChk();
+}
+
+function salvarChk(){
+  saveLocal();
+  toast('✅ Checklist salvo!','ok');
+}
+
+// ═══ PROJEÇÃO SEMANAL ═══
+function semanaInicio(offset){
+  const hoje=new Date();
+  const diaSem=hoje.getDay()||7;
+  const seg=new Date(hoje);
+  seg.setDate(hoje.getDate()-(diaSem-1)+(offset*7));
+  seg.setHours(0,0,0,0);
+  return seg;
+}
+function navSemana(d){_semanaOffset+=d;renderProj();}
+
+function renderProj(){
+  const setor=document.getElementById('iSetorProj').value;
+  const proj=getProj(setor);
+  const seg=semanaInicio(_semanaOffset);
+  const datas=Array.from({length:7},(_,i)=>{const d=new Date(seg);d.setDate(seg.getDate()+i);return d;});
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const semKey=seg.toISOString().slice(0,10)+'|'+setor;
+  const regs=(D.registros||{})[semKey]||{};
+  const ajustes=(D.ajustes||{});
+  const DIAS_ABR=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+
+  document.getElementById('projSemana').textContent=
+    datas[0].toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' – '+
+    datas[6].toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+
+  const listEl=document.getElementById('projList');
+  const bsvEl=document.getElementById('projBsv');
+
+  if(!proj.length){
+    listEl.innerHTML=`<div style="text-align:center;padding:40px;color:var(--gray)"><div style="font-size:2rem;margin-bottom:8px;">🚧</div><p style="font-size:.85rem">Projeção da ${setor}<br>em breve!</p></div>`;
+    bsvEl.style.display='none';
+    return;
+  }
+
+  // Cabeçalho dias — dia da semana + data
+  const thDias=datas.map((d,i)=>{
+    const isHoje=d.getTime()===hoje.getTime();
+    const dn=DIAS_ABR[d.getDay()];
+    const dt=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+    return`<th class="${isHoje?'hoje':''}">${dn}<br><span style="font-weight:400;font-size:.5rem">${dt}</span></th>`;
+  }).join('');
+
+  // Agrupar por categoria
+  const cats={};
+  proj.forEach((p,pi)=>{
+    let cat='📦 Outros';
+    const nu=p.n.toUpperCase();
+    if(/FRANCES KG|DOCE KG|CACHORRO|HAMBURGUER|DE CAIXA KG|RECIFE KG|DE BATATA KG/.test(nu))cat='🍞 Pão Diário';
+    else if(/INTEGRAL|FAZENDA|ITALIANO|PIZZA FGO|BAGUETE|BRIOCHE|AUSTRALIANO|AÇAI|QUINOA|CHIA|BOLACHÃO/.test(nu))cat='🥐 Pão Especial';
+    else if(/CROASSAINT|CROISSANT|SANDUICHE/.test(nu))cat='🥐 Croissant';
+    else if(/FOLHADO|SALG|PASTEL|EMPADA/.test(nu))cat='🥟 Salgado';
+    else if(/BOLACHA|BOL PRAEIRA|BOL SODA|BISCOITO|COOKIE/.test(nu))cat='🍪 Bolacha';
+    else if(/TORRADA/.test(nu))cat='🍞 Torrada';
+    else if(/QUEIJO|PANETONE|CHOCOTONE/.test(nu))cat='🎂 Especial';
+    cats[cat]=cats[cat]||[];cats[cat].push({p,pi});
+  });
+
+  // Calcular totais
+  const totProj=Array(7).fill(0);
+  const totProd=Array(7).fill(0);
+  proj.forEach((p,pi)=>{
+    datas.forEach((_,di)=>{
+      const base=p.dias[di]||0;
+      const ajKey=semKey+'|'+pi+'|'+di;
+      const pv=ajustes[ajKey]!==undefined?ajustes[ajKey]:base;
+      if(pv>0)totProj[di]+=pv;
+      const rv=regs['r'+pi+'d'+di];
+      if(rv!==undefined&&rv!=='')totProd[di]+=(parseFloat(rv)||0);
+    });
+  });
+
+  let html='';
+  Object.entries(cats).forEach(([cat,lista])=>{
+    html+=`<div class="proj-card">
+      <div class="proj-cat">${cat}</div>
+      <table class="proj-table">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding-left:8px;min-width:100px;">Produto</th>
+            ${thDias}
+          </tr>
+        </thead>
+        <tbody>`;
+
+    lista.forEach(({p,pi})=>{
+      const cells=datas.map((_,di)=>{
+        const isHoje=datas[di].getTime()===hoje.getTime();
+        const base=p.dias[di]||0;
+        const ajKey=semKey+'|'+pi+'|'+di;
+        const projV=ajustes[ajKey]!==undefined?ajustes[ajKey]:base;
+        const rv=regs['r'+pi+'d'+di];
+        const temV=rv!==undefined&&rv!=='';
+        const isAj=ajustes[ajKey]!==undefined&&ajustes[ajKey]!==base;
+        // Sempre mostra projeção (ou traço) + campo editável em todos os dias
+        return`<td class="${isHoje?'hoje':''} ${isAj?'ajustado':''}">
+          <input type="number" min="0" step="any"
+            value="${projV>0?projV:''}" placeholder="0"
+            oninput="editarProjInline('${semKey}',${pi},${di},${base},this)"
+            onfocus="this.select()"
+            style="width:100%;border:none;border-bottom:1.5px solid var(--grn-l);background:transparent;text-align:center;font-size:.75rem;font-weight:700;padding:2px 2px 3px;outline:none;font-family:inherit;color:${projV>0?'var(--grn2)':'var(--gray)'};" title="Projeção (editável)">
+          <input class="proj-inp ${temV?'ok':''}" type="number" min="0"
+            step="any"
+            value="${temV?rv:''}" placeholder="${projV>0?projV:'0'}"
+            oninput="regProd2('${semKey}','r${pi}d${di}',${di},this)"
+            onfocus="this.select()"
+            style="width:100%;border:none;border-top:1.5px dashed var(--grn-l);border-bottom:2px solid var(--brown2);background:${isHoje?'rgba(26,77,46,.04)':'transparent'};text-align:center;font-size:.78rem;font-weight:700;padding:3px 2px;outline:none;font-family:inherit;color:var(--brown);">
+        </td>`;
+      }).join('');
+      html+=`<tr>
+        <td class="prod-nome">${p.n}<br><span class="proj-und">${p.u}</span></td>
+        ${cells}
+      </tr>`;
+    });
+
+    html+=`</tbody></table></div>`;
+  });
+
+  // Linha de total
+  const totRow=datas.map((_,i)=>{
+    const isHoje=datas[i].getTime()===hoje.getTime();
+    return`<td class="${isHoje?'hoje':''}" style="text-align:center;padding:5px 4px;">
+      <div style="font-size:.7rem;font-weight:700;color:var(--grn);">${totProj[i]>0?totProj[i].toFixed(1):'—'}</div>
+      <div style="font-size:.7rem;font-weight:700;color:var(--brown);border-top:1px dashed var(--grn-l);padding-top:2px;margin-top:2px;">${totProd[i]>0?totProd[i].toFixed(1):'—'}</div>
+    </td>`;
+  }).join('');
+
+  html+=`<div class="proj-card">
+    <table class="proj-table"><tbody>
+      <tr class="total-row">
+        <td class="prod-nome" style="font-size:.68rem;line-height:1.8;">
+          <span style="color:var(--grn);display:block;">▲ Projeção</span>
+          <span style="color:var(--brown);">✍️ Produzido</span>
+        </td>${totRow}
+      </tr>
+    </tbody></table>
+  </div>`;
+
+  listEl.innerHTML=html;
+  bsvEl.style.display='flex';
+
+  const totProjTotal=totProj.reduce((a,v)=>a+v,0);
+  const totProdTotal=totProd.reduce((a,v)=>a+v,0);
+  document.getElementById('projBsvCnt').textContent=
+    '▲ '+totProjTotal.toFixed(1)+' proj · ✍️ '+totProdTotal.toFixed(1)+' prod';
+  document.getElementById('projBsvSub').textContent=
+    totProjTotal>0&&totProdTotal>0
+      ?((totProdTotal/totProjTotal)*100).toFixed(0)+'% da projeção produzido na semana'
+      :'Preencha o que foi produzido';
+}
+
+function editarProjInline(semKey,pi,di,base,el){
+  const v=parseFloat(el.value)||0;
+  if(!D.ajustes)D.ajustes={};
+  const k=semKey+'|'+pi+'|'+di;
+  if(v===base||v===0)delete D.ajustes[k];
+  else D.ajustes[k]=v;
+  el.style.color=v>0?'var(--grn2)':'var(--gray)';
+  // atualizar placeholder do campo produzido abaixo
+  const bot=el.nextElementSibling;
+  if(bot)bot.placeholder=v>0?String(v):'0';
+  saveLocal();
+}
+function regProd2(semKey,rk,di,el){
+  if(!D.registros)D.registros={};
+  if(!D.registros[semKey])D.registros[semKey]={};
+  const v=el.value;
+  if(v!=='')D.registros[semKey][rk]=parseFloat(v)||0;
+  else delete D.registros[semKey][rk];
+  el.style.color=v!==''?'var(--grn)':'var(--brown)';
+  el.style.borderBottomColor=v!==''?'var(--grn)':'var(--brown2)';
+  saveLocal();
+}
+
+function salvarProj(){
+  saveLocal();toast('✅ Produção salva!','ok');
+}
+
+// ═══ CONFIG ═══
+let _cfgMap=[];
+
+function getSetor_cfg(){return(document.getElementById('cfgSetor')||{value:'PADARIA'}).value;}
+
+function getProdsSetor(setor){
+  if(setor==='PADARIA')return PRODS_PADARIA;
+  if(setor==='CONFEITARIA')return PRODS_CONFEITARIA;
+  if(setor==='LANCHONETE')return PRODS_LANCHONETE;
+  return[];
+}
+
+function renderCfg(){
+  const setor=getSetor_cfg();
+  const q=(document.getElementById('cfgSrc')||{value:''}).value.toLowerCase();
+  const inativos=D.inativos||{};
+  const extras=D.extras||{};
+  // Produtos base do setor
+  let base=getProdsSetor(setor);
+  // Extras adicionados pelo usuário
+  const extList=(extras[setor]||[]);
+  const todos=[...base,...extList];
+  const filtrado=todos.filter(p=>!q||p.n.toLowerCase().includes(q));
+  _cfgMap=filtrado.map(p=>({...p,_setor:setor}));
+
+  const cats={};
+  filtrado.forEach((p,i)=>{
+    const cat=p.cat||'📦 Outros';
+    cats[cat]=cats[cat]||[];cats[cat].push({p,i});
+  });
+
+  let html='';
+  const nInat=filtrado.filter(p=>inativos[setor+'|'+p.id]).length;
+  html+=`<div style="font-size:.72rem;color:var(--gray);margin-bottom:8px;padding:0 2px;">${filtrado.length} produtos · ${nInat} inativos</div>`;
+
+  Object.entries(cats).forEach(([cat,lista])=>{
+    html+=`<div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--grn2);background:var(--grn-l);padding:5px 10px;border-radius:7px;margin:10px 0 6px;">${cat}</div>`;
+    lista.forEach(({p,i})=>{
+      const key=setor+'|'+p.id;
+      const inativo=!!(inativos[key]);
+      const min=getProdMin(setor,p.id)??p.min;
+      const max=getProdMax(setor,p.id)??p.max;
+      const isExtra=!!(D.extras||{})[setor]?.find(x=>x.id===p.id);
+      html+=`<div class="cfg-item ${inativo?'inativo':''}" id="cfg${i}">
+        <div class="cfg-ico">${(D.fotos||{})[key]?`<img src="${(D.fotos||{})[key]}" alt="">`:(cat.split(' ')[0]||'📦')}</div>
+        <div class="cfg-info">
+          <div class="cfg-nm">${p.n}${inativo?' <span style="font-size:.58rem;background:#fdd;color:#c00;padding:1px 5px;border-radius:4px;">inativo</span>':''}</div>
+          <div class="cfg-mt">${p.u} · val:${p.val}d · mín:${min} · máx:${max}${isExtra?' · <span style="color:var(--grn)">extra</span>':''}</div>
+        </div>
+        <div class="cfg-acts">
+          <button class="cfg-btn ed" onclick="abrirEditProd(${i})">✏️</button>
+          <button class="cfg-btn ${inativo?'rv':'in'}" onclick="toggleInativo(${i})">${inativo?'▶':'⏸'}</button>
+          ${isExtra?`<button class="cfg-btn" style="background:var(--red-l);color:var(--red);" onclick="deletarExtra(${i})">🗑</button>`:''}
+        </div>
+      </div>`;
+    });
+  });
+
+  document.getElementById('cfgList').innerHTML=html;
+}
+
+// ── Fotos de produtos ──
+let _epFotoNova=null, _apFotoNova=null;
+
+function prevFotoProd(prefix, inp){
+  if(!inp.files[0])return;
+  const r=new FileReader();
+  r.onload=e=>{
+    const wrap=document.getElementById(prefix+'FotoWrap');
+    const ico=document.getElementById(prefix+'FotoIco');
+    const del=document.getElementById(prefix+'FotoDel');
+    wrap.querySelector('img')&&wrap.querySelector('img').remove();
+    const img=document.createElement('img');img.src=e.target.result;
+    wrap.insertBefore(img, wrap.querySelector('input'));
+    ico.style.display='none';
+    del.style.display='block';
+    if(prefix==='ep')_epFotoNova=e.target.result;
+    else _apFotoNova=e.target.result;
+  };
+  r.readAsDataURL(inp.files[0]);
+}
+
+function delFotoProd(prefix){
+  const wrap=document.getElementById(prefix+'FotoWrap');
+  const ico=document.getElementById(prefix+'FotoIco');
+  const del=document.getElementById(prefix+'FotoDel');
+  wrap.querySelector('img')&&wrap.querySelector('img').remove();
+  ico.style.display='';
+  del.style.display='none';
+  if(prefix==='ep'){_epFotoNova=null;_epFotoRemovida=true;}
+  else _apFotoNova=null;
+}
+
+function mostrarFotoModal(prefix, fotoSrc, ico){
+  const wrap=document.getElementById(prefix+'FotoWrap');
+  const icoEl=document.getElementById(prefix+'FotoIco');
+  const del=document.getElementById(prefix+'FotoDel');
+  wrap.querySelector('img')&&wrap.querySelector('img').remove();
+  if(fotoSrc){
+    const img=document.createElement('img');img.src=fotoSrc;
+    wrap.insertBefore(img, wrap.querySelector('input'));
+    icoEl.style.display='none';
+    del.style.display='block';
+  } else {
+    icoEl.style.display='';
+    icoEl.textContent=ico||'📷';
+    del.style.display='none';
+  }
+}
+
+// ── Inativar / Reativar ──
+async function toggleInativo(i){
+  const p=_cfgMap[i];if(!p)return;
+  const setor=p._setor;
+  const key=setor+'|'+p.id;
+  if(!D.inativos)D.inativos={};
+  const inativo=!!D.inativos[key];
+  if(!inativo){
+    const ok=await confirmar('"'+p.n+'" — Inativar? Produto some do checklist.','Inativar','⏸','Inativar');
+    if(!ok)return;
+    D.inativos[key]=true;
+    toast('⏸ '+p.n+' inativado','er');
+  } else {
+    D.inativos[key]=false;
+    delete D.inativos[key];
+    toast('▶ '+p.n+' reativado','ok');
+  }
+  saveLocal();renderCfg();
+}
+
+// ── Editar produto ──
+let _editIdx=-1;
+let _epFotoRemovida=false;
+function abrirEditProd(i){
+  const p=_cfgMap[i];if(!p)return;
+  _editIdx=i;_epFotoNova=null;_epFotoRemovida=false;
+  const setor=p._setor;
+  const key=setor+'|'+p.id;
+  const min=getProdMin(setor,p.id)??p.min;
+  const max=getProdMax(setor,p.id)??p.max;
+  document.getElementById('editProdTtl').textContent=p.n.slice(0,30);
+  document.getElementById('epNm').value=p.n;
+  document.getElementById('epUnd').value=p.u||'KG';
+  document.getElementById('epVal').value=p.val||1;
+  document.getElementById('epMin').value=min;
+  document.getElementById('epMax').value=max;
+  const foto=(D.fotos||{})[key]||'';
+  mostrarFotoModal('ep', foto, '📷');
+  document.getElementById('editProdOv').classList.add('on');
+}
+function fecharEditProd(){document.getElementById('editProdOv').classList.remove('on');_editIdx=-1;}
+function salvarEditProd(){
+  if(_editIdx<0)return;
+  const p=_cfgMap[_editIdx];
+  const setor=p._setor;
+  const nm=document.getElementById('epNm').value.trim().toUpperCase();
+  const und=document.getElementById('epUnd').value;
+  const val=parseInt(document.getElementById('epVal').value)||1;
+  const min=parseFloat(document.getElementById('epMin').value)||0;
+  const max=parseFloat(document.getElementById('epMax').value)||0;
+  if(!nm){toast('⚠️ Nome obrigatório','er');return;}
+  if(!D.overrideMin)D.overrideMin={};
+  if(!D.overrideMax)D.overrideMax={};
+  if(!D.overrideEdit)D.overrideEdit={};
+  if(!D.fotos)D.fotos={};
+  const key=setor+'|'+p.id;
+  D.overrideMin[key]=min;
+  D.overrideMax[key]=max;
+  D.overrideEdit[key]={n:nm,u:und,val};
+  // Foto
+  if(_epFotoNova)D.fotos[key]=_epFotoNova;
+  else if(_epFotoRemovida)delete D.fotos[key];
+  // Se for extra, editar direto
+  const extIdx=(D.extras?.[setor]||[]).findIndex(x=>x.id===p.id);
+  if(extIdx>=0) D.extras[setor][extIdx]={...D.extras[setor][extIdx],n:nm,u:und,val,min,max};
+  saveLocal();fecharEditProd();renderCfg();
+  toast('✅ '+nm+' atualizado','ok');
+}
+
+// ── Adicionar produto ──
+function abrirAddProd(){
+  _apFotoNova=null;
+  document.getElementById('apNm').value='';
+  document.getElementById('apUnd').value='KG';
+  document.getElementById('apVal').value='1';
+  document.getElementById('apMin').value='';
+  document.getElementById('apMax').value='';
+  mostrarFotoModal('ap','','📷');
+  document.getElementById('addProdOv').classList.add('on');
+  setTimeout(()=>document.getElementById('apNm').focus(),80);
+}
+function fecharAddProd(){document.getElementById('addProdOv').classList.remove('on');}
+function salvarAddProd(){
+  const setor=getSetor_cfg();
+  const nm=document.getElementById('apNm').value.trim().toUpperCase();
+  const und=document.getElementById('apUnd').value;
+  const val=parseInt(document.getElementById('apVal').value)||1;
+  const min=parseFloat(document.getElementById('apMin').value)||0;
+  const max=parseFloat(document.getElementById('apMax').value)||0;
+  if(!nm){toast('⚠️ Digite o nome','er');return;}
+  if(!D.extras)D.extras={};
+  if(!D.extras[setor])D.extras[setor]=[];
+  if(!D.fotos)D.fotos={};
+  const id=Date.now();
+  const cat=setor==='CONFEITARIA'?'🎂 BOLOS':setor==='LANCHONETE'?'🥟 FRITOS':'🥐 PÃO ESPECIAL';
+  const novoProd={id,n:nm,u:und,val,min,max,abc:'C',media:min,cat};
+  D.extras[setor].push(novoProd);
+  // Foto
+  if(_apFotoNova){
+    const key=setor+'|'+id;
+    D.fotos[key]=_apFotoNova;
+  }
+  saveLocal();fecharAddProd();renderCfg();
+  toast('✅ '+nm+' adicionado','ok');
+}
+
+// ── Deletar extra ──
+async function deletarExtra(i){
+  const p=_cfgMap[i];if(!p)return;
+  const setor=p._setor;
+  const ok=await confirmar('Remover "'+p.n+'"?','Remover','🗑️','Remover');
+  if(!ok)return;
+  D.extras[setor]=(D.extras[setor]||[]).filter(x=>x.id!==p.id);
+  saveLocal();renderCfg();
+  toast('🗑 '+p.n+' removido','er');
+}
+
+function setProdMin(setor,id,val){
+  if(!D.overrideMin)D.overrideMin={};
+  D.overrideMin[setor+'|'+id]=parseFloat(val)||0;
+  saveLocal();
+}
+function setProdMax(setor,id,val){
+  if(!D.overrideMax)D.overrideMax={};
+  D.overrideMax[setor+'|'+id]=parseFloat(val)||0;
+  saveLocal();
+}
+
+// ═══ PDF CHECKLIST ═══
+function expChkPDF(){
+  const data=document.getElementById('iData').value;
+  const setor=document.getElementById('iSetor').value;
+  const prods=getProds(setor);
+  const estoqHoje=D.estoques[data]||{};
+  const dtObj=new Date(data+'T12:00:00');
+  const dtFmt=dtObj.toLocaleDateString('pt-BR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  const rows=prods.map(p=>{
+    const key=setor+'|'+p.id;
+    const v=estoqHoje[key];
+    const min=getProdMin(setor,p.id)??p.min;
+    const max=getProdMax(setor,p.id)??p.max;
+    let status='—',cor='#333',produzir='—';
+    if(v!==undefined){
+      const vf=parseFloat(v);
+      if(vf<min){status='⚠️ PRODUZIR';cor='#A93226';produzir=fmtQty(Math.ceil((max-vf)*10)/10,p.u);}
+      else if(vf<min*(1+(D.alertaPct||30)/100)){status='ATENÇÃO';cor='#CA6F1E';}
+      else if(vf>max){status='EXCESSO';cor='#7F8C8D';}
+      else{status='✅ OK';cor='#1A4D2E';}
+    }
+    return`<tr>
+      <td style="padding:5px 8px;font-size:10px;font-weight:600">${p.n}</td>
+      <td style="padding:5px 8px;text-align:center;font-size:9px">${p.u}</td>
+      <td style="padding:5px 8px;text-align:center;font-size:9px">${p.abc}</td>
+      <td style="padding:5px 8px;text-align:right;font-size:10px">${fmtQty(min,p.u)}</td>
+      <td style="padding:5px 8px;text-align:right;font-size:10px">${fmtQty(max,p.u)}</td>
+      <td style="padding:5px 8px;text-align:right;font-size:10px;font-weight:700">${v!==undefined?fmtQty(v,p.u):'—'}</td>
+      <td style="padding:5px 8px;text-align:center;font-size:9px;font-weight:700;color:${cor}">${status}</td>
+      <td style="padding:5px 8px;text-align:right;font-size:9px;color:#A93226;font-weight:700">${produzir}</td>
+    </tr>`;
+  }).join('');
+
+  const nAlerta=prods.filter(p=>{const v=estoqHoje[setor+'|'+p.id];const min=getProdMin(setor,p.id)??p.min;return v!==undefined&&parseFloat(v)<min;}).length;
+  const nOk=prods.filter(p=>{const v=estoqHoje[setor+'|'+p.id];const min=getProdMin(setor,p.id)??p.min;const max=getProdMax(setor,p.id)??p.max;return v!==undefined&&parseFloat(v)>=min&&parseFloat(v)<=max*(1+(D.alertaPct||30)/100);}).length;
+
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Checklist ${setor} — ${data}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:Arial,sans-serif;font-size:11px;color:#222;padding:16px 20px;}
+    h1{color:#1A4D2E;font-size:16px;margin-bottom:2px;}
+    .sub{color:#888;font-size:9px;margin-bottom:14px;}
+    .kpis{display:flex;gap:10px;margin-bottom:14px;}
+    .kpi{flex:1;border-radius:6px;padding:8px 10px;text-align:center;}
+    .kpi-v{font-size:18px;font-weight:800;display:block;}
+    .kpi-l{font-size:8px;text-transform:uppercase;opacity:.7;}
+    .k1{background:#FADBD8;color:#A93226;}.k2{background:#FDEBD0;color:#CA6F1E;}.k3{background:#D4EFDF;color:#1A4D2E;}
+    table{width:100%;border-collapse:collapse;}
+    th{background:#1A4D2E;color:#fff;padding:5px 8px;text-align:left;font-size:9px;font-weight:700;}
+    tr:nth-child(even){background:#F5FAF0;}
+    .footer{margin-top:16px;font-size:8px;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:8px;}
+    @media print{body{padding:8px;}@page{margin:1cm;size:A4;}}
+  </style></head><body>
+<!-- Botão voltar para o hub -->
+<a href="MG_INDEX.html" style="position:fixed;top:8px;left:8px;z-index:9999;display:flex;align-items:center;gap:5px;background:#1A3E6B;color:#fff;text-decoration:none;padding:7px 13px;font-size:.72rem;font-weight:700;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.2);">← Hub</a>
+
+  <h1>✅ Checklist de Estoque — ${setor}</h1>
+  <div class="sub">📅 ${dtFmt} · Mercadinho M. Graças · Gerado em ${new Date().toLocaleString('pt-BR')}</div>
+  <div class="kpis">
+    <div class="kpi k1"><span class="kpi-v">${nAlerta}</span><div class="kpi-l">Produzir agora</div></div>
+    <div class="kpi k2"><span class="kpi-v">${prods.filter(p=>{const v=estoqHoje[setor+'|'+p.id];const min=getProdMin(setor,p.id)??p.min;return v!==undefined&&parseFloat(v)>=min&&parseFloat(v)<min*(1+(D.alertaPct||30)/100);}).length}</span><div class="kpi-l">Atenção</div></div>
+    <div class="kpi k3"><span class="kpi-v">${nOk}</span><div class="kpi-l">OK</div></div>
+  </div>
+  <table><tr><th>Produto</th><th>Un</th><th>ABC</th><th style="text-align:right">Mín</th><th style="text-align:right">Máx</th><th style="text-align:right">Estoque Atual</th><th style="text-align:center">Status</th><th style="text-align:right">Produzir</th></tr>${rows}</table>
+  <div class="footer">Mercadinho M. Graças · Checklist ${setor} · ${data}</div>
+  </body></html>`);
+  w.document.close();setTimeout(()=>w.print(),400);
+  toast('📄 PDF gerado!','ok');
+}
+
+// ═══ PDF PROJEÇÃO ═══
+function expProjPDF(){
+  const setor=document.getElementById('iSetorProj').value;
+  const proj=getProj(setor);
+  const seg=semanaInicio(_semanaOffset);
+  const datas=Array.from({length:7},(_,i)=>{const d=new Date(seg);d.setDate(seg.getDate()+i);return d;});
+  const semKey=seg.toISOString().slice(0,10)+'|'+setor;
+  const ajustes=D.ajustes[semKey]||{};
+  const totais=Array(7).fill(0);
+  const DIAS_FULL_ABR=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+
+  // Cabeçalho dos dias — mostra dia da semana + data + linha assinatura
+  const thDias=datas.map((d,i)=>{
+    const dn=DIAS_FULL_ABR[d.getDay()];
+    const dt=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+    return`<th style="text-align:center;width:80px;padding:6px 4px;">
+      <div style="font-size:9px;font-weight:800;">${dn}</div>
+      <div style="font-size:8px;font-weight:400;opacity:.8">${dt}</div>
+    </th>`;
+  }).join('');
+
+  // Agrupar por categoria para separar no PDF
+  const cats={};
+  proj.forEach((p,pi)=>{
+    let cat='Geral';
+    const nu=p.n.toUpperCase();
+    if(nu.includes('FRANCES')||nu.includes('DOCE KG')||nu.includes('CACHORRO')||nu.includes('HAMBURGUER')||nu.includes('DE CAIXA KG')||nu.includes('RECIFE')||nu.includes('BATATA'))cat='🍞 Pão Diário';
+    else if(nu.includes('INTEGRAL')||nu.includes('FAZENDA')||nu.includes('ITALIANO')||nu.includes('PIZZA')||nu.includes('BAGUETE')||nu.includes('BRIOCHE')||nu.includes('AUSTRALIANO'))cat='🥐 Pão Especial';
+    else if(nu.includes('CROISSANT')||nu.includes('CROASS')||nu.includes('SANDUICHE'))cat='🥐 Croissant';
+    else if(nu.includes('FOLHADO')||nu.includes('SALG')||nu.includes('PASTEL')||nu.includes('EMPADA')||nu.includes('PIZZA'))cat='🥟 Salgado';
+    else if(nu.includes('BOL')||nu.includes('BISCOITO')||nu.includes('COOKIE'))cat='🍪 Bolacha';
+    else if(nu.includes('TORRADA'))cat='🍞 Torrada';
+    else if(nu.includes('QUEIJO')||nu.includes('PANETONE')||nu.includes('CHOCOTONE'))cat='🎂 Especial';
+    cats[cat]=cats[cat]||[];cats[cat].push({p,pi});
+  });
+
+  let rows='';
+  Object.entries(cats).forEach(([cat,lista])=>{
+    // Linha de categoria
+    rows+=`<tr><td colspan="9" style="background:#1A4D2E;color:#fff;font-size:8px;font-weight:800;padding:5px 8px;letter-spacing:.5px;">${cat}</td></tr>`;
+    lista.forEach(({p,pi})=>{
+      const cellsDias=datas.map((_,di)=>{
+        const base=p.dias[di]||0;
+        const ajKey=pi+'|'+di;
+        const v=ajustes[ajKey]!==undefined?ajustes[ajKey]:base;
+        if(v>0)totais[di]+=v;
+        // Célula: valor de projeção em cinza claro (referência) + linha para preenchimento
+        return`<td style="padding:0;width:80px;border-right:1px solid #ddd;">
+          <div style="padding:3px 6px 0;font-size:8px;color:${v>0?'#555':'#ccc'};font-weight:${v>0?'600':'400'};min-height:14px;">${v>0?v:'—'}</div>
+          <div style="border-bottom:1.5px solid #333;margin:0 6px 4px;height:16px;"></div>
+        </td>`;
+      }).join('');
+      rows+=`<tr style="border-bottom:1px solid #e8e8e8;">
+        <td style="padding:4px 8px;font-size:9px;font-weight:600;max-width:130px;word-break:break-word;line-height:1.3;border-right:1px solid #ddd;">${p.n}</td>
+        <td style="padding:4px 6px;text-align:center;font-size:8px;color:#777;border-right:2px solid #ccc;">${p.u}</td>
+        ${cellsDias}
+      </tr>`;
+    });
+  });
+
+  // Linha de total projetado
+  const totProj=totais.map(v=>`<td style="text-align:center;padding:5px 4px;font-size:9px;font-weight:800;color:#1A4D2E;border-right:1px solid #ddd;">${v>0?v.toFixed(1):'—'}</td>`).join('');
+  // Linha em branco para total real (preenchimento manual)
+  const totReal=datas.map(()=>`<td style="padding:0;border-right:1px solid #ddd;"><div style="border-bottom:2px solid #1A4D2E;margin:4px 6px;height:18px;"></div></td>`).join('');
+
+  rows+=`<tr style="background:#D4EFDF;">
+    <td colspan="2" style="padding:5px 8px;font-size:8px;font-weight:800;color:#1A4D2E;border-right:2px solid #ccc;">📊 TOTAL PROJETADO</td>${totProj}</tr>`;
+  rows+=`<tr style="background:#fff;">
+    <td colspan="2" style="padding:5px 8px;font-size:8px;font-weight:800;color:#333;border-right:2px solid #ccc;">✍️ TOTAL REAL</td>${totReal}</tr>`;
+
+  // Linha de assinatura por dia
+  const assinaturas=datas.map(()=>`<td style="padding:0;border-right:1px solid #ddd;vertical-align:bottom;">
+    <div style="font-size:7px;color:#aaa;padding:2px 6px 0;">Resp:</div>
+    <div style="border-bottom:1.5px solid #333;margin:0 6px 4px;height:14px;"></div>
+  </td>`).join('');
+  rows+=`<tr style="background:#F9F9F9;">
+    <td colspan="2" style="padding:5px 8px;font-size:8px;font-weight:800;color:#777;border-right:2px solid #ccc;">✍️ RESPONSÁVEL</td>${assinaturas}</tr>`;
+
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Projeção ${setor} — ${datas[0].toLocaleDateString('pt-BR')}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:Arial,sans-serif;font-size:10px;color:#222;padding:12px 16px;}
+    h1{color:#1A4D2E;font-size:14px;margin-bottom:1px;display:flex;align-items:center;gap:6px;}
+    .sub{color:#888;font-size:8px;margin-bottom:10px;}
+    .legenda{display:flex;gap:16px;font-size:8px;color:#666;margin-bottom:8px;background:#f9f9f9;padding:5px 8px;border-radius:4px;border-left:3px solid #1A4D2E;}
+    table{width:100%;border-collapse:collapse;border:1px solid #ddd;}
+    th{background:#276240;color:#fff;padding:6px 4px;font-size:8px;font-weight:700;border-right:1px solid rgba(255,255,255,.2);}
+    th:last-child{border-right:none;}
+    .footer{margin-top:10px;font-size:7px;color:#bbb;text-align:center;border-top:1px solid #eee;padding-top:6px;}
+    @media print{
+      body{padding:6px;}
+      @page{margin:.7cm;size:A4 landscape;}
+      tr{page-break-inside:avoid;}
+    }
+  </style></head><body>
+<!-- Botão voltar para o hub -->
+<a href="MG_INDEX.html" style="position:fixed;top:8px;left:8px;z-index:9999;display:flex;align-items:center;gap:5px;background:#1A3E6B;color:#fff;text-decoration:none;padding:7px 13px;font-size:.72rem;font-weight:700;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.2);">← Hub</a>
+
+  <h1>📅 Projeção Semanal — ${setor}</h1>
+  <div class="sub">Mercadinho M. Graças · Semana: ${datas[0].toLocaleDateString('pt-BR')} a ${datas[6].toLocaleDateString('pt-BR')} · Gerado em ${new Date().toLocaleString('pt-BR')}</div>
+  <div class="legenda">
+    <span>📌 <strong>Número em cinza</strong> = projeção sugerida</span>
+    <span>✍️ <strong>Linha abaixo</strong> = preencher o que foi produzido</span>
+    <span>⚠️ Ajuste conforme estoque disponível</span>
+  </div>
+  <table>
+    <thead><tr>
+      <th style="text-align:left;padding:6px 8px;min-width:130px;">Produto</th>
+      <th style="text-align:center;width:36px;border-right:2px solid rgba(255,255,255,.3);">Un</th>
+      ${thDias}
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div class="footer">Mercadinho M. Graças · Projeção ${setor} · ${new Date().toLocaleDateString('pt-BR')}</div>
+  </body></html>`);
+  w.document.close();
+  setTimeout(()=>w.print(),500);
+  toast('📄 PDF gerado!','ok');
+}
+
+// ═══ MODAL CONFIRMAÇÃO ═══
+let _confResolve=null;
+function confirmar(msg,titulo='Confirmar',ico='⚠️',okTxt='Confirmar'){
+  return new Promise(resolve=>{
+    _confResolve=resolve;
+    document.getElementById('confIco').textContent=ico;
+    document.getElementById('confTtl').textContent=titulo;
+    document.getElementById('confMsg').textContent=msg;
+    document.getElementById('confOk').textContent=okTxt;
+    document.getElementById('confOv').classList.add('on');
+  });
+}
+function _confResp(ok){
+  document.getElementById('confOv').classList.remove('on');
+  if(_confResolve){_confResolve(ok);_confResolve=null;}
+}
+
+function toast(msg,t=''){
+  const el=document.getElementById('tst');
+  el.textContent=msg;el.className='tst on'+(t?' '+t:'');
+  setTimeout(()=>el.className='tst',2800);
+}
+</script>
+</body>
+</html>
