@@ -318,10 +318,10 @@ body{display:flex;flex-direction:column;}
     </div>
 
     <div class="sidebar-section">Planejamento</div>
-    <div class="nav-item" onclick="irMod('CHECKLIST_PROJECAO.html')">
+    <div class="nav-item" onclick="abrirConstrucao('checklist')">
       <span class="nav-ico">✅</span> Checklist
     </div>
-    <div class="nav-item" onclick="irMod('CHECKLIST_PROJECAO.html')">
+    <div class="nav-item" onclick="abrirConstrucao('proj')">
       <span class="nav-ico">📈</span> Projeção
       <span class="nav-wip">Beta</span>
     </div>
@@ -400,8 +400,8 @@ body{display:flex;flex-direction:column;}
         </div>
       </div>
 
-      <div class="mod-card m-chk" onclick="irMod('CHECKLIST_PROJECAO.html')">
-        <div class="mod-chip">✅ Estoque</div>
+      <div class="mod-card m-chk" onclick="abrirConstrucao('checklist')">
+        <div class="mod-chip" style="background:#EEF2FF;color:#1D4ED8;">🚧 Em breve</div>
         <span class="mod-ico">📋</span>
         <div class="mod-title">Checklist</div>
         <div class="mod-desc">Controle de estoque diário por setor</div>
@@ -411,7 +411,7 @@ body{display:flex;flex-direction:column;}
         </div>
       </div>
 
-      <div class="mod-card m-proj" onclick="irMod('CHECKLIST_PROJECAO.html')">
+      <div class="mod-card m-proj" onclick="abrirConstrucao('proj')">
         <div class="mod-wip">Beta</div>
         <div class="mod-chip">📈 Planej.</div>
         <span class="mod-ico">📅</span>
@@ -485,7 +485,17 @@ if(CONFIG.logoUrl){
 }
 
 function irMod(url){window.location.href=url;}
-function abrirConstrucao(){document.getElementById('modalCons').classList.add('on');}
+const CONS_MSG={
+  dash:{titulo:'Dashboard em Construção',desc:'Em breve: análise completa cruzando produção, desperdícios e classificação ABC de cada setor.'},
+  checklist:{titulo:'Checklist em Construção',desc:'Em breve: controle de estoque diário com alertas de mínimo e máximo por produto e setor.'},
+  proj:{titulo:'Projeção em Construção',desc:'Em breve: planejamento semanal de produção baseado no histórico real de vendas e desperdícios.'},
+};
+function abrirConstrucao(mod='dash'){
+  const m=CONS_MSG[mod]||CONS_MSG.dash;
+  document.querySelector('#modalCons .modal-title').textContent=m.titulo;
+  document.querySelector('#modalCons .modal-desc').textContent=m.desc;
+  document.getElementById('modalCons').classList.add('on');
+}
 function toggleSidebar(){
   document.getElementById('sidebar').classList.toggle('open');
   document.getElementById('sidebarOv').classList.toggle('on');
