@@ -223,6 +223,21 @@ input:checked+.tsl:before{transform:translateX(17px);}
 </style>
 </head>
 <body>
+<!-- GestFood TopBar -->
+<div class="gf-topbar">
+  <a href="GESTFOOD_INDEX.html" class="gf-back">← Hub</a>
+  <div style="display:flex;align-items:center;gap:7px;">
+    <div class="logo-mark" style="width:26px;height:26px;background:#2D6A4F;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.72rem;font-weight:800;">G</div>
+    <span style="font-size:.82rem;font-weight:700;color:#1C1C1A;">Gest<span style="color:#2D6A4F;font-weight:400;">Food</span></span>
+  </div>
+  <span class="gf-modulo">📝 Produção</span>
+  <div style="flex:1;"></div>
+  <div class="gf-sync">
+    <span class="dot wait" id="syncDot2"></span>
+    <span id="syncTxt2">...</span>
+  </div>
+  <a href="GESTFOOD_CONFIG.html" class="gf-back" style="background:#EAF4EF;color:#1B4332;border-color:#C6E6D4;">⚙️</a>
+</div>
 <header>
   <div class="h-top">
     <div><h1>🍞 Produção <span style="font-size:.6rem;background:rgba(255,255,255,.2);padding:2px 7px;border-radius:10px;font-weight:600;">BETA 1.0</span></h1><div class="h-sub">Supermercado MG — Padaria</div></div>
@@ -402,9 +417,33 @@ const pk=p=>`${p.g}|${p.c}|${p.n}`;
 let D={hist:[],extra:[],resps:['JOÃO'],grps:[...GB],fotos:{},edits:{},disabled:{}};
 let Q={},GF='TODOS',nFoto='',eKey='',eFoto='';
 
+// Produtos do Supabase (tabela 'produtos')
+let PRODS_SUPA=[];
+
 function applyEdits(p){const k=pk(p);const ed=D.edits[k];return ed?{...p,...ed,_ok:p,_key:k}:{...p,_key:k};}
-function allProds(){return[...BASE.map(applyEdits),...D.extra.map(p=>({...p,_key:pk(p)}))].filter(p=>!D.disabled[p._key]);}
-function allProdsAll(){return[...BASE.map(applyEdits),...D.extra.map(p=>({...p,_key:pk(p)}))]}
+function _normProd(p){
+  // Normaliza produto do Supabase para o formato da produção
+  const pp={c:p.cod||p.c||'',n:p.nome||p.n,s:p.setor||p.s,u:(p.unidade||p.u||'KG').toUpperCase(),
+    g:p.grupo||p.g||setorToGrp(p.setor||p.s||'PADARIA'),min:p.min_estoque||0,max:p.max_estoque||0};
+  const k=pk(pp);return{...pp,_key:k};
+}
+function setorToGrp(s){
+  if(s==='PADARIA')return'🍞 Pão Diário';
+  if(s==='CONFEITARIA')return'🎂 Especial';
+  if(s==='LANCHONETE')return'🥟 Salgado';
+  if(s==='PASTELARIA')return'🥟 Salgado';
+  return'📦 Outros';
+}
+function allProds(){
+  if(PRODS_SUPA.length){
+    return PRODS_SUPA.filter(p=>p.ativo!==false&&!D.disabled[pk(_normProd(p))]).map(_normProd);
+  }
+  return[...BASE.map(applyEdits),...D.extra.map(p=>({...p,_key:pk(p)}))].filter(p=>!D.disabled[p._key]);
+}
+function allProdsAll(){
+  if(PRODS_SUPA.length)return PRODS_SUPA.map(_normProd);
+  return[...BASE.map(applyEdits),...D.extra.map(p=>({...p,_key:pk(p)}))];
+}
 function isBase(p){return BASE.some(b=>pk(b)===p._key||(p._ok&&pk(p._ok)===pk(b)));}
 
 (async()=>{
@@ -416,7 +455,8 @@ function isBase(p){return BASE.some(b=>pk(b)===p._key||(p._ok&&pk(p._ok)===pk(b)
 async function load(){
   setSI('wait');
   try{
-    const [regs,extras,resps]=await Promise.all([sbQ('producao','limit=3000'),sbQ('produtos_extra','tipo=eq.producao&limit=500'),sbQ('responsaveis','limit=100')]);
+    const [regs,extras,resps,prods]=await Promise.all([sbQ('producao','limit=3000'),sbQ('produtos_extra','tipo=eq.producao&limit=500'),sbQ('responsaveis','limit=100'),sbQ('produtos','ativo=eq.true&order=nome.asc&limit=500').catch(()=>[])]);
+    if(prods&&prods.length)PRODS_SUPA=prods;
     const map={};
     (regs||[]).forEach(r=>{const k=`${r.data}|${r.responsavel}`;if(!map[k])map[k]={id:k,data:r.data,dia:r.dia_semana,resp:r.responsavel,regs:[]};map[k].regs.push({id:r.id,prod:r.produto,cod:r.cod,und:r.und,grp:r.grupo,qty:r.quantidade,resp:r.responsavel,data:r.data,dia:r.dia_semana});});
     D.hist=Object.values(map).sort((a,b)=>b.data.localeCompare(a.data));
@@ -768,6 +808,25 @@ function toast(msg,t=''){const el=document.getElementById('tst');el.textContent=
   }
 })();
 
+
+// Sincronizar topbar GestFood
+(function(){
+  const orig=document.getElementById('syncDot');
+  const d2=document.getElementById('syncDot2');
+  const t2=document.getElementById('syncTxt2');
+  const t1=document.getElementById('syncTxt');
+  if(orig&&d2){
+    const obs=new MutationObserver(()=>{
+      d2.className=orig.className;
+      if(t1&&t2)t2.textContent=t1.textContent;
+    });
+    obs.observe(orig,{attributes:true});
+    d2.className=orig.className;
+    if(t1&&t2)t2.textContent=t1.textContent;
+  }
+})();
+
 </script>
+<a href="GESTFOOD_CONFIG.html" style="position:fixed;bottom:80px;left:16px;z-index:9998;display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #E8E8E4;border-radius:10px;padding:8px 13px;font-size:.72rem;font-weight:600;color:#6B7280;text-decoration:none;box-shadow:0 2px 12px rgba(0,0,0,.10);">⚙️ Config</a>
 </body>
 </html>

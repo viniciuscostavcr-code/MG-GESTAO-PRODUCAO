@@ -488,6 +488,21 @@ canvas{width:100%!important;max-height:200px;}
 </style>
 </head>
 <body>
+<!-- GestFood TopBar -->
+<div class="gf-topbar">
+  <a href="GESTFOOD_INDEX.html" class="gf-back">← Hub</a>
+  <div style="display:flex;align-items:center;gap:7px;">
+    <div class="logo-mark" style="width:26px;height:26px;background:#2D6A4F;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.72rem;font-weight:800;">G</div>
+    <span style="font-size:.82rem;font-weight:700;color:#1C1C1A;">Gest<span style="color:#2D6A4F;font-weight:400;">Food</span></span>
+  </div>
+  <span class="gf-modulo">🗑️ Desperdícios</span>
+  <div style="flex:1;"></div>
+  <div class="gf-sync">
+    <span class="dot wait" id="syncDot2"></span>
+    <span id="syncTxt2">...</span>
+  </div>
+  <a href="GESTFOOD_CONFIG.html" class="gf-back" style="background:#EAF4EF;color:#1B4332;border-color:#C6E6D4;">⚙️</a>
+</div>
 <header>
   <div class="h-top">
     <div>
@@ -784,12 +799,20 @@ let D={
   fotos:{},overrides:{},
   alertas:{PADARIA:5,CONFEITARIA:5,LANCHONETE:5,PASTELARIA:5}
 };
+// Produtos do Supabase (tabela 'produtos') — substitui o BASE quando carregado
+let PRODS_SUPA=[];
+
 function allProds(){
   const ov=D.overrides||{};
-  const base=BASE
-    .map(p=>{ const k=pk(p); return ov[k]?{...p,...ov[k]}:p; })
-    .filter(p=>{ const k=pk(p); return !(ov[k]&&ov[k].hidden); });
-  const extras=D.extra.filter(p=>!p._inativo&&!(ov[pk(p)]&&ov[pk(p)].hidden));
+  // Se carregou do Supabase, usa ele; senão usa BASE local
+  const fonte=PRODS_SUPA.length?PRODS_SUPA:BASE;
+  const base=fonte
+    .filter(p=>p.ativo!==false)
+    .map(p=>({c:p.cod||p.c||'',n:p.nome||p.n,s:p.setor||p.s,u:p.unidade||p.u||'kg',min:p.min_estoque||p.min||0,max:p.max_estoque||p.max||0,val:p.validade||p.val||1,abc:p.abc||'C'}))
+    .map(p=>{const k=pk(p);return ov[k]?{...p,...ov[k]}:p;})
+    .filter(p=>{const k=pk(p);return!(ov[k]&&ov[k].hidden);});
+  // Extras locais só se não usar Supabase
+  const extras=PRODS_SUPA.length?[]:D.extra.filter(p=>!p._inativo&&!(ov[pk(p)]&&ov[pk(p)].hidden));
   return[...base,...extras];
 }
 
@@ -811,11 +834,13 @@ async function load(){
   }
   try{
     if(SUPA_OK){
-      const[regs,extras,resps]=await Promise.all([
+      const[regs,extras,resps,prods]=await Promise.all([
         sbSelect('desperdicios','limit=2000'),
         sbSelect('produtos_extra','tipo=eq.desperdicios&limit=500'),
-        sbSelect('responsaveis','limit=100')
+        sbSelect('responsaveis','limit=100'),
+        sbSelect('produtos','ativo=eq.true&order=nome.asc&limit=500').catch(()=>[])
       ]);
+      if(prods&&prods.length)PRODS_SUPA=prods;
       const map={};
       (regs||[]).forEach(r=>{
         let dataISO=r.data||'';
@@ -1296,7 +1321,8 @@ function expDashPDF(){
   ${ultimos14.length?`<div style="font-size:8px;color:#888;text-align:right">Pico: ${Math.max(...vals14).toFixed(2)} kg · Média: ${(vals14.reduce((a,v)=>a+v,0)/vals14.length).toFixed(2)} kg/dia</div>`:''}
 
   <div class="footer">Supermercado MG · Sistema de Controle de Desperdícios · ${new Date().toLocaleDateString('pt-BR')}</div>
-  </body></html>`);
+  <a href="GESTFOOD_CONFIG.html" style="position:fixed;bottom:80px;left:16px;z-index:9998;display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #E8E8E4;border-radius:10px;padding:8px 13px;font-size:.72rem;font-weight:600;color:#6B7280;text-decoration:none;box-shadow:0 2px 12px rgba(0,0,0,.10);">⚙️ Config</a>
+</body></html>`);
   w.document.close();
   setTimeout(()=>w.print(),500);
   toast('📄 Dashboard PDF pronto!','ok');
@@ -1329,7 +1355,8 @@ function expTudoPDF(){
   <h2>📋 Registros Detalhados</h2>
   <table><tr><th>Data</th><th>Produto</th><th>Setor</th><th>Qtd (kg)</th><th>Motivo</th><th>Responsável</th></tr>${rows}</table>
   <div class="footer">Supermercado MG · Controle de Desperdícios BETA · ${new Date().toLocaleDateString('pt-BR')}</div>
-  </body></html>`);
+  <a href="GESTFOOD_CONFIG.html" style="position:fixed;bottom:80px;left:16px;z-index:9998;display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #E8E8E4;border-radius:10px;padding:8px 13px;font-size:.72rem;font-weight:600;color:#6B7280;text-decoration:none;box-shadow:0 2px 12px rgba(0,0,0,.10);">⚙️ Config</a>
+</body></html>`);
   w.document.close();
   setTimeout(()=>w.print(),400);
   toast('📄 PDF aberto!','ok');
@@ -1350,7 +1377,8 @@ function gerarPDF(titulo,resp,mot,itens){
   <table><tr><th>Produto</th><th>Cód</th><th>Setor</th><th>Qtd (kg)</th></tr>
   ${rows}<tr class="tot"><td colspan="3"><b>TOTAL</b></td><td style="text-align:right"><b>${tot.toFixed(3)}</b></td></tr></table>
   <p style="font-size:9px;color:#888;margin-top:16px;">Supermercado MG · ${new Date().toLocaleString('pt-BR')}</p>
-  </body></html>`);
+  <a href="GESTFOOD_CONFIG.html" style="position:fixed;bottom:80px;left:16px;z-index:9998;display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #E8E8E4;border-radius:10px;padding:8px 13px;font-size:.72rem;font-weight:600;color:#6B7280;text-decoration:none;box-shadow:0 2px 12px rgba(0,0,0,.10);">⚙️ Config</a>
+</body></html>`);
   w.document.close();setTimeout(()=>w.print(),400);toast('📄 PDF aberto!','ok');
 }
 
@@ -2132,6 +2160,25 @@ function toast(msg,t=''){const el=document.getElementById('tst');el.textContent=
   }
 })();
 
+
+// Sincronizar topbar GestFood
+(function(){
+  const orig=document.getElementById('syncDot');
+  const d2=document.getElementById('syncDot2');
+  const t2=document.getElementById('syncTxt2');
+  const t1=document.getElementById('syncTxt');
+  if(orig&&d2){
+    const obs=new MutationObserver(()=>{
+      d2.className=orig.className;
+      if(t1&&t2)t2.textContent=t1.textContent;
+    });
+    obs.observe(orig,{attributes:true});
+    d2.className=orig.className;
+    if(t1&&t2)t2.textContent=t1.textContent;
+  }
+})();
+
 </script>
+<a href="GESTFOOD_CONFIG.html" style="position:fixed;bottom:80px;left:16px;z-index:9998;display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #E8E8E4;border-radius:10px;padding:8px 13px;font-size:.72rem;font-weight:600;color:#6B7280;text-decoration:none;box-shadow:0 2px 12px rgba(0,0,0,.10);">⚙️ Config</a>
 </body>
 </html>
