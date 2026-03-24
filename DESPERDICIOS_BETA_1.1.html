@@ -521,7 +521,6 @@ canvas{width:100%!important;max-height:200px;}
   <div class="tab on"  onclick="go('reg')"><span class="tab-ico">📝</span>Registrar</div>
   <div class="tab"     onclick="go('dash')"><span class="tab-ico">📊</span>Dashboard</div>
   <div class="tab"     onclick="go('hist')"><span class="tab-ico">📋</span>Histórico</div>
-  <div class="tab"     onclick="go('cfg')"><span class="tab-ico">⚙️</span>Config</div>
 </div>
 
 <div class="scr">
@@ -566,154 +565,6 @@ canvas{width:100%!important;max-height:200px;}
   </div>
 
   <!-- CONFIGURAÇÕES -->
-  <div class="vw" id="v-cfg">
-
-    <div class="cs">
-      <div class="cs-hdr">☁️ Sincronização (Supabase)</div>
-      <div class="sync-box">
-        <strong>Modo atual: <span id="cfgSync">Verificando...</span></strong>
-        Os dados estão salvos localmente neste navegador.<br>
-        Configure o Supabase para sincronizar entre celulares.
-      </div>
-      <button class="bsync" onclick="forceSync()">🔄 Sincronizar agora</button>
-    </div>
-
-    <div class="cs">
-      <div class="cs-hdr">🔔 Alertas de Desperdício <span>Limites por setor</span></div>
-      <div id="alertCfgList"></div>
-    </div>
-
-    <div class="cs">
-      <div class="cs-hdr">👥 Responsáveis <span id="rCnt"></span></div>
-      <div id="rList"></div>
-      <button class="badd" onclick="tog('fResp')">+ Adicionar responsável</button>
-      <div class="fadd" id="fResp">
-        <div><label>Nome</label><input type="text" id="nResp" placeholder="Ex: CARLOS"></div>
-        <div class="fr">
-          <button class="bsave2" onclick="addResp()">✅ Salvar</button>
-          <button class="bcan" onclick="tog('fResp')">Cancelar</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="cs">
-      <div class="cs-hdr">🏪 Setores</div>
-      <div id="sList"></div>
-      <button class="badd" onclick="tog('fSet2')">+ Adicionar setor</button>
-      <div class="fadd" id="fSet2">
-        <div><label>Nome do setor</label><input type="text" id="nSet" placeholder="Ex: AÇOUGUE"></div>
-        <div class="fr">
-          <button class="bsave2" onclick="addSet()">✅ Salvar</button>
-          <button class="bcan" onclick="tog('fSet2')">Cancelar</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="cs">
-      <div class="cs-hdr">📝 Motivos de Desperdício <span id="mCnt"></span></div>
-      <div id="motList"></div>
-      <button class="badd" onclick="tog('fMot')">+ Adicionar motivo</button>
-      <div class="fadd" id="fMot">
-        <div style="display:flex;gap:8px;align-items:flex-end">
-          <div><label>Emoji</label><input type="text" id="nMotEmoji" placeholder="🧊" maxlength="2" style="width:60px;"></div>
-          <div style="flex:1"><label>Descrição *</label><input type="text" id="nMotDesc" placeholder="Ex: Congelamento"></div>
-        </div>
-        <div class="fr">
-          <button class="bsave2" onclick="addMot()">✅ Salvar</button>
-          <button class="bcan" onclick="tog('fMot')">Cancelar</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="cs">
-      <div class="cs-hdr">🛍️ Produtos <span id="pCnt"></span>
-        <button onclick="restaurarBase()" style="background:var(--gold-l);color:var(--brown);border:1px solid var(--gold-l);border-radius:7px;padding:3px 9px;font-size:.65rem;font-weight:700;cursor:pointer;">↩ Restaurar base</button>
-      </div>
-      <div class="sw" style="margin-bottom:10px"><span class="si">🔍</span><input type="text" id="cfgSrc" placeholder="Buscar produto..." oninput="renderCfg()"></div>
-      <div id="cfgPList"></div>
-      <button class="badd" onclick="tog('fProd')">+ Adicionar produto</button>
-      <div class="fadd" id="fProd">
-        <div class="fadd-foto" id="fprev" onclick="document.getElementById('fImg').click()">
-          📷<input type="file" id="fImg" accept="image/*" onchange="prevFoto(this)">
-        </div>
-        <div><label>Nome do produto *</label><input type="text" id="nPNm" placeholder="Ex: BOLO DE CHURROS"></div>
-        <div class="fg"><label>Código</label><input type="text" id="nPCd" placeholder="Ex: 1234"></div>
-        <div class="fg"><label>Setor *</label><select id="nPSt"></select></div>
-        <div class="fg"><label>Unidade de medida</label>
-          <select id="nPUn" style="font-size:.88rem;">
-            <option value="kg">⚖️ Quilograma (kg)</option>
-            <option value="und">📦 Unidade (un)</option>
-          </select>
-        </div>
-        <div class="fr">
-          <button class="bsave2" onclick="addProd()">✅ Salvar</button>
-          <button class="bcan" onclick="tog('fProd');clrFoto()">Cancelar</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="cs" style="text-align:center;">
-      <div class="cs-hdr" style="justify-content:center;">📤 Exportar & Backup</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="mbtn gd" style="flex:1;min-width:130px;" onclick="expTudoPDF()">📄 Relatório PDF</button>
-        <button class="mbtn gy" style="flex:1;min-width:130px;" onclick="expTudoCSV()">📊 Exportar CSV</button>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<div class="bar">
-  <div class="bt">
-    <strong id="bCnt">0 produtos</strong>
-    <span id="bSub">Nenhum registrado</span>
-  </div>
-  <button class="bvw" onclick="openMod()">Ver tudo</button>
-  <button class="bsv" id="bSave" onclick="salvar()" disabled>💾 Salvar</button>
-</div>
-
-<div class="pwd-ov" id="pwdOv">
-  <div class="pwd-box">
-    <div class="pwd-ico">🔒</div>
-    <div class="pwd-ttl" id="pwdTtl">Área Restrita</div>
-    <div class="pwd-sub">Digite a senha para continuar</div>
-    <input class="pwd-inp" type="password" id="pwdInp" placeholder="••••••" maxlength="20"
-      onkeydown="if(event.key==='Enter')pwdOk()" oninput="this.classList.remove('er')">
-    <div class="pwd-btns">
-      <button class="pwd-cn" onclick="pwdCancel()">Cancelar</button>
-      <button class="pwd-ok" onclick="pwdOk()">🔓 Entrar</button>
-    </div>
-  </div>
-</div>
-
-
-<div class="edit-ov" id="editOv" onclick="closeEditMod(event)">
-  <div class="edit-mo">
-    <div class="mh"></div>
-    <div class="mt" id="editTit">✏️ Editar Produto</div>
-    <div class="edit-foto-wrap" id="editFotoWrap" onclick="document.getElementById('editFotoInp').click()">
-      <span id="editFotoIco">📷</span>
-      <input type="file" id="editFotoInp" accept="image/*" onchange="editFotoChange(this)">
-    </div>
-    <div class="edit-foto-lbl">Toque para trocar a foto</div>
-    <button class="edit-foto-del" id="editFotoDel" onclick="editFotoDel()" style="display:none">🗑 Remover foto</button>
-    <div class="edit-base-warn" id="editBaseWarn" style="display:none">⚠️ <strong>Produto base</strong> — as alterações ficam salvas localmente. Nome e código do histórico existente não são alterados retroativamente.</div>
-    <div class="fg"><label>Nome do produto *</label><input type="text" id="editNm" placeholder="Nome do produto"></div>
-    <div class="fg"><label>Código</label><input type="text" id="editCod" placeholder="Ex: 1234"></div>
-    <div class="fg"><label>Setor *</label><select id="editSt"></select></div>
-    <div class="fg"><label>Unidade de medida</label>
-      <select id="editUn" style="font-size:.88rem;">
-        <option value="kg">⚖️ Quilograma (kg)</option>
-        <option value="und">📦 Unidade (un)</option>
-      </select>
-    </div>
-    <div class="fr" style="margin-top:16px;">
-      <button class="bsave2" onclick="salvarEdicao()">✅ Salvar alterações</button>
-      <button class="bcan" onclick="closeEditMod()">Cancelar</button>
-    </div>
-  </div>
-</div>
-
 <!-- MODAL DE CONFIRMAÇÃO -->
 <div class="conf-ov" id="confOv">
   <div class="conf-box">
@@ -892,8 +743,8 @@ function renderAll(){
 
 // ═══ SENHA ═══
 const PWD='Mg2026';
-const LOCKED=['dash','cfg'];
-let _pwdUnlocked={dash:false,cfg:false},_pwdTarget='';
+const LOCKED=['dash'];
+let _pwdUnlocked={dash:false},_pwdTarget='';
 function go(t){
   if(LOCKED.includes(t)&&!_pwdUnlocked[t]){
     _pwdTarget=t;
@@ -908,7 +759,7 @@ function go(t){
   _goTab(t);
 }
 function _goTab(t){
-  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('on',['reg','dash','hist','cfg'][i]===t));
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('on',['reg','dash','hist'][i]===t));
   document.querySelectorAll('.vw').forEach(v=>v.classList.remove('on'));
   document.getElementById('v-'+t).classList.add('on');
   if(t==='hist')renderHist();
