@@ -252,6 +252,7 @@ input:checked+.tsl:before{transform:translateX(17px);}
   <div class="tab on"  onclick="go('reg')">📝 Registrar</div>
   <div class="tab"     onclick="go('hist')">📋 Histórico</div>
   <div class="tab"     onclick="go('res')">📊 Dashboard</div>
+  <div class="tab"     onclick="go('cfg')">⚙️ Config</div>
 </div>
 <div class="scr">
   <!-- REGISTRAR -->
@@ -271,6 +272,54 @@ input:checked+.tsl:before{transform:translateX(17px);}
   <div class="vw" id="v-hist"><div id="histC"></div></div>
   <!-- DASHBOARD -->
   <div class="vw" id="v-res"><div id="resC"></div></div>
+  <!-- CONFIG -->
+  <div class="vw" id="v-cfg">
+    <div class="cs">
+      <div class="cs-hdr">☁️ Sincronização</div>
+      <div class="sync-box"><span id="cfgSync">Verificando...</span></div>
+      <button class="bsync" onclick="forceSync()">🔄 Sincronizar agora</button>
+    </div>
+    <div class="cs">
+      <div class="cs-hdr">👥 Responsáveis <span class="cs-cnt" id="rCnt"></span></div>
+      <div id="rList"></div>
+      <button class="badd" onclick="tog('fResp')">+ Adicionar responsável</button>
+      <div class="fadd" id="fResp">
+        <div><label>Nome</label><input type="text" id="nResp" placeholder="Ex: CARLOS"></div>
+        <div class="fr"><button class="bsave2" onclick="addResp()">✅ Salvar</button><button class="bcan" onclick="tog('fResp')">Cancelar</button></div>
+      </div>
+    </div>
+    <div class="cs">
+      <div class="cs-hdr">🗂️ Grupos <span class="cs-cnt" id="gCnt"></span></div>
+      <div id="gList"></div>
+      <button class="badd" onclick="tog('fGrp')">+ Adicionar grupo</button>
+      <div class="fadd" id="fGrp">
+        <div><label>Nome do grupo</label><input type="text" id="nGrp" placeholder="Ex: 🥖 Especial"></div>
+        <div class="fr"><button class="bsave2" onclick="addGrp()">✅ Salvar</button><button class="bcan" onclick="tog('fGrp')">Cancelar</button></div>
+      </div>
+    </div>
+    <div class="cs">
+      <div class="cs-hdr">🛍️ Produtos <span class="cs-cnt" id="pCnt"></span></div>
+      <p style="font-size:.75rem;color:var(--gray);margin-bottom:10px">Toque na foto para editar nome, grupo e foto de qualquer produto. Use o botão para ativar/desativar.</p>
+      <div class="sw" style="margin-bottom:10px"><span class="si">🔍</span><input type="text" id="cfgSrc" placeholder="Buscar produto..." oninput="renderCfg()"></div>
+      <div id="cfgPList"></div>
+      <button class="badd" onclick="tog('fProd')">+ Adicionar produto</button>
+      <div class="fadd" id="fProd">
+        <div class="fadd-foto" id="fprev" onclick="document.getElementById('fImg').click()">📷<input type="file" id="fImg" accept="image/*" onchange="prevFoto(this)"></div>
+        <div><label>Nome *</label><input type="text" id="nPNm" placeholder="Ex: PÃO DE CENTEIO KG"></div>
+        <div class="fg"><label>Código</label><input type="text" id="nPCd" placeholder="Ex: 1234"></div>
+        <div class="fg"><label>Unidade</label><select id="nPUnd"><option>KG</option><option>UND</option></select></div>
+        <div class="fg"><label>Grupo *</label><select id="nPGrp"></select></div>
+        <div class="fr"><button class="bsave2" onclick="addProd()">✅ Salvar</button><button class="bcan" onclick="tog('fProd');clrFoto()">Cancelar</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="bar">
+  <div class="bt"><strong id="bCnt">0 produtos</strong><span id="bSub">Nenhum registrado</span></div>
+  <button class="bvw" onclick="openMod()">Ver tudo</button>
+  <button class="bsv" id="bSave" onclick="salvar()" disabled>💾 Salvar</button>
+</div>
 <!-- MODAL CONFIRMAÇÃO -->
 <div class="conf-ov" id="confOv">
   <div class="conf-box">
