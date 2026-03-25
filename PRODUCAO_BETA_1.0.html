@@ -374,10 +374,14 @@ let PRODS_SUPA=[];
 
 function applyEdits(p){const k=pk(p);const ed=D.edits[k];return ed?{...p,...ed,_ok:p,_key:k}:{...p,_key:k};}
 function _normProd(p){
-  // Normaliza produto do Supabase para o formato da produção
-  const pp={c:p.cod||p.c||'',n:p.nome||p.n,s:p.setor||p.s,u:(p.unidade||p.u||'KG').toUpperCase(),
-    g:p.grupo||p.g||setorToGrp(p.setor||p.s||'PADARIA'),min:p.min_estoque||0,max:p.max_estoque||0};
-  const k=pk(pp);return{...pp,_key:k};
+  const n=p.nome||p.n||'';
+  const c=p.cod||p.c||'';
+  const s=p.setor||p.s||'PADARIA';
+  const u=(p.unidade||p.u||'KG').toUpperCase();
+  const g=p.grupo||p.g||setorToGrp(s);
+  const pp={c,n,s,u,g,min:p.min_estoque||0,max:p.max_estoque||0};
+  const k=`${pp.s}|${pp.c}|${pp.n}`;
+  return{...pp,_key:k};
 }
 function setorToGrp(s){
   if(s==='PADARIA')return'🍞 Pão Diário';
@@ -437,7 +441,14 @@ function setSI(st){
   else{dot.className='dot off';txt.textContent='Erro';if(cfg)cfg.textContent='❌ Erro de conexão';}
 }
 async function forceSync(){await load();renderAll();toast('🔄 Sincronizado!','ok');}
-function renderAll(){renderResps();renderGrps();renderCfg();renderSpills();renderRespSel();render();}
+function renderAll(){
+  if(document.getElementById('rList'))renderResps();
+  if(document.getElementById('gList'))renderGrps();
+  if(document.getElementById('cfgPList'))renderCfg();
+  renderSpills();
+  renderRespSel();
+  render();
+}
 
 function go(t){
   document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('on',['reg','hist','res'][i]===t));
@@ -736,16 +747,29 @@ function clrFoto(){nFoto='';document.getElementById('fprev').innerHTML=`📷<inp
 async function addProd(){
   const n=document.getElementById('nPNm').value.trim().toUpperCase(),c=document.getElementById('nPCd').value.trim(),u=document.getElementById('nPUnd').value,g=document.getElementById('nPGrp').value;
   if(!n){toast('⚠️ Digite o nome','er');return;}
-  if(allProdsAll().find(p=>p.n===n&&p.g===g)){toast('Produto já cadastrado','er');return;}
-  const p={c,n,u,g};
-  try{await sbI('produtos_extra',{tipo:'producao',nome:n,cod:c,und:u,grupo:g});D.extra.push(p);if(nFoto)D.fotos[pk(p)]=nFoto;document.getElementById('nPNm').value='';document.getElementById('nPCd').value='';clrFoto();tog('fProd');saveLocal();renderCfg();render();toast(`✅ ${n} adicionado`,'ok');}
-  catch(e){toast('❌ Erro ao salvar','er');}
+  if(allProdsAll().find(p=>p.n===n)){toast('Produto já cadastrado','er');return;}
+  // Identificar setor pelo grupo
+  const setorPorGrp={'🍞 Pão Diário':'PADARIA','🥐 Pão Especial':'PADARIA','🥐 Croissant':'PADARIA','🍪 Bolacha':'PADARIA','🍞 Torrada':'PADARIA','🎂 Especial':'CONFEITARIA','🥟 Salgado':'LANCHONETE'};
+  const setor=setorPorGrp[g]||'PADARIA';
+  const id=c||('prod_'+Date.now());
+  const dados={id,nome:n,cod:c,setor,unidade:u,grupo:g,min_estoque:0,max_estoque:0,validade:1,abc:'C',ativo:true,categoria:''};
+  try{
+    await sbU('produtos',dados);
+    PRODS_SUPA.push(dados);
+    if(nFoto){const pp={c,n,s:setor,u,g};D.fotos[pk(pp)]=nFoto;}
+    document.getElementById('nPNm').value='';document.getElementById('nPCd').value='';clrFoto();tog('fProd');
+    renderSpills();render();toast(`✅ ${n} adicionado`,'ok');
+  }catch(e){toast('❌ Erro ao salvar','er');console.error(e);}
 }
 async function delProd(k){
-  if(!confirm('Remover produto?'))return;
-  const p=D.extra.find(x=>x._key===k||pk(x)===k);
-  try{if(p&&p._id)await sbD('produtos_extra',p._id);D.extra=D.extra.filter(x=>(x._key||pk(x))!==k);delete Q[k];saveLocal();renderCfg();render();upBar();toast('Produto removido','er');}
-  catch(e){toast('❌ Erro','er');}
+  if(!await confirmar('Remover produto?','Remover','🗑️','Remover'))return;
+  // Remover do PRODS_SUPA
+  const p=PRODS_SUPA.find(x=>{const np=_normProd(x);return np._key===k;});
+  try{
+    if(p)await fetch(`${SU}/rest/v1/produtos?id=eq.${encodeURIComponent(p.id)}`,{method:'DELETE',headers:H});
+    PRODS_SUPA=PRODS_SUPA.filter(x=>_normProd(x)._key!==k);
+    delete Q[k];saveLocal();renderSpills();render();upBar();toast('Produto removido','er');
+  }catch(e){toast('❌ Erro','er');}
 }
 
 // Modal de confirmação (substitui confirm())
