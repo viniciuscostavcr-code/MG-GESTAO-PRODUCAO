@@ -430,7 +430,7 @@ async function forceSync(){await load();renderAll();toast('🔄 Sincronizado!','
 function renderAll(){renderResps();renderGrps();renderCfg();renderSpills();renderRespSel();render();}
 
 function go(t){
-  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('on',['reg','hist','res','cfg'][i]===t));
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('on',['reg','hist','res'][i]===t));
   document.querySelectorAll('.vw').forEach(v=>v.classList.remove('on'));
   document.getElementById('v-'+t).classList.add('on');
   if(t==='hist') renderHist();
