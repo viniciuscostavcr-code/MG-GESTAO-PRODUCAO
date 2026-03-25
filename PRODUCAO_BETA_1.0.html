@@ -407,7 +407,16 @@ async function load(){
   setSI('wait');
   try{
     const [regs,extras,resps,prods]=await Promise.all([sbQ('producao','limit=3000'),sbQ('produtos_extra','tipo=eq.producao&limit=500'),sbQ('responsaveis','limit=100'),sbQ('produtos','ativo=eq.true&order=nome.asc&limit=500').catch(()=>[])]);
-    if(prods&&prods.length)PRODS_SUPA=prods;
+    if(prods&&prods.length){
+      PRODS_SUPA=prods;
+      console.log('✅ Produtos carregados:',prods.length);
+    } else {
+      // Tentar carregar produtos diretamente
+      try{
+        const p2=await sbQ('produtos','ativo=eq.true&order=nome.asc&limit=500');
+        if(p2&&p2.length){PRODS_SUPA=p2;console.log('Produtos direto:',p2.length);}
+      }catch(e){console.warn('Produtos erro:',e.message);}
+    }
     const map={};
     (regs||[]).forEach(r=>{const k=`${r.data}|${r.responsavel}`;if(!map[k])map[k]={id:k,data:r.data,dia:r.dia_semana,resp:r.responsavel,regs:[]};map[k].regs.push({id:r.id,prod:r.produto,cod:r.cod,und:r.und,grp:r.grupo,qty:r.quantidade,resp:r.responsavel,data:r.data,dia:r.dia_semana});});
     D.hist=Object.values(map).sort((a,b)=>b.data.localeCompare(a.data));

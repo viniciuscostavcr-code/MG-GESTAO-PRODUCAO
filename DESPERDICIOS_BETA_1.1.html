@@ -711,6 +711,11 @@ async function load(){
     }else{
       const sv=await cGet();
       if(sv){D.hist=sv.hist||[];D.extra=sv.extra||[];D.resps=sv.resps||D.resps;D.sets=sv.sets||D.sets;D.motivos=sv.motivos||D.motivos;D.fotos=sv.fotos||{};D.alertas=sv.alertas||D.alertas;D.overrides=sv.overrides||{};}
+      // Tentar carregar produtos mesmo offline
+      try{
+        const prods=await sbSelect('produtos','ativo=eq.true&order=nome.asc&limit=500');
+        if(prods&&prods.length){PRODS_SUPA=prods;console.log('Produtos (fallback):',prods.length);}
+      }catch(e){console.warn('Produtos offline:',e.message);}
       setSyncUI('local');
     }
   }catch(e){
