@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAACC0lEQVR4nGNkwAGknY3+45IjBzzde44RmziGILUtJuQQJnpajs0OJlwS9HIEE70tR3cEEyGFtAaMA+F7ZDDgITDgDmAhVYO0mARDtHcQg7WhKYOitBwDHzcPw7cf3xneffzA8OTVc4ZTl88z7D5+iOHy7RtEmUd0GmBkZGTIiUxkKI7PYGBhZsarduexAwzJdcVEOYDoEKhMyWXICo+H8w+eOc4wedl8hsu3rzMwMDAwSIqIMSjJyjO4Wdkz/P9PfLomKgQMNXUYNk9eCOdvPribIaulkiSLcAGiEmFyYCSc/efvX4aGab1UsZxoB1gZmMDZV+/cYHj59jVVLGdgICINMDMxMYgKCsP5T14+R5EPc/dl6CttwNDnnh7FcPXuTYIOGPBygKAD/v77x/Dm/Ts4X1pMEkV+1c7NDDIuxgzu6VG0cQADAwPDsYtn4GwdFXUGUUEhsiwj2wELNqyEs1lYWBiqUvPp64DTVy8yzFu/As4PdfNhmN3QzWCgoc3AzsbGwMPFxaCnrkmWA4guCRum9TJ8/f6NITsygYGJkYnB08aJwdPGiSxLkQHJ7QElGXmGGJ8gBisDUwY5CSkGLk4uho9fPjG8ff+O4emrFwzHLpxhOHT2JMO1e7eIKqxGGyQD7wBcPRZ6gKd7zzEOfAjAXEJvi2F2MqEL0NNyFAfQyxHoduC0kF7dcwDKB6tqa9CS/gAAAABJRU5ErkJggg==">
 <meta name="theme-color" content="#2D6A4F">
 <title>🗑️ Desperdícios — Supermercado MG · BETA</title>
 <style>
@@ -522,6 +521,7 @@ canvas{width:100%!important;max-height:200px;}
   <div class="tab on"  onclick="go('reg')"><span class="tab-ico">📝</span>Registrar</div>
   <div class="tab"     onclick="go('dash')"><span class="tab-ico">📊</span>Dashboard</div>
   <div class="tab"     onclick="go('hist')"><span class="tab-ico">📋</span>Histórico</div>
+  <div class="tab"     onclick="go('cfg')"><span class="tab-ico">⚙️</span>Config</div>
 </div>
 
 <div class="scr">
@@ -566,6 +566,154 @@ canvas{width:100%!important;max-height:200px;}
   </div>
 
   <!-- CONFIGURAÇÕES -->
+  <div class="vw" id="v-cfg">
+
+    <div class="cs">
+      <div class="cs-hdr">☁️ Sincronização (Supabase)</div>
+      <div class="sync-box">
+        <strong>Modo atual: <span id="cfgSync">Verificando...</span></strong>
+        Os dados estão salvos localmente neste navegador.<br>
+        Configure o Supabase para sincronizar entre celulares.
+      </div>
+      <button class="bsync" onclick="forceSync()">🔄 Sincronizar agora</button>
+    </div>
+
+    <div class="cs">
+      <div class="cs-hdr">🔔 Alertas de Desperdício <span>Limites por setor</span></div>
+      <div id="alertCfgList"></div>
+    </div>
+
+    <div class="cs">
+      <div class="cs-hdr">👥 Responsáveis <span id="rCnt"></span></div>
+      <div id="rList"></div>
+      <button class="badd" onclick="tog('fResp')">+ Adicionar responsável</button>
+      <div class="fadd" id="fResp">
+        <div><label>Nome</label><input type="text" id="nResp" placeholder="Ex: CARLOS"></div>
+        <div class="fr">
+          <button class="bsave2" onclick="addResp()">✅ Salvar</button>
+          <button class="bcan" onclick="tog('fResp')">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="cs">
+      <div class="cs-hdr">🏪 Setores</div>
+      <div id="sList"></div>
+      <button class="badd" onclick="tog('fSet2')">+ Adicionar setor</button>
+      <div class="fadd" id="fSet2">
+        <div><label>Nome do setor</label><input type="text" id="nSet" placeholder="Ex: AÇOUGUE"></div>
+        <div class="fr">
+          <button class="bsave2" onclick="addSet()">✅ Salvar</button>
+          <button class="bcan" onclick="tog('fSet2')">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="cs">
+      <div class="cs-hdr">📝 Motivos de Desperdício <span id="mCnt"></span></div>
+      <div id="motList"></div>
+      <button class="badd" onclick="tog('fMot')">+ Adicionar motivo</button>
+      <div class="fadd" id="fMot">
+        <div style="display:flex;gap:8px;align-items:flex-end">
+          <div><label>Emoji</label><input type="text" id="nMotEmoji" placeholder="🧊" maxlength="2" style="width:60px;"></div>
+          <div style="flex:1"><label>Descrição *</label><input type="text" id="nMotDesc" placeholder="Ex: Congelamento"></div>
+        </div>
+        <div class="fr">
+          <button class="bsave2" onclick="addMot()">✅ Salvar</button>
+          <button class="bcan" onclick="tog('fMot')">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="cs">
+      <div class="cs-hdr">🛍️ Produtos <span id="pCnt"></span>
+        <button onclick="restaurarBase()" style="background:var(--gold-l);color:var(--brown);border:1px solid var(--gold-l);border-radius:7px;padding:3px 9px;font-size:.65rem;font-weight:700;cursor:pointer;">↩ Restaurar base</button>
+      </div>
+      <div class="sw" style="margin-bottom:10px"><span class="si">🔍</span><input type="text" id="cfgSrc" placeholder="Buscar produto..." oninput="renderCfg()"></div>
+      <div id="cfgPList"></div>
+      <button class="badd" onclick="tog('fProd')">+ Adicionar produto</button>
+      <div class="fadd" id="fProd">
+        <div class="fadd-foto" id="fprev" onclick="document.getElementById('fImg').click()">
+          📷<input type="file" id="fImg" accept="image/*" onchange="prevFoto(this)">
+        </div>
+        <div><label>Nome do produto *</label><input type="text" id="nPNm" placeholder="Ex: BOLO DE CHURROS"></div>
+        <div class="fg"><label>Código</label><input type="text" id="nPCd" placeholder="Ex: 1234"></div>
+        <div class="fg"><label>Setor *</label><select id="nPSt"></select></div>
+        <div class="fg"><label>Unidade de medida</label>
+          <select id="nPUn" style="font-size:.88rem;">
+            <option value="kg">⚖️ Quilograma (kg)</option>
+            <option value="und">📦 Unidade (un)</option>
+          </select>
+        </div>
+        <div class="fr">
+          <button class="bsave2" onclick="addProd()">✅ Salvar</button>
+          <button class="bcan" onclick="tog('fProd');clrFoto()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="cs" style="text-align:center;">
+      <div class="cs-hdr" style="justify-content:center;">📤 Exportar & Backup</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="mbtn gd" style="flex:1;min-width:130px;" onclick="expTudoPDF()">📄 Relatório PDF</button>
+        <button class="mbtn gy" style="flex:1;min-width:130px;" onclick="expTudoCSV()">📊 Exportar CSV</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="bar">
+  <div class="bt">
+    <strong id="bCnt">0 produtos</strong>
+    <span id="bSub">Nenhum registrado</span>
+  </div>
+  <button class="bvw" onclick="openMod()">Ver tudo</button>
+  <button class="bsv" id="bSave" onclick="salvar()" disabled>💾 Salvar</button>
+</div>
+
+<div class="pwd-ov" id="pwdOv">
+  <div class="pwd-box">
+    <div class="pwd-ico">🔒</div>
+    <div class="pwd-ttl" id="pwdTtl">Área Restrita</div>
+    <div class="pwd-sub">Digite a senha para continuar</div>
+    <input class="pwd-inp" type="password" id="pwdInp" placeholder="••••••" maxlength="20"
+      onkeydown="if(event.key==='Enter')pwdOk()" oninput="this.classList.remove('er')">
+    <div class="pwd-btns">
+      <button class="pwd-cn" onclick="pwdCancel()">Cancelar</button>
+      <button class="pwd-ok" onclick="pwdOk()">🔓 Entrar</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="edit-ov" id="editOv" onclick="closeEditMod(event)">
+  <div class="edit-mo">
+    <div class="mh"></div>
+    <div class="mt" id="editTit">✏️ Editar Produto</div>
+    <div class="edit-foto-wrap" id="editFotoWrap" onclick="document.getElementById('editFotoInp').click()">
+      <span id="editFotoIco">📷</span>
+      <input type="file" id="editFotoInp" accept="image/*" onchange="editFotoChange(this)">
+    </div>
+    <div class="edit-foto-lbl">Toque para trocar a foto</div>
+    <button class="edit-foto-del" id="editFotoDel" onclick="editFotoDel()" style="display:none">🗑 Remover foto</button>
+    <div class="edit-base-warn" id="editBaseWarn" style="display:none">⚠️ <strong>Produto base</strong> — as alterações ficam salvas localmente. Nome e código do histórico existente não são alterados retroativamente.</div>
+    <div class="fg"><label>Nome do produto *</label><input type="text" id="editNm" placeholder="Nome do produto"></div>
+    <div class="fg"><label>Código</label><input type="text" id="editCod" placeholder="Ex: 1234"></div>
+    <div class="fg"><label>Setor *</label><select id="editSt"></select></div>
+    <div class="fg"><label>Unidade de medida</label>
+      <select id="editUn" style="font-size:.88rem;">
+        <option value="kg">⚖️ Quilograma (kg)</option>
+        <option value="und">📦 Unidade (un)</option>
+      </select>
+    </div>
+    <div class="fr" style="margin-top:16px;">
+      <button class="bsave2" onclick="salvarEdicao()">✅ Salvar alterações</button>
+      <button class="bcan" onclick="closeEditMod()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL DE CONFIRMAÇÃO -->
 <div class="conf-ov" id="confOv">
   <div class="conf-box">
@@ -712,11 +860,6 @@ async function load(){
     }else{
       const sv=await cGet();
       if(sv){D.hist=sv.hist||[];D.extra=sv.extra||[];D.resps=sv.resps||D.resps;D.sets=sv.sets||D.sets;D.motivos=sv.motivos||D.motivos;D.fotos=sv.fotos||{};D.alertas=sv.alertas||D.alertas;D.overrides=sv.overrides||{};}
-      // Tentar carregar produtos mesmo offline
-      try{
-        const prods=await sbSelect('produtos','ativo=eq.true&order=nome.asc&limit=500');
-        if(prods&&prods.length){PRODS_SUPA=prods;console.log('Produtos (fallback):',prods.length);}
-      }catch(e){console.warn('Produtos offline:',e.message);}
       setSyncUI('local');
     }
   }catch(e){
@@ -743,20 +886,14 @@ function setSyncUI(st){
 async function forceSync(){try{await load();renderAll();toast('🔄 Sincronizado!','ok');}catch(e){toast('❌ Falha: '+e.message.slice(0,40),'er');}}
 
 function renderAll(){
-  if(document.getElementById('rCnt'))renderResps();
-  if(document.getElementById('sList'))renderSets();
-  renderMots();
-  if(document.getElementById('cfgList'))renderCfg();
-  renderSpills();renderResp();
-  if(document.getElementById('alertCfg'))renderAlertCfg();
-  render();
+  renderResps();renderSets();renderMots();renderCfg();renderSpills();renderResp();renderAlertCfg();render();
   populateFiltroSet();
 }
 
 // ═══ SENHA ═══
 const PWD='Mg2026';
-const LOCKED=['dash'];
-let _pwdUnlocked={dash:false},_pwdTarget='';
+const LOCKED=['dash','cfg'];
+let _pwdUnlocked={dash:false,cfg:false},_pwdTarget='';
 function go(t){
   if(LOCKED.includes(t)&&!_pwdUnlocked[t]){
     _pwdTarget=t;
@@ -771,7 +908,7 @@ function go(t){
   _goTab(t);
 }
 function _goTab(t){
-  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('on',['reg','dash','hist'][i]===t));
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('on',['reg','dash','hist','cfg'][i]===t));
   document.querySelectorAll('.vw').forEach(v=>v.classList.remove('on'));
   document.getElementById('v-'+t).classList.add('on');
   if(t==='hist')renderHist();
@@ -831,7 +968,6 @@ function renderAlerts(){
     </div>`).join('');
 }
 function renderAlertCfg(){
-  if(!document.getElementById('alertCfgList'))return;
   document.getElementById('alertCfgList').innerHTML=D.sets.map(s=>`
     <div class="alert-cfg-row">
       <div class="alert-cfg-info">
@@ -1014,25 +1150,6 @@ async function salvar(){
   const dataISO=data;
   const dfmt=dt.toLocaleDateString('pt-BR');
   const dia=DIAS[dt.getDay()];
-
-  // ── Verificar duplicidade ──
-  const jaExiste=D.hist.find(h=>h.data===dataISO&&h.mot===mot&&h.resp===resp);
-  if(jaExiste){
-    // Verificar se algum produto do Q já foi registrado hoje
-    const prodsDupl=Object.keys(Q).filter(k=>{
-      const p=allProds().find(x=>pk(x)===k);
-      return p&&jaExiste.regs.some(r=>r.prod===p.n);
-    });
-    if(prodsDupl.length>0){
-      const nomes=prodsDupl.map(k=>{const p=allProds().find(x=>pk(x)===k);return p?p.n:k;}).slice(0,3).join(', ');
-      const ok=await confirmar(
-        `⚠️ Possível duplicidade!\n\n${prodsDupl.length} produto(s) já foram registrados hoje com o mesmo motivo e responsável:\n\n${nomes}${prodsDupl.length>3?' e mais...':''}\n\nDeseja salvar mesmo assim?`,
-        'Registro Duplicado','⚠️','Salvar mesmo assim'
-      );
-      if(!ok)return;
-    }
-  }
-
   const regs=Object.entries(Q).map(([k,v])=>{
     const p=allProds().find(x=>pk(x)===k)||{n:k,c:'',s:'?'};
     const _u=getU(p);return{id:(crypto.randomUUID?(crypto.randomUUID()):(Date.now()+'_'+Math.random().toString(36).slice(2,7))),prod:p.n,cod:p.c,set:p.s,qty:v,u:_u,mot,resp,data:dataISO,dataFmt:dfmt,dia,foto:QF[k]||null};
@@ -1682,7 +1799,6 @@ function renderMotSelect(){
   if(!sel.value&&D.motivos.length)sel.value=D.motivos[0].v;
 }
 function renderMots(){
-  if(!document.getElementById('mCnt'))return;
   const BASE_V=MOTS_DEFAULT.map(m=>m.v);
   document.getElementById('mCnt').textContent=D.motivos.length+' cadastrados';
   document.getElementById('motList').innerHTML=D.motivos.map(m=>`
@@ -1711,9 +1827,8 @@ async function delMot(v){
 // ═══ CONFIG — RESPONSÁVEIS ═══
 function renderResp(){const sel=document.getElementById('iResp');const cur=sel.value;sel.innerHTML=D.resps.map(r=>`<option ${r===cur?'selected':''}>${r}</option>`).join('');}
 function renderResps(){
-  const rCnt=document.getElementById('rCnt');const rList=document.getElementById('rList');
-  if(rCnt)rCnt.textContent=D.resps.length+' cadastrados';
-  if(rList)rList.innerHTML=D.resps.map(r=>`<div class="ci"><span style="font-size:1.3rem">👤</span><div class="ci-info"><div class="ci-nm">${r}</div></div><button class="ci-del" onclick="delResp('${r}')">🗑</button></div>`).join('');
+  document.getElementById('rCnt').textContent=D.resps.length+' cadastrados';
+  document.getElementById('rList').innerHTML=D.resps.map(r=>`<div class="ci"><span style="font-size:1.3rem">👤</span><div class="ci-info"><div class="ci-nm">${r}</div></div><button class="ci-del" onclick="delResp('${r}')">🗑</button></div>`).join('');
   renderResp();
 }
 async function addResp(){
@@ -1733,8 +1848,7 @@ async function delResp(r){
 
 // ═══ CONFIG — SETORES ═══
 function renderSets(){
-  if(!document.getElementById('sList'))return;
-  const sListEl=document.getElementById('sList');if(!sListEl)return;sListEl.innerHTML=D.sets.map(s=>`<div class="ci"><span style="font-size:1.3rem">${ICO[s]||'📦'}</span><div class="ci-info"><div class="ci-nm">${s}</div></div>${!['PADARIA','CONFEITARIA','LANCHONETE'].includes(s)?`<button class="ci-del" onclick="delSet('${s}')">🗑</button>`:`<span style="font-size:.6rem;color:var(--gray)">padrão</span>`}</div>`).join('');
+  document.getElementById('sList').innerHTML=D.sets.map(s=>`<div class="ci"><span style="font-size:1.3rem">${ICO[s]||'📦'}</span><div class="ci-info"><div class="ci-nm">${s}</div></div>${!['PADARIA','CONFEITARIA','LANCHONETE'].includes(s)?`<button class="ci-del" onclick="delSet('${s}')">🗑</button>`:`<span style="font-size:.6rem;color:var(--gray)">padrão</span>`}</div>`).join('');
   const sel=document.getElementById('nPSt');if(sel)sel.innerHTML=D.sets.map(s=>`<option>${s}</option>`).join('');
 }
 async function addSet(){
@@ -1751,7 +1865,6 @@ async function delSet(s){
 // ═══ CONFIG — PRODUTOS ═══
 let _cfgMap=[]; // array: índice → chave do produto
 function renderCfg(){
-  if(!document.getElementById('cfgList')&&!document.getElementById('cfgPList'))return;
   const q=(document.getElementById('cfgSrc')||{value:''}).value.toLowerCase();
   // incluir também os inativos (hidden) para mostrar na lista
   const ov=D.overrides||{};

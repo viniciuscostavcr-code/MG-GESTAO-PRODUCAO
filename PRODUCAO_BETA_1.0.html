@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAACC0lEQVR4nGNkwAGknY3+45IjBzzde44RmziGILUtJuQQJnpajs0OJlwS9HIEE70tR3cEEyGFtAaMA+F7ZDDgITDgDmAhVYO0mARDtHcQg7WhKYOitBwDHzcPw7cf3xneffzA8OTVc4ZTl88z7D5+iOHy7RtEmUd0GmBkZGTIiUxkKI7PYGBhZsarduexAwzJdcVEOYDoEKhMyWXICo+H8w+eOc4wedl8hsu3rzMwMDAwSIqIMSjJyjO4Wdkz/P9PfLomKgQMNXUYNk9eCOdvPribIaulkiSLcAGiEmFyYCSc/efvX4aGab1UsZxoB1gZmMDZV+/cYHj59jVVLGdgICINMDMxMYgKCsP5T14+R5EPc/dl6CttwNDnnh7FcPXuTYIOGPBygKAD/v77x/Dm/Ts4X1pMEkV+1c7NDDIuxgzu6VG0cQADAwPDsYtn4GwdFXUGUUEhsiwj2wELNqyEs1lYWBiqUvPp64DTVy8yzFu/As4PdfNhmN3QzWCgoc3AzsbGwMPFxaCnrkmWA4guCRum9TJ8/f6NITsygYGJkYnB08aJwdPGiSxLkQHJ7QElGXmGGJ8gBisDUwY5CSkGLk4uho9fPjG8ff+O4emrFwzHLpxhOHT2JMO1e7eIKqxGGyQD7wBcPRZ6gKd7zzEOfAjAXEJvi2F2MqEL0NNyFAfQyxHoduC0kF7dcwDKB6tqa9CS/gAAAABJRU5ErkJggg==">
 <meta name="theme-color" content="#2D6A4F">
 <title>🍞 Produção BETA 1.0 — Supermercado MG</title>
 <style>
@@ -253,6 +252,7 @@ input:checked+.tsl:before{transform:translateX(17px);}
   <div class="tab on"  onclick="go('reg')">📝 Registrar</div>
   <div class="tab"     onclick="go('hist')">📋 Histórico</div>
   <div class="tab"     onclick="go('res')">📊 Dashboard</div>
+  <div class="tab"     onclick="go('cfg')">⚙️ Config</div>
 </div>
 <div class="scr">
   <!-- REGISTRAR -->
@@ -272,6 +272,54 @@ input:checked+.tsl:before{transform:translateX(17px);}
   <div class="vw" id="v-hist"><div id="histC"></div></div>
   <!-- DASHBOARD -->
   <div class="vw" id="v-res"><div id="resC"></div></div>
+  <!-- CONFIG -->
+  <div class="vw" id="v-cfg">
+    <div class="cs">
+      <div class="cs-hdr">☁️ Sincronização</div>
+      <div class="sync-box"><span id="cfgSync">Verificando...</span></div>
+      <button class="bsync" onclick="forceSync()">🔄 Sincronizar agora</button>
+    </div>
+    <div class="cs">
+      <div class="cs-hdr">👥 Responsáveis <span class="cs-cnt" id="rCnt"></span></div>
+      <div id="rList"></div>
+      <button class="badd" onclick="tog('fResp')">+ Adicionar responsável</button>
+      <div class="fadd" id="fResp">
+        <div><label>Nome</label><input type="text" id="nResp" placeholder="Ex: CARLOS"></div>
+        <div class="fr"><button class="bsave2" onclick="addResp()">✅ Salvar</button><button class="bcan" onclick="tog('fResp')">Cancelar</button></div>
+      </div>
+    </div>
+    <div class="cs">
+      <div class="cs-hdr">🗂️ Grupos <span class="cs-cnt" id="gCnt"></span></div>
+      <div id="gList"></div>
+      <button class="badd" onclick="tog('fGrp')">+ Adicionar grupo</button>
+      <div class="fadd" id="fGrp">
+        <div><label>Nome do grupo</label><input type="text" id="nGrp" placeholder="Ex: 🥖 Especial"></div>
+        <div class="fr"><button class="bsave2" onclick="addGrp()">✅ Salvar</button><button class="bcan" onclick="tog('fGrp')">Cancelar</button></div>
+      </div>
+    </div>
+    <div class="cs">
+      <div class="cs-hdr">🛍️ Produtos <span class="cs-cnt" id="pCnt"></span></div>
+      <p style="font-size:.75rem;color:var(--gray);margin-bottom:10px">Toque na foto para editar nome, grupo e foto de qualquer produto. Use o botão para ativar/desativar.</p>
+      <div class="sw" style="margin-bottom:10px"><span class="si">🔍</span><input type="text" id="cfgSrc" placeholder="Buscar produto..." oninput="renderCfg()"></div>
+      <div id="cfgPList"></div>
+      <button class="badd" onclick="tog('fProd')">+ Adicionar produto</button>
+      <div class="fadd" id="fProd">
+        <div class="fadd-foto" id="fprev" onclick="document.getElementById('fImg').click()">📷<input type="file" id="fImg" accept="image/*" onchange="prevFoto(this)"></div>
+        <div><label>Nome *</label><input type="text" id="nPNm" placeholder="Ex: PÃO DE CENTEIO KG"></div>
+        <div class="fg"><label>Código</label><input type="text" id="nPCd" placeholder="Ex: 1234"></div>
+        <div class="fg"><label>Unidade</label><select id="nPUnd"><option>KG</option><option>UND</option></select></div>
+        <div class="fg"><label>Grupo *</label><select id="nPGrp"></select></div>
+        <div class="fr"><button class="bsave2" onclick="addProd()">✅ Salvar</button><button class="bcan" onclick="tog('fProd');clrFoto()">Cancelar</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="bar">
+  <div class="bt"><strong id="bCnt">0 produtos</strong><span id="bSub">Nenhum registrado</span></div>
+  <button class="bvw" onclick="openMod()">Ver tudo</button>
+  <button class="bsv" id="bSave" onclick="salvar()" disabled>💾 Salvar</button>
+</div>
 <!-- MODAL CONFIRMAÇÃO -->
 <div class="conf-ov" id="confOv">
   <div class="conf-box">
@@ -374,14 +422,10 @@ let PRODS_SUPA=[];
 
 function applyEdits(p){const k=pk(p);const ed=D.edits[k];return ed?{...p,...ed,_ok:p,_key:k}:{...p,_key:k};}
 function _normProd(p){
-  const n=p.nome||p.n||'';
-  const c=p.cod||p.c||'';
-  const s=p.setor||p.s||'PADARIA';
-  const u=(p.unidade||p.u||'KG').toUpperCase();
-  const g=p.grupo||p.g||setorToGrp(s);
-  const pp={c,n,s,u,g,min:p.min_estoque||0,max:p.max_estoque||0};
-  const k=`${pp.s}|${pp.c}|${pp.n}`;
-  return{...pp,_key:k};
+  // Normaliza produto do Supabase para o formato da produção
+  const pp={c:p.cod||p.c||'',n:p.nome||p.n,s:p.setor||p.s,u:(p.unidade||p.u||'KG').toUpperCase(),
+    g:p.grupo||p.g||setorToGrp(p.setor||p.s||'PADARIA'),min:p.min_estoque||0,max:p.max_estoque||0};
+  const k=pk(pp);return{...pp,_key:k};
 }
 function setorToGrp(s){
   if(s==='PADARIA')return'🍞 Pão Diário';
@@ -412,16 +456,7 @@ async function load(){
   setSI('wait');
   try{
     const [regs,extras,resps,prods]=await Promise.all([sbQ('producao','limit=3000'),sbQ('produtos_extra','tipo=eq.producao&limit=500'),sbQ('responsaveis','limit=100'),sbQ('produtos','ativo=eq.true&order=nome.asc&limit=500').catch(()=>[])]);
-    if(prods&&prods.length){
-      PRODS_SUPA=prods;
-      console.log('✅ Produtos carregados:',prods.length);
-    } else {
-      // Tentar carregar produtos diretamente
-      try{
-        const p2=await sbQ('produtos','ativo=eq.true&order=nome.asc&limit=500');
-        if(p2&&p2.length){PRODS_SUPA=p2;console.log('Produtos direto:',p2.length);}
-      }catch(e){console.warn('Produtos erro:',e.message);}
-    }
+    if(prods&&prods.length)PRODS_SUPA=prods;
     const map={};
     (regs||[]).forEach(r=>{const k=`${r.data}|${r.responsavel}`;if(!map[k])map[k]={id:k,data:r.data,dia:r.dia_semana,resp:r.responsavel,regs:[]};map[k].regs.push({id:r.id,prod:r.produto,cod:r.cod,und:r.und,grp:r.grupo,qty:r.quantidade,resp:r.responsavel,data:r.data,dia:r.dia_semana});});
     D.hist=Object.values(map).sort((a,b)=>b.data.localeCompare(a.data));
@@ -441,17 +476,10 @@ function setSI(st){
   else{dot.className='dot off';txt.textContent='Erro';if(cfg)cfg.textContent='❌ Erro de conexão';}
 }
 async function forceSync(){await load();renderAll();toast('🔄 Sincronizado!','ok');}
-function renderAll(){
-  if(document.getElementById('rList'))renderResps();
-  if(document.getElementById('gList'))renderGrps();
-  if(document.getElementById('cfgPList'))renderCfg();
-  renderSpills();
-  renderRespSel();
-  render();
-}
+function renderAll(){renderResps();renderGrps();renderCfg();renderSpills();renderRespSel();render();}
 
 function go(t){
-  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('on',['reg','hist','res'][i]===t));
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('on',['reg','hist','res','cfg'][i]===t));
   document.querySelectorAll('.vw').forEach(v=>v.classList.remove('on'));
   document.getElementById('v-'+t).classList.add('on');
   if(t==='hist') renderHist();
@@ -521,24 +549,6 @@ async function salvar(){
   if(!data){toast('⚠️ Selecione a data!','er');return;}
   const n=Object.keys(Q).length;if(!n){toast('⚠️ Nenhuma quantidade!','er');return;}
   const dt=new Date(data+'T12:00:00'),dfmt=dt.toLocaleDateString('pt-BR'),dia=DIAS[dt.getDay()];
-
-  // ── Verificar duplicidade ──
-  const jaExiste=D.hist.find(h=>(h.data===data||h.data===dfmt)&&h.resp===resp);
-  if(jaExiste){
-    const prodsDupl=Object.keys(Q).filter(k=>{
-      const p=allProds().find(x=>x._key===k);
-      return p&&jaExiste.regs.some(r=>r.prod===p.n);
-    });
-    if(prodsDupl.length>0){
-      const nomes=prodsDupl.map(k=>{const p=allProds().find(x=>x._key===k);return p?p.n:k;}).slice(0,3).join(', ');
-      const ok=await confirmar(
-        `⚠️ Possível duplicidade!\n\n${prodsDupl.length} produto(s) já foram registrados hoje pelo mesmo responsável:\n\n${nomes}${prodsDupl.length>3?' e mais...':''}\n\nDeseja salvar mesmo assim?`,
-        'Registro Duplicado','⚠️','Salvar mesmo assim'
-      );
-      if(!ok)return;
-    }
-  }
-
   const regs=Object.entries(Q).map(([k,v])=>{const p=allProds().find(x=>x._key===k)||{n:k,c:'',u:'?',g:'?'};return{id:(crypto.randomUUID?crypto.randomUUID():Date.now()+'_'+Math.random().toString(36).slice(2,7)),prod:p.n,cod:p.c,und:p.u,grp:p.g,qty:v,resp,data:data,dataFmt:dfmt,dia};});
   setSI('wait');
   try{
@@ -747,29 +757,16 @@ function clrFoto(){nFoto='';document.getElementById('fprev').innerHTML=`📷<inp
 async function addProd(){
   const n=document.getElementById('nPNm').value.trim().toUpperCase(),c=document.getElementById('nPCd').value.trim(),u=document.getElementById('nPUnd').value,g=document.getElementById('nPGrp').value;
   if(!n){toast('⚠️ Digite o nome','er');return;}
-  if(allProdsAll().find(p=>p.n===n)){toast('Produto já cadastrado','er');return;}
-  // Identificar setor pelo grupo
-  const setorPorGrp={'🍞 Pão Diário':'PADARIA','🥐 Pão Especial':'PADARIA','🥐 Croissant':'PADARIA','🍪 Bolacha':'PADARIA','🍞 Torrada':'PADARIA','🎂 Especial':'CONFEITARIA','🥟 Salgado':'LANCHONETE'};
-  const setor=setorPorGrp[g]||'PADARIA';
-  const id=c||('prod_'+Date.now());
-  const dados={id,nome:n,cod:c,setor,unidade:u,grupo:g,min_estoque:0,max_estoque:0,validade:1,abc:'C',ativo:true,categoria:''};
-  try{
-    await sbU('produtos',dados);
-    PRODS_SUPA.push(dados);
-    if(nFoto){const pp={c,n,s:setor,u,g};D.fotos[pk(pp)]=nFoto;}
-    document.getElementById('nPNm').value='';document.getElementById('nPCd').value='';clrFoto();tog('fProd');
-    renderSpills();render();toast(`✅ ${n} adicionado`,'ok');
-  }catch(e){toast('❌ Erro ao salvar','er');console.error(e);}
+  if(allProdsAll().find(p=>p.n===n&&p.g===g)){toast('Produto já cadastrado','er');return;}
+  const p={c,n,u,g};
+  try{await sbI('produtos_extra',{tipo:'producao',nome:n,cod:c,und:u,grupo:g});D.extra.push(p);if(nFoto)D.fotos[pk(p)]=nFoto;document.getElementById('nPNm').value='';document.getElementById('nPCd').value='';clrFoto();tog('fProd');saveLocal();renderCfg();render();toast(`✅ ${n} adicionado`,'ok');}
+  catch(e){toast('❌ Erro ao salvar','er');}
 }
 async function delProd(k){
-  if(!await confirmar('Remover produto?','Remover','🗑️','Remover'))return;
-  // Remover do PRODS_SUPA
-  const p=PRODS_SUPA.find(x=>{const np=_normProd(x);return np._key===k;});
-  try{
-    if(p)await fetch(`${SU}/rest/v1/produtos?id=eq.${encodeURIComponent(p.id)}`,{method:'DELETE',headers:H});
-    PRODS_SUPA=PRODS_SUPA.filter(x=>_normProd(x)._key!==k);
-    delete Q[k];saveLocal();renderSpills();render();upBar();toast('Produto removido','er');
-  }catch(e){toast('❌ Erro','er');}
+  if(!confirm('Remover produto?'))return;
+  const p=D.extra.find(x=>x._key===k||pk(x)===k);
+  try{if(p&&p._id)await sbD('produtos_extra',p._id);D.extra=D.extra.filter(x=>(x._key||pk(x))!==k);delete Q[k];saveLocal();renderCfg();render();upBar();toast('Produto removido','er');}
+  catch(e){toast('❌ Erro','er');}
 }
 
 // Modal de confirmação (substitui confirm())
