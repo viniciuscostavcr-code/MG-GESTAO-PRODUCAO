@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1B4332">
+<title>GestFood — Entrar</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-gestfood-180.png">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F7F5;--white:#fff;--border:#E8E8E4;
+  --brown:#1C1C1A;--gray:#6B7280;--gray-l:#F4F4F2;
+  --accent:#2D6A4F;--accent-d:#1B4332;--accent-l:#EAF4EF;
+  --red:#C0392B;--red-l:#FDECEA;
+  --sh:0 2px 12px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(--accent-d);overflow:hidden;}
+
+/* SPLASH */
+#splash{position:fixed;inset:0;background:var(--accent-d);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .4s ease;}
+.sp-anim{animation:spPop .5s ease forwards;}
+@keyframes spPop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+.sp-ico{width:80px;height:80px;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.2);border-radius:22px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:2.4rem;font-weight:900;color:#fff;letter-spacing:-2px;}
+.sp-nm{font-size:1.6rem;font-weight:800;color:#fff;letter-spacing:-.5px;text-align:center;}
+.sp-nm span{font-weight:300;color:#A7D9BC;}
+.sp-sub{font-size:.72rem;color:rgba(255,255,255,.4);margin-top:6px;text-align:center;}
+.sp-dot{width:6px;height:6px;border-radius:50%;background:#52B788;animation:pulse 1s infinite;margin:32px auto 0;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* APP */
+#app{height:100%;display:flex;flex-direction:column;display:none;}
+
+/* HEADER VERDE */
+.lg-head{padding:24px 20px 20px;flex-shrink:0;}
+.lg-logo{display:flex;align-items:center;gap:10px;}
+.lg-mark{width:34px;height:34px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.95rem;font-weight:900;color:#fff;}
+.lg-name{font-size:1.05rem;font-weight:800;color:#fff;letter-spacing:-.3px;}
+.lg-name span{font-weight:300;color:#A7D9BC;}
+
+/* CARD BRANCO */
+.lg-card{flex:1;background:var(--bg);border-radius:28px 28px 0 0;padding:28px 20px 48px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+
+/* ESTADOS */
+.lc-title{font-size:1.2rem;font-weight:800;color:var(--brown);letter-spacing:-.4px;margin-bottom:4px;}
+.lc-sub{font-size:.78rem;color:var(--gray);margin-bottom:24px;}
+
+/* LOADING */
+.lc-load{text-align:center;padding:48px 0;}
+.spin{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.lc-load p{font-size:.8rem;color:var(--gray);}
+
+/* USER GRID */
+.users-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.u-card{background:var(--white);border:1.5px solid var(--border);border-radius:14px;padding:18px 12px 14px;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden;}
+.u-card::after{content:'';position:absolute;inset:0;background:var(--accent);opacity:0;transition:.15s;}
+.u-card:active::after{opacity:.05;}
+.u-av{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.15rem;font-weight:800;color:#fff;flex-shrink:0;}
+.u-nm{font-size:.82rem;font-weight:700;color:var(--brown);text-align:center;line-height:1.3;}
+.u-role{font-size:.58rem;font-weight:700;padding:2px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:.5px;}
+.u-role.admin{background:#FEF3C7;color:#92400E;}
+.u-role.op{background:var(--accent-l);color:var(--accent-d);}
+
+/* PIN SECTION */
+#pinSection{display:none;}
+.pin-back{display:flex;align-items:center;gap:6px;font-size:.82rem;font-weight:600;color:var(--accent);cursor:pointer;margin-bottom:22px;background:none;border:none;font-family:'Plus Jakarta Sans',sans-serif;padding:0;}
+.pin-userbox{display:flex;align-items:center;gap:12px;padding:14px;background:var(--white);border:1.5px solid var(--border);border-radius:14px;margin-bottom:28px;}
+.pin-uav{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:800;color:#fff;flex-shrink:0;}
+.pin-unm{font-size:.92rem;font-weight:700;color:var(--brown);}
+.pin-urole{font-size:.65rem;color:var(--gray);font-weight:500;margin-top:2px;}
+.pin-lbl{font-size:.72rem;font-weight:600;color:var(--gray);text-align:center;text-transform:uppercase;letter-spacing:.6px;margin-bottom:18px;}
+.pin-dots{display:flex;justify-content:center;gap:16px;margin-bottom:22px;}
+.pin-dot{width:15px;height:15px;border-radius:50%;border:2px solid var(--border);background:var(--white);transition:all .12s;}
+.pin-dot.on{background:var(--accent);border-color:var(--accent);transform:scale(1.1);}
+.pin-dot.err{background:var(--red);border-color:var(--red);}
+.pin-inp{
+  width:100%;padding:16px;border:1.5px solid var(--border);border-radius:12px;
+  font-size:1.5rem;font-family:'Plus Jakarta Sans',sans-serif;
+  text-align:center;letter-spacing:12px;color:transparent;caret-color:transparent;
+  background:var(--white);outline:none;-webkit-text-security:disc;
+}
+.pin-inp:focus{border-color:var(--accent);}
+.pin-inp.err{border-color:var(--red);animation:shake .3s ease;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.pin-err{font-size:.75rem;color:var(--red);text-align:center;margin-top:10px;font-weight:600;min-height:20px;}
+.btn-entrar{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:.95rem;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;margin-top:16px;transition:.15s;}
+.btn-entrar:disabled{opacity:.35;cursor:not-allowed;}
+.btn-entrar:active:not(:disabled){transform:scale(.98);}
+
+/* ERRO GERAL */
+.lc-err{text-align:center;padding:32px 0;color:var(--red);font-size:.85rem;}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="sp-anim">
+    <div class="sp-ico">G</div>
+    <div class="sp-nm">Gest<span>Food</span></div>
+    <div class="sp-sub">Sistema de Gestão</div>
+    <div class="sp-dot"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="lg-head">
+    <div class="lg-logo">
+      <div class="lg-mark">G</div>
+      <div class="lg-name">Gest<span>Food</span></div>
+    </div>
+  </div>
+
+  <div class="lg-card">
+
+    <!-- LOADING -->
+    <div id="stLoad">
+      <div class="lc-load">
+        <div class="spin"></div>
+        <p>Carregando...</p>
+      </div>
+    </div>
+
+    <!-- SELECIONAR USUÁRIO -->
+    <div id="stUsers" style="display:none;">
+      <div class="lc-title">Quem é você?</div>
+      <div class="lc-sub">Selecione seu nome para continuar</div>
+      <div class="users-grid" id="usersGrid"></div>
+    </div>
+
+    <!-- PIN -->
+    <div id="pinSection">
+      <button class="pin-back" onclick="voltarUsers()">← Voltar</button>
+      <div class="pin-userbox">
+        <div class="pin-uav" id="pinAv"></div>
+        <div>
+          <div class="pin-unm" id="pinNm"></div>
+          <div class="pin-urole" id="pinRole"></div>
+        </div>
+      </div>
+      <div class="pin-lbl">Digite seu PIN de 4 dígitos</div>
+      <div class="pin-dots">
+        <div class="pin-dot" id="d0"></div>
+        <div class="pin-dot" id="d1"></div>
+        <div class="pin-dot" id="d2"></div>
+        <div class="pin-dot" id="d3"></div>
+      </div>
+      <input class="pin-inp" id="pinInp" type="password" inputmode="numeric" maxlength="4" autocomplete="off" oninput="pinChange(this)" onkeydown="if(event.key==='Enter')entrar()">
+      <div class="pin-err" id="pinErr"></div>
+      <button class="btn-entrar" id="btnOk" onclick="entrar()" disabled>Entrar</button>
+    </div>
+
+    <!-- ERRO -->
+    <div id="stErr" style="display:none;" class="lc-err">
+      ❌ Erro ao carregar usuários.<br>
+      <button onclick="carregarUsuarios()" style="margin-top:12px;padding:8px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:inherit;font-weight:600;cursor:pointer;font-size:.82rem;">Tentar novamente</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const SU='https://rjkseydseuotdkavskss.supabase.co';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqa3NleWRzZXVvdGRrYXZza3NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTE4OTAsImV4cCI6MjA4Nzc4Nzg5MH0.wEzZ9sZhXJhu0jjNx2OeW7RacGi8djUj-9r9u1-8KYY';
+const H={'apikey':SK,'Authorization':'Bearer '+SK};
+const SES_KEY='gf_session';
+const SES_MAX=8*60*60*1000; // 8 horas (1 turno)
+
+const AV_CORES=['#2D6A4F','#C0392B','#1D4ED8','#D97706','#7C3AED','#0891B2','#059669','#DB2777','#EA580C','#0F766E'];
+function avCor(i){return AV_CORES[i%AV_CORES.length];}
+function iniciais(nome){return (nome||'?').trim().split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase().slice(0,2);}
+
+let usuarios=[];
+let selUser=null;
+let selIdx=0;
+
+// Verificar sessão ativa — se já logado, vai direto pro INDEX
+(function(){
+  const s=JSON.parse(localStorage.getItem(SES_KEY)||'null');
+  if(s&&Date.now()-s.loggedAt<SES_MAX){
+    window.location.replace('GESTFOOD_INDEX.html');
+  }else{
+    localStorage.removeItem(SES_KEY);
+  }
+})();
+
+// Splash
+window.addEventListener('load',()=>{
+  setTimeout(()=>{
+    const s=document.getElementById('splash');
+    s.style.opacity='0';
+    setTimeout(()=>{
+      s.style.display='none';
+      document.getElementById('app').style.display='flex';
+    },400);
+  },1000);
+  carregarUsuarios();
+});
+
+async function carregarUsuarios(){
+  document.getElementById('stLoad').style.display='block';
+  document.getElementById('stUsers').style.display='none';
+  document.getElementById('stErr').style.display='none';
+  document.getElementById('pinSection').style.display='none';
+  try{
+    const r=await fetch(`${SU}/rest/v1/usuarios?ativo=eq.true&order=nome.asc`,{headers:H});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    usuarios=await r.json();
+    if(!usuarios.length)throw new Error('Sem usuários');
+    renderUsers();
+  }catch(e){
+    document.getElementById('stLoad').style.display='none';
+    document.getElementById('stErr').style.display='block';
+  }
+}
+
+function renderUsers(){
+  document.getElementById('stLoad').style.display='none';
+  document.getElementById('stUsers').style.display='block';
+  document.getElementById('usersGrid').innerHTML=usuarios.map((u,i)=>`
+    <div class="u-card" onclick="selecionarUser(${i})">
+      <div class="u-av" style="background:${avCor(i)}">${iniciais(u.nome)}</div>
+      <div class="u-nm">${u.nome}</div>
+      <div class="u-role ${u.role==='admin'?'admin':'op'}">${u.role==='admin'?'Admin':'Operador'}</div>
+    </div>
+  `).join('');
+}
+
+function selecionarUser(i){
+  selUser=usuarios[i];
+  selIdx=i;
+  const cor=avCor(i);
+  document.getElementById('pinAv').style.background=cor;
+  document.getElementById('pinAv').textContent=iniciais(selUser.nome);
+  document.getElementById('pinNm').textContent=selUser.nome;
+  document.getElementById('pinRole').textContent=selUser.role==='admin'?'Administrador':'Operador';
+  document.getElementById('stUsers').style.display='none';
+  document.getElementById('pinSection').style.display='block';
+  document.getElementById('pinInp').value='';
+  document.getElementById('pinErr').textContent='';
+  document.getElementById('btnOk').disabled=true;
+  atualizarDots('');
+  setTimeout(()=>document.getElementById('pinInp').focus(),150);
+}
+
+function voltarUsers(){
+  selUser=null;
+  document.getElementById('pinSection').style.display='none';
+  document.getElementById('stUsers').style.display='block';
+  document.getElementById('pinInp').value='';
+  document.getElementById('pinErr').textContent='';
+}
+
+function pinChange(el){
+  const v=el.value.replace(/\D/g,'').slice(0,4);
+  el.value=v;
+  atualizarDots(v);
+  document.getElementById('btnOk').disabled=v.length<4;
+  document.getElementById('pinErr').textContent='';
+  el.classList.remove('err');
+  [0,1,2,3].forEach(i=>document.getElementById('d'+i).classList.remove('err'));
+  if(v.length===4)setTimeout(entrar,80);
+}
+
+function atualizarDots(v){
+  [0,1,2,3].forEach(i=>{
+    const d=document.getElementById('d'+i);
+    d.classList.remove('on','err');
+    if(i<v.length)d.classList.add('on');
+  });
+}
+
+function erroPin(msg){
+  const inp=document.getElementById('pinInp');
+  inp.classList.add('err');
+  [0,1,2,3].forEach(i=>document.getElementById('d'+i).classList.add('err'));
+  document.getElementById('pinErr').textContent=msg;
+  document.getElementById('btnOk').textContent='Entrar';
+  document.getElementById('btnOk').disabled=false;
+  setTimeout(()=>{
+    inp.value='';
+    inp.classList.remove('err');
+    [0,1,2,3].forEach(i=>{
+      const d=document.getElementById('d'+i);
+      d.classList.remove('err','on');
+    });
+    document.getElementById('pinErr').textContent='';
+    document.getElementById('btnOk').disabled=true;
+    inp.focus();
+  },1400);
+}
+
+async function entrar(){
+  if(!selUser)return;
+  const pin=document.getElementById('pinInp').value;
+  if(pin.length!==4)return;
+  document.getElementById('btnOk').disabled=true;
+  document.getElementById('btnOk').textContent='Entrando...';
+  if(pin===selUser.pin){
+    localStorage.setItem(SES_KEY,JSON.stringify({
+      id:selUser.id,
+      nome:selUser.nome,
+      role:selUser.role,
+      cor:avCor(selIdx),
+      loggedAt:Date.now()
+    }));
+    window.location.replace('GESTFOOD_INDEX.html');
+  }else{
+    erroPin('PIN incorreto. Tente novamente.');
+  }
+}
+</script>
+</body>
+</html>

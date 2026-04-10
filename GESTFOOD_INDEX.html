@@ -218,22 +218,30 @@ body{display:flex;flex-direction:column;}
 .m-prod .mod-foot{border-color:var(--accent-l);color:var(--accent);}
 .m-prod{border-color:var(--accent);border-left:4px solid var(--accent);}
 
-.m-desp .mod-chip{background:var(--red-l);color:var(--red);}
-.m-desp .mod-title{color:var(--red);}
-.m-desp .mod-foot{border-color:var(--red-l);color:var(--red);}
-.m-desp{border-color:var(--red-l);}
+.m-desp .mod-chip{background:var(--accent-l);color:var(--accent-d);}
+.m-desp .mod-title{color:var(--accent-d);}
+.m-desp .mod-foot{border-color:var(--accent-l);color:var(--accent);}
+.m-desp{border-color:var(--accent);border-left:4px solid var(--accent);}
 
-.m-dash .mod-chip{background:var(--amber-l);color:var(--amber);}
-.m-dash .mod-title{color:var(--brown);}
-.m-dash .mod-foot{border-color:#FDE68A;color:var(--amber);}
-.m-dash{border-color:#FDE68A;background:linear-gradient(135deg,#fff 50%,var(--amber-l));}
+.m-dash .mod-chip{background:var(--accent-l);color:var(--accent-d);}
+.m-dash .mod-title{color:var(--accent-d);}
+.m-dash .mod-foot{border-color:var(--accent-l);color:var(--accent);}
+.m-dash{border-color:var(--accent);}
 
-.m-chk .mod-chip{background:var(--blue-l);color:var(--blue);}
-.m-chk .mod-title{color:var(--blue);}
-.m-chk .mod-foot{border-color:var(--blue-l);color:var(--blue);}
-.m-chk{border-color:var(--blue-l);}
+.m-chk .mod-chip{background:var(--accent-l);color:var(--accent-d);}
+.m-chk .mod-title{color:var(--accent-d);}
+.m-chk .mod-foot{border-color:var(--accent-l);color:var(--accent);}
+.m-chk{border-color:var(--accent);}
 
-.m-proj .mod-chip{background:var(--gray-l);color:var(--gray);}
+.m-proj .mod-chip{background:var(--accent-l);color:var(--accent-d);}
+.m-proj .mod-title{color:var(--accent-d);}
+.m-proj .mod-foot{border-color:var(--accent-l);color:var(--accent);}
+.m-proj{border-color:var(--accent);border-left:4px solid var(--accent);}
+
+.m-cfg .mod-chip{background:var(--accent-l);color:var(--accent-d);}
+.m-cfg .mod-title{color:var(--accent-d);}
+.m-cfg .mod-foot{border-color:var(--accent-l);color:var(--accent);}
+.m-cfg{border-color:var(--accent);border-left:4px solid var(--accent);}
 
 /* ══ SIDEBAR MOBILE — hamburguer ══ */
 .hamburger{
@@ -349,18 +357,13 @@ body{display:flex;flex-direction:column;}
     </div>
 
     <div class="sidebar-section">Análise</div>
-    <div class="nav-item" onclick="abrirConstrucao()">
+    <div class="nav-item" onclick="irMod('DASHBOARD_GERAL.html')">
       <span class="nav-ico">📊</span> Dashboard Geral
-      <span class="nav-wip">Em breve</span>
     </div>
 
     <div class="sidebar-section">Planejamento</div>
-    <div class="nav-item" onclick="abrirConstrucao('checklist')">
-      <span class="nav-ico">✅</span> Checklist
-    </div>
-    <div class="nav-item" onclick="abrirConstrucao('proj')">
-      <span class="nav-ico">📈</span> Projeção
-      <span class="nav-wip">Beta</span>
+    <div class="nav-item" onclick="irMod('CHECKLIST_PROJECAO.html')">
+      <span class="nav-ico">✅</span> Checklist & Projeção
     </div>
 
     <div class="sidebar-section">Sistema</div>
@@ -371,6 +374,7 @@ body{display:flex;flex-direction:column;}
     <div class="sidebar-footer">
       <strong>GestFood</strong> · BETA 1.0<br>
       <span id="sbAno"></span>
+      <button onclick="logout()" style="margin-top:10px;width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);border-radius:8px;padding:7px;font-size:.72rem;font-weight:600;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:.3px;">⬠ Sair</button>
     </div>
   </div>
 
@@ -391,11 +395,11 @@ body{display:flex;flex-direction:column;}
         <span class="stat-val" id="statProdVal">—</span>
         <span class="stat-lbl">Produções</span>
       </div>
-      <div class="stat-card red">
+      <div class="stat-card green">
         <span class="stat-val" id="statDespVal">—</span>
         <span class="stat-lbl">Desperdícios</span>
       </div>
-      <div class="stat-card">
+      <div class="stat-card green">
         <span class="stat-val" id="statHoje">—</span>
         <span class="stat-lbl">Hoje</span>
       </div>
@@ -426,8 +430,8 @@ body{display:flex;flex-direction:column;}
         </div>
       </div>
 
-      <div class="mod-card m-dash wide" onclick="abrirConstrucao()">
-        <div class="mod-chip">📊 Em breve</div>
+      <div class="mod-card m-dash wide" onclick="irMod('DASHBOARD_GERAL.html')">
+        <div class="mod-chip">📊 Dashboard</div>
         <span class="mod-ico">📊</span>
         <div class="mod-title">Dashboard Geral</div>
         <div class="mod-desc">Análise completa cruzando produção, desperdícios e indicadores ABC por setor.</div>
@@ -437,36 +441,24 @@ body{display:flex;flex-direction:column;}
         </div>
       </div>
 
-      <div class="mod-card m-chk" onclick="abrirConstrucao('checklist')">
-        <div class="mod-chip" style="background:#EEF2FF;color:#1D4ED8;">🚧 Em breve</div>
+      <div class="mod-card m-chk" onclick="irMod('CHECKLIST_PROJECAO.html')">
+        <div class="mod-chip">✅ Planejamento</div>
         <span class="mod-ico">📋</span>
-        <div class="mod-title">Checklist</div>
-        <div class="mod-desc">Controle de estoque diário por setor</div>
+        <div class="mod-title">Checklist & Projeção</div>
+        <div class="mod-desc">Controle de estoque diário + planejamento semanal de produção</div>
         <div class="mod-foot">
-          <span>Padaria · Conf.</span>
-          <span>→</span>
-        </div>
-      </div>
-
-      <div class="mod-card m-proj" onclick="abrirConstrucao('proj')">
-        <div class="mod-wip">Beta</div>
-        <div class="mod-chip">📈 Planej.</div>
-        <span class="mod-ico">📅</span>
-        <div class="mod-title">Projeção</div>
-        <div class="mod-desc">Planejamento semanal de produção</div>
-        <div class="mod-foot">
-          <span>Em desenvolvimento</span>
+          <span>Padaria · Conf. · Lanch.</span>
           <span>→</span>
         </div>
       </div>
 
       <!-- Configurações -->
-      <div class="mod-card wide" onclick="irMod('GESTFOOD_CONFIG.html')" style="border-color:#E8E8E4;">
-        <div class="mod-chip" style="background:#F4F4F2;color:#6B7280;">⚙️ Sistema</div>
+      <div class="mod-card m-cfg wide" onclick="irMod('GESTFOOD_CONFIG.html')">
+        <div class="mod-chip">⚙️ Sistema</div>
         <span class="mod-ico">⚙️</span>
-        <div class="mod-title" style="color:var(--brown);">Configurações</div>
+        <div class="mod-title">Configurações</div>
         <div class="mod-desc">Gerencie produtos, setores e responsáveis de todos os módulos em um só lugar.</div>
-        <div class="mod-foot" style="color:var(--gray);">
+        <div class="mod-foot">
           <span>Catálogo compartilhado · Supabase</span>
           <span>→</span>
         </div>
@@ -493,32 +485,61 @@ const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 const H={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY};
 const DIAS=['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
 
-// ── CONFIG DO CLIENTE ── 
-// Para personalizar: altere as variáveis abaixo
-const CONFIG={
-  nomeEmpresa:'Supermercado MG',
-  nomeUsuario:'Supermercado MG',
-  iniciais:'MG',
-  logoUrl:'', // URL da logo do cliente (deixe '' para usar o G padrão)
-};
+// ── SESSÃO ──
+const SES_KEY='gf_session';
+const SES_MAX=8*60*60*1000;
+const GF_USER=(function(){
+  const s=JSON.parse(localStorage.getItem(SES_KEY)||'null');
+  if(!s||Date.now()-s.loggedAt>SES_MAX){
+    localStorage.removeItem(SES_KEY);
+    window.location.replace('LOGIN.html');
+    return null;
+  }
+  return s;
+})();
+const IS_ADMIN=GF_USER&&GF_USER.role==='admin';
+function iniciais(n){return(n||'?').trim().split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase().slice(0,2);}
+function logout(){
+  localStorage.removeItem(SES_KEY);
+  window.location.replace('LOGIN.html');
+}
+
+const CONFIG={nomeEmpresa:'Supermercado MG',logoUrl:''};
 
 // Init
 const t=new Date();
 const hora=t.getHours();
 const saudacao=hora<12?'Bom dia':hora<18?'Boa tarde':'Boa noite';
-document.getElementById('pageTitle').textContent=saudacao+', '+CONFIG.nomeEmpresa+'! 👋';
+document.getElementById('pageTitle').textContent=saudacao+', '+(GF_USER?GF_USER.nome:CONFIG.nomeEmpresa)+'! 👋';
 document.getElementById('pageSub').textContent=DIAS[t.getDay()]+', '+t.toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
 document.getElementById('statHoje').textContent=t.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
 document.getElementById('sidebarDate').textContent=t.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
 document.getElementById('sbAno').textContent=t.getFullYear();
 document.getElementById('empresaNome').textContent=CONFIG.nomeEmpresa;
-document.querySelector('.user-av').textContent=CONFIG.iniciais;
-document.querySelector('.user-pill').lastChild.textContent=' '+CONFIG.nomeUsuario;
+
+// Exibir usuário logado na topbar
+if(GF_USER){
+  document.querySelector('.user-av').textContent=iniciais(GF_USER.nome);
+  if(GF_USER.cor)document.querySelector('.user-av').style.background=GF_USER.cor;
+  document.querySelector('.user-pill').lastChild.textContent=' '+GF_USER.nome;
+}
 
 // Logo cliente
 if(CONFIG.logoUrl){
   document.getElementById('logoMark').innerHTML=`<img src="${CONFIG.logoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;">`;
   document.getElementById('empresaLogo').innerHTML=`<img src="${CONFIG.logoUrl}" alt="Logo">`;
+}
+
+// Restrições de acesso por role
+if(!IS_ADMIN){
+  // Ocultar Configurações na sidebar
+  document.querySelectorAll('.nav-item').forEach(el=>{
+    if(el.textContent.includes('Configurações'))el.style.display='none';
+  });
+  // Ocultar card de Configurações no conteúdo
+  document.querySelectorAll('.mod-card').forEach(el=>{
+    if(el.textContent.includes('Configurações'))el.style.display='none';
+  });
 }
 
 function irMod(url){window.location.href=url;}
@@ -528,6 +549,12 @@ const CONS_MSG={
   proj:{titulo:'Projeção em Construção',desc:'Em breve: planejamento semanal de produção baseado no histórico real de vendas e desperdícios.'},
 };
 function abrirConstrucao(mod='dash'){
+  if(!IS_ADMIN){
+    document.querySelector('#modalCons .modal-title').textContent='Acesso Restrito';
+    document.querySelector('#modalCons .modal-desc').textContent='Esta área é exclusiva para administradores.';
+    document.getElementById('modalCons').classList.add('on');
+    return;
+  }
   const m=CONS_MSG[mod]||CONS_MSG.dash;
   document.querySelector('#modalCons .modal-title').textContent=m.titulo;
   document.querySelector('#modalCons .modal-desc').textContent=m.desc;
@@ -560,7 +587,6 @@ async function carregarStats(){
   }
 }
 carregarStats();
-// Esconder splash após load
 window.addEventListener('load',()=>{
   setTimeout(()=>{
     const s=document.getElementById('splash');
