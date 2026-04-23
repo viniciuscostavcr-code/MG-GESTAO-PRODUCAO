@@ -125,6 +125,33 @@ input:focus,select:focus{border-color:var(--grn);background:#fff;}
 .progress-wrap{background:var(--border);border-radius:10px;height:8px;margin:10px 0;}
 .progress-bar{background:var(--grn);height:8px;border-radius:10px;transition:width .3s;}
 
+/* EMBALAGENS */
+.emb-item{display:flex;align-items:center;gap:8px;background:var(--gray-l);border-radius:9px;padding:8px 10px;}
+.emb-item-nm{flex:1;font-size:.82rem;font-weight:600;}
+.emb-item-gram{font-size:.75rem;color:var(--gray);background:#fff;padding:2px 8px;border-radius:6px;}
+.emb-item-del{border:none;background:var(--red-l);color:var(--red);border-radius:7px;padding:4px 8px;font-size:.78rem;cursor:pointer;font-family:inherit;font-weight:600;}
+
+/* TOGGLE */
+.tgl-wrap{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);}
+.tgl-lbl{font-size:.82rem;font-weight:600;color:var(--brown);}
+.tgl{position:relative;width:44px;height:24px;flex-shrink:0;}
+.tgl input{opacity:0;width:0;height:0;position:absolute;}
+.tgl-slider{position:absolute;inset:0;background:#D1D5DB;border-radius:12px;cursor:pointer;transition:.2s;}
+.tgl-slider:before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.15);}
+.tgl input:checked+.tgl-slider{background:var(--grn);}
+.tgl input:checked+.tgl-slider:before{transform:translateX(20px);}
+
+/* BADGES PRODUTO */
+.prod-badges{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px;}
+.prod-badge{font-size:.6rem;font-weight:700;padding:1px 6px;border-radius:6px;background:var(--gray-l);color:var(--gray);}
+.prod-badge.prior{background:#FEF3C7;color:#92400E;}
+.prod-badge.frz{background:#EFF6FF;color:#1D4ED8;}
+.prod-badge.cfg{background:var(--amber-l);color:var(--amber);}
+
+/* SEÇÃO CHECKLIST */
+.ck-sec-ttl{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--grn2);display:flex;align-items:center;gap:5px;margin-bottom:10px;}
+.ck-sec-divider{border-top:1.5px solid var(--border);margin:14px 0 12px;}
+
 /* USUÁRIOS */
 .usr-item{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:12px 13px;margin-bottom:8px;display:flex;align-items:center;gap:11px;}
 .usr-item.inativo{opacity:.4;}
@@ -281,6 +308,73 @@ input:focus,select:focus{border-color:var(--grn);background:#fff;}
       <button class="btn btn-gray" style="flex:1" onclick="fecharModalProd()">Cancelar</button>
       <button class="btn btn-grn" style="flex:2" onclick="salvarProd()">✅ Salvar</button>
     </div>
+
+    <!-- SEÇÃO CHECKLIST — só ao editar (admin) -->
+    <div id="ckSection" style="display:none;">
+      <div class="ck-sec-divider"></div>
+      <div class="ck-sec-ttl">⚙️ Configurações do Checklist</div>
+
+      <!-- Toggle prioritário -->
+      <div class="tgl-wrap">
+        <span class="tgl-lbl">⭐ Prioritário</span>
+        <label class="tgl">
+          <input type="checkbox" id="ckPrior">
+          <span class="tgl-slider"></span>
+        </label>
+      </div>
+
+      <!-- Mínimo gôndola -->
+      <div class="fg" style="margin-top:10px;">
+        <label>Mínimo gôndola (kg/un)</label>
+        <input type="number" id="ckMinGon" min="0" step="0.1" placeholder="0"
+          style="background:#fff;">
+        <div style="font-size:.62rem;color:var(--gray);margin-top:3px;">Peso/quantidade mínima total em gôndola</div>
+      </div>
+
+      <!-- Toggle tem freezer -->
+      <div class="tgl-wrap" style="margin-top:8px;">
+        <span class="tgl-lbl">🧊 Tem freezer</span>
+        <label class="tgl">
+          <input type="checkbox" id="ckFreezer" onchange="_toggleFreezerField()">
+          <span class="tgl-slider"></span>
+        </label>
+      </div>
+
+      <!-- Mínimo freezer — condicional -->
+      <div id="ckFrzRow" style="display:none;" class="fg">
+        <label style="margin-top:10px;display:block;">Mínimo freezer (kg/un)</label>
+        <input type="number" id="ckMinFrz" min="0" step="0.1" placeholder="5"
+          style="background:#fff;">
+      </div>
+
+      <!-- Embalagens -->
+      <div class="ck-sec-divider"></div>
+      <div id="embSection">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <span style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--brown2);">📦 Embalagens de contagem</span>
+          <button class="btn btn-sm" style="background:var(--grn-l);color:var(--grn2);border:1px solid #C6E6D4;" onclick="abrirModalEmb()">+ Adicionar</button>
+        </div>
+        <div id="embList" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EMBALAGEM -->
+<div class="modal-ov" id="modalEmb">
+  <div class="modal-box" style="max-width:320px;">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📦 Nova Embalagem</div>
+    <div class="fg"><label>Nome da embalagem *</label>
+      <input type="text" id="embNome" placeholder="Ex: D10, B1, Pacote 4un" style="text-transform:uppercase;">
+    </div>
+    <div class="fg" style="margin-top:8px;"><label>Gramatura média (g) *</label>
+      <input type="number" id="embGram" inputmode="numeric" min="1" step="1" placeholder="Ex: 500">
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-gray" style="flex:1" onclick="fecharModalEmb()">Cancelar</button>
+      <button class="btn btn-grn" style="flex:2" onclick="salvarEmbalagem()">✅ Salvar</button>
+    </div>
   </div>
 </div>
 
@@ -340,6 +434,29 @@ let SETORES = ['PADARIA','CONFEITARIA','LANCHONETE','PASTELARIA'];
 let RESPS = [];
 let _setorFiltro = 'TODOS';
 let _editId = null;
+let CK_CFGS = {}; // produto_id → checklist_config
+
+// ── SQL criação tabela embalagens ──
+const _SQL_EMBALAGENS = `
+CREATE TABLE IF NOT EXISTS checklist_embalagens (
+  id uuid default gen_random_uuid() primary key,
+  produto_id uuid references produtos(id),
+  produto_nome text,
+  setor text,
+  nome_embalagem text not null,
+  gramatura_g integer not null,
+  ordem integer default 1,
+  ativo boolean default true,
+  criado_em timestamptz default now()
+);
+ALTER TABLE checklist_embalagens ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "allow all" ON checklist_embalagens
+  FOR ALL USING (true) WITH CHECK (true);
+`.trim();
+
+function _isTabelaFaltando(e) {
+  return /does not exist|relation|42P01/i.test(e.message||'');
+}
 
 // ── Supabase helpers ──
 async function sbSelect(table, filters=''){
@@ -513,14 +630,17 @@ async function deletarUsuario(id,nome){
 (async()=>{
   setSyncUI('wait');
   try{
-    const[prods,resps,usuarios]=await Promise.all([
+    const[prods,resps,usuarios,cfgs]=await Promise.all([
       sbSelect('produtos','order=nome.asc&limit=500'),
       sbSelect('responsaveis','limit=100'),
-      sbSelect('usuarios','order=nome.asc').catch(()=>[])
+      sbSelect('usuarios','order=nome.asc').catch(()=>[]),
+      sbSelect('checklist_config','ativo=eq.true&limit=1000').catch(()=>[])
     ]);
     PRODS=prods||[];
     RESPS=(resps||[]).map(r=>r.nome);
     USUARIOS=usuarios||[];
+    CK_CFGS={};
+    (cfgs||[]).forEach(c=>{ if(c.produto_id) CK_CFGS[c.produto_id]=c; });
     // Extrair setores únicos dos produtos
     const setoresDB=[...new Set(PRODS.map(p=>p.setor).filter(Boolean))];
     if(setoresDB.length)SETORES=[...new Set([...SETORES,...setoresDB])];
@@ -582,18 +702,26 @@ function renderProds(){
     return;
   }
 
-  document.getElementById('prodList').innerHTML=list.map(p=>`
+  document.getElementById('prodList').innerHTML=list.map(p=>{
+    const cfg = CK_CFGS[p.id];
+    const badges = [];
+    if (cfg && cfg.prioritario) badges.push('<span class="prod-badge prior">⭐ prioritário</span>');
+    if (cfg && cfg.tem_freezer) badges.push('<span class="prod-badge frz">🧊 freezer</span>');
+    if (!cfg || (Number(cfg.qtd_minima_gondola)||0) === 0) badges.push('<span class="prod-badge cfg">⚙️ sem mínimo</span>');
+    return `
     <div class="prod-item ${p.ativo?'':'inativo'}">
       <div class="prod-ico">${ICO_SETOR[p.setor]||'📦'}</div>
       <div class="prod-info">
         <div class="prod-nm">${p.nome}${!p.ativo?' <span style="font-size:.58rem;background:var(--red-l);color:var(--red);padding:1px 5px;border-radius:4px;">inativo</span>':''}</div>
         <div class="prod-mt">${p.setor} · ${p.unidade} · COD: ${p.cod||'—'} · ${p.abc||'C'}</div>
+        ${badges.length ? `<div class="prod-badges">${badges.join('')}</div>` : ''}
       </div>
       <div class="prod-acts">
         <button class="prod-btn ed" onclick="editarProd('${p.id}')">✏️</button>
         <button class="prod-btn ${p.ativo?'in':'rv'}" onclick="toggleAtivo('${p.id}')">${p.ativo?'⏸':'▶'}</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // ── EDITAR / NOVO PRODUTO ──
@@ -609,6 +737,7 @@ function abrirNovoProd(){
   document.getElementById('mpAbc').value='C';
   _preencherSetorSelect('mpSetor','PADARIA');
   document.getElementById('mpUnd').value='kg';
+  document.getElementById('embSection').style.display='none';
   document.getElementById('modalProd').classList.add('on');
   setTimeout(()=>document.getElementById('mpNome').focus(),80);
 }
@@ -626,12 +755,20 @@ function editarProd(id){
   document.getElementById('mpUnd').value=(p.unidade||'kg').toLowerCase();
   _preencherSetorSelect('mpSetor',p.setor);
   document.getElementById('modalProd').classList.add('on');
+  // Mostrar seção checklist + embalagens ao editar
+  document.getElementById('ckSection').style.display = 'block';
+  _preencherCkSection(id);
+  carregarEmbalagens(id, p.setor);
 }
 function _preencherSetorSelect(selId, valorAtual){
   const sel=document.getElementById(selId);
   sel.innerHTML=SETORES.map(s=>`<option value="${s}" ${s===valorAtual?'selected':''}>${s}</option>`).join('');
 }
-function fecharModalProd(){document.getElementById('modalProd').classList.remove('on');_editId=null;}
+function fecharModalProd(){
+  document.getElementById('modalProd').classList.remove('on');
+  document.getElementById('ckSection').style.display='none';
+  _editId=null; _embProdId=null; _embProdSetor='';
+}
 
 async function salvarProd(){
   const nome=document.getElementById('mpNome').value.trim().toUpperCase();
@@ -653,9 +790,170 @@ async function salvarProd(){
     } else {
       PRODS.push(dados);
     }
+
+    // Upsert checklist_config (só ao editar — seção visível)
+    if(_editId && document.getElementById('ckSection').style.display !== 'none'){
+      const ckPayload = {
+        produto_id: _editId,
+        produto_nome: nome,
+        setor: setor,
+        prioritario: document.getElementById('ckPrior').checked,
+        qtd_minima_gondola: parseFloat(document.getElementById('ckMinGon').value) || 0,
+        tem_freezer: document.getElementById('ckFreezer').checked,
+        qtd_minima_freezer: parseFloat(document.getElementById('ckMinFrz').value) || 0,
+        unidade_checklist: und === 'kg' ? 'kg' : 'un',
+        ativo: true
+      };
+      try {
+        const r = await fetch(`${SUPA_URL}/rest/v1/checklist_config`, {
+          method: 'POST',
+          headers: {...H, 'Prefer': 'resolution=merge-duplicates,return=representation',
+                    'on_conflict': 'produto_id'},
+          body: JSON.stringify(ckPayload)
+        });
+        if (r.ok) {
+          const rows = await r.json();
+          const row = Array.isArray(rows) ? rows[0] : rows;
+          if (row) CK_CFGS[_editId] = row;
+        }
+      } catch(eCk) {
+        // Silencioso — tabela pode não existir ainda
+        console.warn('checklist_config upsert falhou:', eCk.message);
+      }
+    }
+
     fecharModalProd();renderProds();
     toast(_editId?'✅ Produto atualizado':'✅ Produto adicionado','ok');
   }catch(e){toast('❌ Erro: '+e.message.slice(0,40),'er');}
+}
+
+// ══════════════════════════════════════════════════
+// CHECKLIST CONFIG — seção no modal de produto
+// ══════════════════════════════════════════════════
+function _preencherCkSection(prodId) {
+  const cfg = CK_CFGS[prodId] || {};
+  document.getElementById('ckPrior').checked = !!cfg.prioritario;
+  document.getElementById('ckMinGon').value = Number(cfg.qtd_minima_gondola) || '';
+  const temFrz = !!cfg.tem_freezer;
+  document.getElementById('ckFreezer').checked = temFrz;
+  document.getElementById('ckFrzRow').style.display = temFrz ? 'block' : 'none';
+  document.getElementById('ckMinFrz').value = Number(cfg.qtd_minima_freezer) || '';
+}
+
+function _toggleFreezerField() {
+  const on = document.getElementById('ckFreezer').checked;
+  document.getElementById('ckFrzRow').style.display = on ? 'block' : 'none';
+}
+
+// ══════════════════════════════════════════════════
+// EMBALAGENS
+// ══════════════════════════════════════════════════
+let _embProdId = null;
+let _embProdSetor = '';
+let _EMBS = []; // embalagens do produto atual
+
+async function carregarEmbalagens(prodId, setor) {
+  _embProdId = prodId;
+  _embProdSetor = setor || '';
+  const el = document.getElementById('embList');
+  el.innerHTML = '<div style="font-size:.75rem;color:var(--gray);padding:4px 0;">Carregando...</div>';
+  try {
+    const rows = await sbSelect('checklist_embalagens',
+      `produto_id=eq.${encodeURIComponent(prodId)}&ativo=eq.true&order=ordem.asc,nome_embalagem.asc&limit=100`);
+    _EMBS = rows || [];
+    renderEmbalagens();
+  } catch(e) {
+    if (_isTabelaFaltando(e)) {
+      console.warn('⚠️ Tabela checklist_embalagens não existe no Supabase.\nExecute o SQL abaixo no SQL Editor:\n\n' + _SQL_EMBALAGENS);
+      el.innerHTML = '<div style="font-size:.72rem;color:var(--amber);line-height:1.5;padding:4px 0;">⚠️ Tabela não criada no Supabase.<br>Abra o console (F12) para ver o SQL de criação.</div>';
+    } else {
+      el.innerHTML = '<div style="font-size:.75rem;color:var(--red);">Erro ao carregar embalagens.</div>';
+    }
+  }
+}
+
+function renderEmbalagens() {
+  const el = document.getElementById('embList');
+  if (!_EMBS.length) {
+    el.innerHTML = '<div style="font-size:.75rem;color:var(--gray);padding:4px 0;font-style:italic;">Nenhuma embalagem cadastrada.</div>';
+    return;
+  }
+  el.innerHTML = _EMBS.map(e => `
+    <div class="emb-item" id="emb-item-${e.id}">
+      <span class="emb-item-nm">${e.nome_embalagem||'—'}</span>
+      <span class="emb-item-gram">${e.gramatura_g||0}g</span>
+      <button class="emb-item-del" onclick="removerEmbalagem('${e.id}','${(e.nome_embalagem||'').replace(/'/g,'')}')" title="Remover">🗑️</button>
+    </div>`).join('');
+}
+
+function abrirModalEmb() {
+  if (!_embProdId) return;
+  document.getElementById('embNome').value = '';
+  document.getElementById('embGram').value = '';
+  document.getElementById('modalEmb').classList.add('on');
+  setTimeout(() => document.getElementById('embNome').focus(), 80);
+}
+
+function fecharModalEmb() {
+  document.getElementById('modalEmb').classList.remove('on');
+}
+
+async function salvarEmbalagem() {
+  const nome = (document.getElementById('embNome').value||'').trim().toUpperCase();
+  const gram = parseInt(document.getElementById('embGram').value)||0;
+  if (!nome) { toast('⚠️ Nome obrigatório','er'); return; }
+  if (gram <= 0) { toast('⚠️ Gramatura deve ser maior que 0','er'); return; }
+  if (!_embProdId) return;
+  if (_EMBS.length >= 2) { toast('⚠️ Máximo 2 embalagens por produto','wa'); return; }
+  const prod = PRODS.find(p => p.id === _embProdId);
+  try {
+    // Descobrir próxima ordem (ignora erro se tabela não existe ainda — vai cair no catch abaixo)
+    const saved = await sbSelect('checklist_embalagens',
+      `produto_id=eq.${encodeURIComponent(_embProdId)}&ativo=eq.true&order=ordem.desc&limit=1`);
+    const proxOrdem = saved && saved.length ? (saved[0].ordem||0) + 1 : 1;
+    const r = await fetch(`${SUPA_URL}/rest/v1/checklist_embalagens`, {
+      method: 'POST',
+      headers: {...H, 'Prefer': 'return=representation'},
+      body: JSON.stringify({
+        produto_id: _embProdId,
+        produto_nome: prod ? prod.nome : '',
+        setor: _embProdSetor,
+        nome_embalagem: nome,
+        gramatura_g: gram,
+        ordem: proxOrdem,
+        ativo: true
+      })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const ins = await r.json();
+    _EMBS.push(Array.isArray(ins) ? ins[0] : ins);
+    fecharModalEmb();
+    renderEmbalagens();
+    toast(`✅ ${nome} adicionada`, 'ok');
+  } catch(e) {
+    if (_isTabelaFaltando(e)) {
+      console.warn('⚠️ Tabela checklist_embalagens não existe no Supabase.\nExecute o SQL abaixo no SQL Editor:\n\n' + _SQL_EMBALAGENS);
+      toast('❌ Tabela não criada. Veja console (F12) para o SQL.', 'er');
+    } else {
+      toast('❌ Erro: '+e.message.slice(0,50),'er');
+    }
+  }
+}
+
+async function removerEmbalagem(embId, embNome) {
+  const ok = await confirmar(
+    `Remover a embalagem "${embNome}"?`,
+    'Remover embalagem', '🗑️', 'Remover', false
+  );
+  if (!ok) return;
+  try {
+    await sbUpdate('checklist_embalagens', embId, {ativo: false});
+    _EMBS = _EMBS.filter(e => e.id !== embId);
+    renderEmbalagens();
+    toast('Embalagem removida', 'ok');
+  } catch(e) {
+    toast('❌ Erro: '+e.message.slice(0,40),'er');
+  }
 }
 
 async function toggleAtivo(id){
