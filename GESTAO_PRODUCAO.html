@@ -250,6 +250,155 @@ body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif
   .ck-resumo{padding:0!important;}
   #ckContent{overflow:visible!important;}
 }
+
+/* ══ PRODUÇÃO — TABELA SEMANAL ══ */
+.psem-wrap{display:flex;flex-direction:column;height:100%;}
+.psem-hdr{background:#fff;border-bottom:1px solid var(--border);padding:10px 12px;flex-shrink:0;}
+.psem-nav{display:flex;align-items:center;gap:7px;margin-bottom:7px;}
+.psem-nav-btn{width:36px;height:36px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:inherit;}
+.psem-nav-btn:active{background:var(--grn-l);}
+.psem-nav-lbl{flex:1;text-align:center;font-size:.84rem;font-weight:700;color:var(--brown);}
+.psem-hoje-btn{padding:8px 13px;border-radius:8px;border:none;background:var(--grn);color:#fff;font-size:.74rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.psem-hoje-btn:active{background:var(--grn2);}
+.psem-stats{display:flex;gap:12px;font-size:.71rem;color:var(--gray);}
+.psem-stat strong{color:var(--brown2);}
+.psem-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:20px;}
+.psem-grp-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 13px 5px;cursor:pointer;user-select:none;}
+.psem-grp-ttl{font-size:.7rem;font-weight:700;color:var(--brown2);text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:5px;}
+.psem-grp-cnt{font-size:.66rem;background:var(--gray-l);color:var(--gray);padding:2px 7px;border-radius:10px;font-weight:600;}
+.psem-grp-arrow{font-size:.7rem;color:var(--gray);margin-left:4px;transition:transform .2s;display:inline-block;}
+.psem-grp-arrow.closed{transform:rotate(-90deg);}
+.psem-card{background:#fff;border:1.5px solid var(--border);border-radius:12px;margin:0 12px 8px;padding:11px 12px 10px;}
+.psem-card.cr{border-color:#FCA5A5;background:#FFF5F5;}
+.psem-card.at{border-color:#FCD34D;background:#FFFDF0;}
+.psem-card-top{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:3px;}
+.psem-card-nm{font-size:.84rem;font-weight:700;color:var(--brown);flex:1;line-height:1.3;}
+.psem-card-unit{font-size:.63rem;background:var(--gray-l);color:var(--gray);padding:2px 6px;border-radius:7px;font-weight:600;flex-shrink:0;}
+.psem-card-meta{font-size:.7rem;color:var(--gray);margin-bottom:7px;}
+.psem-card-meta strong{color:var(--brown2);cursor:pointer;}
+.psem-days{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.psem-day-lbl{font-size:.56rem;font-weight:700;color:var(--gray);text-align:center;padding-bottom:2px;text-transform:uppercase;}
+.psem-cell{border:1.5px solid var(--border);border-radius:7px;padding:4px 2px;text-align:center;cursor:pointer;min-height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;transition:opacity .15s;}
+.psem-cell:active{opacity:.65;}
+.psem-cell-ico{font-size:.6rem;line-height:1;}
+.psem-cell-val{font-size:.72rem;font-weight:800;line-height:1.1;}
+.psem-cell.ok{background:#F0FDF4;border-color:#86EFAC;color:#15803D;}
+.psem-cell.plan{background:#EFF6FF;border-color:#93C5FD;color:#1D4ED8;}
+.psem-cell.sug{background:#fff;border-color:var(--border);color:var(--brown2);}
+.psem-cell.off{background:var(--gray-l);border-color:#E5E7EB;color:#9CA3AF;cursor:default;}
+.psem-cell.bloq{background:#FEF2F2;border-color:#FCA5A5;color:#B91C1C;cursor:default;}
+
+/* ══ PRODUÇÃO — CONFIRMAR HOJE ══ */
+.phoje-wrap{display:flex;flex-direction:column;height:100%;}
+.phoje-hdr{background:#fff;border-bottom:1.5px solid var(--border);padding:10px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.phoje-back{background:none;border:none;font-size:1.1rem;cursor:pointer;padding:4px;color:var(--brown2);font-family:inherit;}
+.phoje-back:active{opacity:.6;}
+.phoje-ttl{flex:1;}
+.phoje-ttl-main{font-size:.88rem;font-weight:800;color:var(--brown);}
+.phoje-ttl-sub{font-size:.68rem;color:var(--gray);}
+.phoje-prog{font-size:.72rem;font-weight:700;color:var(--grn2);}
+.phoje-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 0 6px;}
+.phoje-aviso{border-radius:10px;padding:10px 12px;font-size:.78rem;font-weight:600;line-height:1.5;margin:0 12px 10px;}
+.phoje-aviso.dom{background:var(--amber-l);border:1.5px solid #FCD34D;color:#92400E;}
+.phoje-aviso.fech{background:#FEF2F2;border:1.5px solid #FCA5A5;color:#B91C1C;}
+.phoje-card{background:#fff;border:1.5px solid var(--border);border-radius:12px;margin:0 12px 10px;padding:13px 13px 11px;}
+.phoje-card.cr{border-color:#FCA5A5;}
+.phoje-card.at{border-color:#FCD34D;}
+.phoje-card.done{border-color:#86EFAC;background:#F0FDF4;}
+.phoje-card-nm{font-size:.88rem;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:5px;}
+.phoje-sug{font-size:.74rem;color:var(--gray);margin-bottom:3px;}
+.phoje-alert{font-size:.72rem;color:var(--red);font-weight:600;margin-bottom:8px;}
+.phoje-inp-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.phoje-inp{flex:1;height:52px;border:1.5px solid var(--border);border-radius:10px;padding:0 12px;font-size:1.05rem;font-weight:700;font-family:inherit;text-align:center;outline:none;color:var(--brown);-webkit-appearance:none;}
+.phoje-inp:focus{border-color:var(--grn);}
+.phoje-inp-und{font-size:.74rem;color:var(--gray);flex-shrink:0;}
+.phoje-conf-btn{width:100%;padding:10px;border-radius:9px;border:1.5px solid #C6E6D4;background:var(--grn-l);color:var(--grn2);font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.phoje-conf-btn.done{background:#F0FDF4;border-color:#86EFAC;color:#15803D;}
+.phoje-conf-btn:active{opacity:.7;}
+.phoje-footer{background:#fff;border-top:1.5px solid var(--border);padding:10px 12px 22px;flex-shrink:0;}
+.phoje-footer-resumo{font-size:.74rem;color:var(--gray);margin-bottom:8px;line-height:1.7;}
+.phoje-add-btn{width:100%;padding:10px;border-radius:10px;border:1.5px dashed var(--border);background:transparent;font-size:.78rem;font-weight:600;color:var(--gray);cursor:pointer;font-family:inherit;margin-bottom:8px;}
+.phoje-add-btn:active{background:var(--grn-l);color:var(--grn2);}
+.btn-finalizar-hoje{width:100%;padding:15px;border-radius:var(--r);border:none;background:var(--grn2);color:#fff;font-size:.92rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.btn-finalizar-hoje:active{background:#163d2d;}
+
+/* ══ MODAL PLANEJAR DIA ══ */
+.plan-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:950;align-items:flex-end;justify-content:center;}
+.plan-ov.on{display:flex;}
+.plan-box{background:#fff;border-radius:22px 22px 0 0;padding:22px 18px 36px;width:100%;max-width:480px;}
+.plan-ttl{font-size:.92rem;font-weight:800;margin-bottom:3px;}
+.plan-sub{font-size:.75rem;color:var(--gray);margin-bottom:14px;}
+
+/* ══ HISTÓRICO ══ */
+.hist-wrap{display:flex;flex-direction:column;height:100%;}
+.hist-hdr{background:#fff;border-bottom:1px solid var(--border);padding:10px 12px;flex-shrink:0;}
+.hist-filters{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;}
+.hist-sel{height:38px;border:1.5px solid var(--border);border-radius:8px;padding:0 8px;font-family:inherit;font-size:.78rem;background:#fff;color:var(--brown);outline:none;flex:1;min-width:80px;}
+.hist-sel:focus{border-color:var(--grn);}
+.hist-row2{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.hist-toggle{display:flex;background:var(--gray-l);border-radius:8px;padding:2px;gap:2px;}
+.hist-tog-btn{padding:6px 12px;border-radius:7px;border:none;background:transparent;font-size:.73rem;font-weight:600;cursor:pointer;font-family:inherit;color:var(--gray);white-space:nowrap;}
+.hist-tog-btn.on{background:#fff;color:var(--brown);box-shadow:0 1px 4px rgba(0,0,0,.1);}
+.hist-print-btn{padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-size:.73rem;font-weight:600;cursor:pointer;font-family:inherit;color:var(--brown2);white-space:nowrap;}
+.hist-print-btn:active{background:var(--grn-l);}
+.hist-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 0 20px;}
+/* Por dia */
+.hist-dia-card{background:#fff;border:1.5px solid var(--border);border-radius:12px;margin:0 12px 8px;overflow:hidden;}
+.hist-dia-hdr{padding:12px 13px 10px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.hist-dia-top{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:5px;}
+.hist-dia-nm{font-size:.86rem;font-weight:700;color:var(--brown);}
+.hist-dia-resp{font-size:.68rem;color:var(--gray);margin-top:2px;}
+.hist-dia-cnt{font-size:.66rem;background:var(--gray-l);color:var(--gray);padding:2px 7px;border-radius:8px;font-weight:600;flex-shrink:0;}
+.hist-dia-stats{display:flex;gap:10px;font-size:.72rem;color:var(--brown2);margin-bottom:5px;flex-wrap:wrap;}
+.hist-dia-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;}
+.hist-tag{font-size:.67rem;padding:2px 8px;border-radius:10px;font-weight:600;}
+.hist-tag.ok{background:#F0FDF4;color:#15803D;}
+.hist-tag.aj{background:#EFF6FF;color:#1D4ED8;}
+.hist-tag.np{background:#FEF2F2;color:#B91C1C;}
+.hist-dia-btn{width:100%;padding:7px;border-radius:8px;border:1.5px solid var(--border);background:#F9F9F8;font-size:.72rem;font-weight:600;cursor:pointer;font-family:inherit;color:var(--brown2);}
+.hist-dia-det{border-top:1px solid var(--border);}
+.hist-det-tbl{width:100%;border-collapse:collapse;font-size:.76rem;}
+.hist-det-th{padding:7px 11px;font-size:.63rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;text-align:left;background:#FAFAF9;border-bottom:1px solid var(--border);}
+.hist-det-tr{border-bottom:1px solid var(--border);}
+.hist-det-tr:last-child{border-bottom:none;}
+.hist-det-td{padding:7px 11px;color:var(--brown2);}
+.hist-det-tr.ok .hist-det-td:first-child{color:#15803D;font-weight:700;}
+.hist-det-tr.cr .hist-det-td:first-child{color:var(--red);font-weight:700;}
+.hist-det-tr.np .hist-det-td{color:#9CA3AF;}
+.hdiff-pos{color:#15803D;font-weight:700;}
+.hdiff-neg{color:var(--red);font-weight:700;}
+/* Consolidado */
+.hist-cons-head{padding:14px 14px 8px;border-bottom:1px solid var(--border);}
+.hist-cons-ttl{font-size:.98rem;font-weight:800;letter-spacing:-.3px;margin-bottom:2px;}
+.hist-cons-sub{font-size:.74rem;color:var(--gray);}
+.hist-cons-body{padding:0 14px 8px;}
+.hist-cons-grp-ttl{font-size:.7rem;font-weight:700;color:var(--brown2);text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:5px;padding:10px 0 5px;border-top:1px solid var(--border);margin-top:4px;}
+.hist-cons-grp-ttl:first-child{border-top:none;}
+.hist-cons-row{display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;border-bottom:1px solid #F0F0EE;}
+.hist-cons-row:last-of-type{border-bottom:none;}
+.hist-cons-nm{font-size:.82rem;color:var(--brown2);}
+.hist-cons-val{font-size:.82rem;font-weight:700;color:var(--brown);}
+.hist-cons-sub-row{display:flex;justify-content:space-between;padding:5px 0 2px;font-size:.74rem;font-weight:600;color:var(--gray);border-top:1px dashed var(--border);margin-top:2px;}
+.hist-cons-total{display:flex;justify-content:space-between;padding:10px 14px;border-top:2px solid var(--brown2);margin-top:4px;font-size:.9rem;font-weight:800;}
+.hist-assin{display:flex;justify-content:space-between;padding:10px 14px 16px;font-size:.76rem;color:var(--gray);}
+.hist-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:48px 20px;}
+.hist-empty-ico{font-size:2.2rem;}
+.hist-empty-ttl{font-size:.9rem;font-weight:700;color:var(--brown2);}
+.hist-empty-sub{font-size:.76rem;color:var(--gray);text-align:center;max-width:220px;line-height:1.5;}
+/* Print */
+@media print {
+  .hist-hdr,.hist-print-btn,.tabs,.gf-topbar,.setor-bar,.tst,.phoje-footer,.psem-hdr{display:none!important;}
+  body,html{background:#fff!important;height:auto!important;overflow:visible!important;}
+  .scr,.vw.on{position:static!important;overflow:visible!important;height:auto!important;}
+  .hist-wrap,.hist-body{display:block!important;height:auto!important;overflow:visible!important;}
+  .hist-cons-row{border-bottom:1px solid #ccc!important;}
+  .hist-cons-grp-ttl{border-top:1px solid #ccc!important;page-break-inside:avoid;}
+  .hist-ph-print{display:block!important;}
+  .hist-cons-total{border-top:2px solid #000!important;}
+}
+.hist-ph-print{display:none;padding-bottom:12px;margin-bottom:14px;border-bottom:2px solid #000;}
+.hist-ph-print h1{font-size:13pt;font-weight:700;margin-bottom:3px;}
+.hist-ph-print p{font-size:10pt;color:#555;}
 </style>
 </head>
 <body>
@@ -304,19 +453,11 @@ body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif
   </div>
 
   <div class="vw" id="v-producao">
-    <div class="ph-view">
-      <div class="ph-ico">📅</div>
-      <div class="ph-ttl">Produção — em breve</div>
-      <div class="ph-sub">Módulo de registro e acompanhamento de produção diária em desenvolvimento.</div>
-    </div>
+    <div class="loading-wrap"><div class="spin"></div></div>
   </div>
 
   <div class="vw" id="v-historico">
-    <div class="ph-view">
-      <div class="ph-ico">📊</div>
-      <div class="ph-ttl">Histórico — em breve</div>
-      <div class="ph-sub">Relatórios e histórico consolidado de checklists em desenvolvimento.</div>
-    </div>
+    <div class="loading-wrap"><div class="spin"></div></div>
   </div>
 
 </div>
@@ -359,6 +500,22 @@ body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif
     <div class="emb-modal-btns">
       <button class="conf-cn" onclick="fecharModalAddEmb()">Cancelar</button>
       <button class="conf-ok" onclick="confirmarAddEmb()">✅ Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PLANEJAR DIA -->
+<div class="plan-ov" id="planOv">
+  <div class="plan-box">
+    <div class="plan-ttl" id="planTtl">📝 Planejar produção</div>
+    <div class="plan-sub" id="planSub"></div>
+    <div class="emb-modal-fg">
+      <label class="emb-modal-lbl">Quantidade planejada *</label>
+      <input class="emb-modal-inp" type="number" id="planVal" inputmode="decimal" min="0" step="0.5" placeholder="Ex: 20">
+    </div>
+    <div class="emb-modal-btns">
+      <button class="conf-cn" onclick="fecharPlanModal()">Cancelar</button>
+      <button class="conf-ok" onclick="salvarPlanItem()">✅ Salvar</button>
     </div>
   </div>
 </div>
@@ -649,6 +806,8 @@ function goTab(t) {
     document.getElementById('tab-'+id).classList.toggle('on', id===t);
     document.getElementById('v-'+id).classList.toggle('on', id===t);
   });
+  if (t === 'producao')  renderProducao();
+  if (t === 'historico') renderHistorico();
 }
 
 // ══════════════════════════════════════════════════
@@ -1705,11 +1864,1571 @@ async function salvarCfgMin() {
 }
 
 // ══════════════════════════════════════════════════
+// ABA PRODUÇÃO — ESTADO
+// ══════════════════════════════════════════════════
+let PROD_OFFSET   = 0;           // 0 = semana atual, -1 = anterior …
+let PROD_VIEW     = 'tabela';    // 'tabela' | 'hoje'
+let PROD_ITENS    = {};          // `${prodId}_${dateISO}` → row de producao_itens
+let PROD_SEM_ID   = null;        // uuid de producao_semanas
+let PROD_SEM_ISO  = null;        // ISO Monday atual exibida
+let PROD_HOJE_VALS= {};          // prodId → { val, und, done } — rascunho ConfirmarHoje
+let PROD_GRP_COL  = {};          // grupoNome → true se colapsado
+let _planProdId   = null;        // prodId sendo planejado no modal
+let _planDateISO  = null;        // data sendo planejada
+// _cfgMinProdId já declarado na seção de embalagens acima
+
+// SQL
+const _SQL_PROD = `
+-- ══ PASSO 1: Tabela de semanas ══
+CREATE TABLE IF NOT EXISTS producao_semanas (
+  id            uuid        default gen_random_uuid() primary key,
+  setor         text        not null,
+  semana_inicio date        not null,
+  criado_em     timestamptz default now(),
+  CONSTRAINT uq_prod_semana UNIQUE(setor, semana_inicio)
+);
+ALTER TABLE producao_semanas ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "allow all" ON producao_semanas FOR ALL USING (true) WITH CHECK (true);
+
+-- ══ PASSO 2: Tabela de itens (criação inicial) ══
+CREATE TABLE IF NOT EXISTS producao_itens (
+  id               uuid        default gen_random_uuid() primary key,
+  semana_id        uuid        references producao_semanas(id),
+  produto_id       uuid        references produtos(id),
+  produto_nome     text,
+  setor            text,
+  unidade          text        default 'KG',
+  data_producao    date        not null,
+  data_dia         date,
+  qtd_sugerida     numeric,
+  qtd_planejada    numeric,
+  qtd_produzida    numeric,
+  responsavel_nome text,
+  status           text        default 'sugerido',
+  editado_por      text,
+  atualizado_em    timestamptz default now(),
+  CONSTRAINT uq_prod_item UNIQUE(semana_id, produto_id, data_producao)
+);
+ALTER TABLE producao_itens ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "allow all" ON producao_itens FOR ALL USING (true) WITH CHECK (true);
+
+-- ══ PASSO 3: Migração (se a tabela já existia com nomes antigos) ══
+-- Execute somente se já existia qtd_confirmada:
+-- ALTER TABLE producao_itens RENAME COLUMN qtd_confirmada TO qtd_produzida;
+-- ALTER TABLE producao_itens ADD COLUMN IF NOT EXISTS data_dia date;
+-- ALTER TABLE producao_itens ADD COLUMN IF NOT EXISTS responsavel_nome text;
+-- ALTER TABLE producao_itens ADD COLUMN IF NOT EXISTS unidade text default 'KG';
+-- UPDATE producao_itens SET data_dia = data_producao WHERE data_dia IS NULL;
+`.trim();
+
+// ── Helpers de semana ──
+function _semISOMonday(offset) {
+  const d = new Date();
+  const wd = d.getDay(); // 0=dom
+  const diff = wd === 0 ? -6 : 1 - wd;
+  d.setDate(d.getDate() + diff + offset * 7);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function _diasSemana(segISO) {
+  const base = new Date(segISO + 'T12:00:00');
+  return Array.from({length:7}, (_,i) => {
+    const d = new Date(base); d.setDate(d.getDate()+i);
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  });
+}
+function _diaSemNum(iso) { return new Date(iso+'T12:00:00').getDay(); } // 0=dom
+function _semStr(segISO) {
+  const dias = _diasSemana(segISO);
+  return fmtDataBR(dias[0]).slice(0,5)+' – '+fmtDataBR(dias[6]).slice(0,5);
+}
+const DIAS_ABR = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+// ── Urgência do produto (baseada no checklist) ──
+function _urgProd(prodId) {
+  const st = _getStatus(prodId);
+  if (st === 'cr') return 'cr';
+  if (st === 'at') return 'at';
+  return 'ok';
+}
+function _sortKeyProd(p) {
+  const u = _urgProd(p.id);
+  const pri = !!(CK_CFG[p.id]?.prioritario);
+  if (u==='cr' && pri) return 0;
+  if (u==='at' && pri) return 1;
+  if (pri)             return 2;
+  if (u==='cr')        return 3;
+  if (u==='at')        return 4;
+  return 5;
+}
+function _urgEmoji(sortKey) {
+  if (sortKey<=1) return '🔴';
+  if (sortKey===2) return '🟢';
+  if (sortKey===3) return '🔴';
+  if (sortKey===4) return '🟡';
+  return '🟢';
+}
+
+// ── Agrupamento ──
+const PROD_GRUPOS_DEF = [
+  {nome:'PÃES',    ico:'🍞', cats:['PÃES','PÃO DIÁRIO','PÃO ESPECIAL','CROISSANT','PÃO KG','PÃO','PÃES ESPECIAIS']},
+  {nome:'SALGADOS',ico:'🥟', cats:['SALGADOS','SALGADO']},
+  {nome:'BOLACHAS',ico:'🍪', cats:['BOLACHAS','BOLACHA']},
+  {nome:'TORRADAS',ico:'🥖', cats:['TORRADAS','TORRADA']},
+  {nome:'BOLOS',   ico:'🎂', cats:['BOLOS','BOLO']},
+  {nome:'TORTAS',  ico:'🍰', cats:['TORTAS','TORTA','QUICHES']},
+  {nome:'DOCES',   ico:'🍬', cats:['DOCES','DOCE','CONFEITARIA','SOBREMESAS']},
+  {nome:'OUTROS',  ico:'📦', cats:['OUTROS','ROTISSERIA']},
+];
+function _grupoParaCategoria(cat) {
+  const c = (cat||'OUTROS').toUpperCase();
+  for (const g of PROD_GRUPOS_DEF) {
+    if (g.cats.some(x => c.includes(x) || x.includes(c))) return g.nome;
+  }
+  return 'OUTROS';
+}
+
+// ── Meta semanal ──
+function _metaSem(prod, segISO) {
+  const dias = _diasSemana(segISO);
+  let total = 0;
+  dias.forEach(d => {
+    const lote = getLoteProduto(prod.nome, SETOR, _diaSemNum(d), d);
+    total += lote.qtd || 0;
+  });
+  return total;
+}
+
+// ── Carregar dados de produção do Supabase ──
+async function _carregarProdItens(segISO) {
+  PROD_ITENS = {};
+  PROD_SEM_ID = null;
+  try {
+    // 1. Obter/criar semana
+    const r = await fetch(`${SUPA_URL}/rest/v1/producao_semanas`, {
+      method:'POST',
+      headers:{...SH,'Prefer':'resolution=merge-duplicates,return=representation','on_conflict':'setor,semana_inicio'},
+      body:JSON.stringify({setor:SETOR, semana_inicio:segISO})
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const rows = await r.json();
+    PROD_SEM_ID = (Array.isArray(rows)?rows[0]:rows)?.id || null;
+    if (!PROD_SEM_ID) return;
+
+    // 2. Carregar itens
+    const itens = await sbSelect('producao_itens',
+      `semana_id=eq.${PROD_SEM_ID}&limit=2000`);
+    (itens||[]).forEach(it => {
+      PROD_ITENS[`${it.produto_id}_${it.data_producao}`] = it;
+    });
+  } catch(e) {
+    if (_isTabelaFaltando(e)) {
+      console.warn('⚠️ Tabelas de produção não existem.\n\nExecute no Supabase SQL Editor:\n\n'+_SQL_PROD);
+      toast('⚠️ Tabelas de produção não criadas — veja console (F12)','wa');
+    }
+    // app continua sem dados salvos
+  }
+}
+
+// ── Upsert de um item ─────────────────────────────
+// Contrato:
+//   fields = { qtd_planejada?, qtd_produzida?, status }
+//   qtd_sugerida é calculada internamente APENAS no INSERT.
+//   Nunca sobrescreve qtd_sugerida em rows existentes.
+// ──────────────────────────────────────────────────
+async function _upsertProdItem(prodId, dateISO, fields) {
+  if (!PROD_SEM_ID) return;
+  const prod    = TODOS_PRODS.find(p => p.id === prodId);
+  const key     = `${prodId}_${dateISO}`;
+  const existing = PROD_ITENS[key];
+  const agora   = new Date().toISOString();
+  const unidade = (prod?.unidade || 'KG').toUpperCase();
+
+  // Campos de auditoria comuns a INSERT e PATCH
+  const auditoria = {
+    responsavel_nome: GF_USER.nome,
+    editado_por:      GF_USER.nome,
+    atualizado_em:    agora,
+  };
+
+  try {
+    let row;
+
+    if (!existing) {
+      // ── INSERT: cria a linha com qtd_sugerida (valor original do sistema) ──
+      const lote = getLoteProduto(prod?.nome || '', SETOR, _diaSemNum(dateISO), dateISO);
+      const payload = {
+        semana_id:    PROD_SEM_ID,
+        produto_id:   prodId,
+        produto_nome: prod?.nome || '',
+        setor:        SETOR,
+        unidade,
+        data_producao: dateISO,
+        data_dia:      dateISO,      // explícito para o Dashboard
+        qtd_sugerida:  lote.qtd,    // ← gravado UMA vez, nunca mais alterado
+        ...auditoria,
+        ...fields,                  // qtd_planejada / qtd_produzida / status
+      };
+      // Se fields por algum motivo trouxer qtd_sugerida, removemos para garantir
+      // que o valor vem exclusivamente de lote.qtd
+      payload.qtd_sugerida = lote.qtd;
+
+      const r = await fetch(`${SUPA_URL}/rest/v1/producao_itens`, {
+        method: 'POST',
+        headers: { ...SH, 'Prefer': 'return=representation' },
+        body: JSON.stringify(payload),
+      });
+      if (!r.ok) throw new Error(await r.text());
+      const saved = await r.json();
+      row = Array.isArray(saved) ? saved[0] : saved;
+
+    } else {
+      // ── PATCH: atualiza sem tocar em qtd_sugerida ──
+      const update = { ...auditoria, ...fields };
+      // PROTEÇÃO: remover campos que NÃO devem ser sobrescritos
+      delete update.qtd_sugerida;
+      delete update.semana_id;
+      delete update.produto_id;
+      delete update.data_producao;
+      delete update.produto_nome;
+      // Garantir unidade e data_dia caso ainda não existam
+      update.unidade  = unidade;
+      update.data_dia = dateISO;
+
+      const r = await fetch(
+        `${SUPA_URL}/rest/v1/producao_itens?id=eq.${existing.id}`,
+        {
+          method: 'PATCH',
+          headers: { ...SH, 'Prefer': 'return=representation' },
+          body: JSON.stringify(update),
+        }
+      );
+      if (!r.ok) throw new Error(await r.text());
+      const saved = await r.json();
+      // Mescla os campos atualizados preservando qtd_sugerida original
+      row = { ...existing, ...(Array.isArray(saved) ? saved[0] : saved) };
+    }
+
+    if (row) PROD_ITENS[key] = row;
+
+    // Indicador discreto na topbar
+    const txt = document.getElementById('syncTxt');
+    if (txt) { txt.textContent = '✅ sync'; setTimeout(() => setSyncUI('ok'), 2000); }
+
+  } catch(e) {
+    console.error('Erro ao salvar prod item:', e.message);
+    toast('❌ Erro ao salvar: ' + e.message.slice(0, 50), 'er');
+  }
+}
+
+// ══════════════════════════════════════════════════
+// RENDER PRINCIPAL DA ABA PRODUÇÃO
+// ══════════════════════════════════════════════════
+async function renderProducao() {
+  const vw = document.getElementById('v-producao');
+  if (!vw) return;
+  if (PROD_VIEW === 'hoje') {
+    _renderConfirmarHoje(vw);
+    return;
+  }
+  vw.innerHTML = '<div class="loading-wrap"><div class="spin"></div></div>';
+  PROD_SEM_ISO = _semISOMonday(PROD_OFFSET);
+  await _carregarProdItens(PROD_SEM_ISO);
+  _renderTabelaSemanal(vw, PROD_SEM_ISO);
+}
+
+// ══════════════════════════════════════════════════
+// TABELA SEMANAL
+// ══════════════════════════════════════════════════
+function _renderTabelaSemanal(vw, segISO) {
+  const dias = _diasSemana(segISO);
+  const hoje = _today();
+
+  // Stats: quantos dias confirmados
+  let diasConf = 0, totalDias = 0;
+  dias.forEach(d => {
+    const prods = TODOS_PRODS.filter(p=>{
+      const lote = getLoteProduto(p.nome,SETOR,_diaSemNum(d),d);
+      return lote.qtd > 0;
+    });
+    if (!prods.length) return;
+    totalDias++;
+    const confirmados = prods.every(p => {
+      const it = PROD_ITENS[`${p.id}_${d}`];
+      return it && it.status === 'confirmado';
+    });
+    if (confirmados) diasConf++;
+  });
+  const ader = totalDias > 0 ? Math.round(diasConf/totalDias*100) : 0;
+
+  // Agrupamento e ordenação
+  const grupos = {};
+  TODOS_PRODS.forEach(p => {
+    const g = _grupoParaCategoria(p.categoria);
+    if (!grupos[g]) grupos[g] = [];
+    grupos[g].push(p);
+  });
+  Object.keys(grupos).forEach(g => {
+    grupos[g].sort((a,b) => _sortKeyProd(a) - _sortKeyProd(b));
+  });
+
+  // Cabeçalho
+  let html = `<div class="psem-wrap">
+<div class="psem-hdr">
+  <div class="psem-nav">
+    <button class="psem-nav-btn" onclick="navSemana(-1)">←</button>
+    <div class="psem-nav-lbl">${_semStr(segISO)}</div>
+    <button class="psem-nav-btn" onclick="navSemana(1)">→</button>
+    <button class="psem-hoje-btn" onclick="abrirConfirmarHoje()">✅ Hoje</button>
+  </div>
+  <div class="psem-stats">
+    <span class="psem-stat"><strong>${diasConf}/${totalDias}</strong> dias confirmados</span>
+    <span class="psem-stat"><strong>${ader}%</strong> aderência</span>
+  </div>
+</div>
+<div class="psem-body" id="psemBody">`;
+
+  // Linha de labels de dias (seg=index 0 … dom=index 6)
+  // Índice→dia: [Seg,Ter,Qua,Qui,Sex,Sáb,Dom]
+  const DAY_LBLS = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+
+  // Grupos
+  const grpOrder = PROD_GRUPOS_DEF.map(g=>g.nome);
+  grpOrder.forEach(gNome => {
+    if (!grupos[gNome] || !grupos[gNome].length) return;
+    const gDef = PROD_GRUPOS_DEF.find(x=>x.nome===gNome);
+    const collapsed = !!PROD_GRP_COL[gNome];
+    const ico = gDef?.ico || '📦';
+    html += `<div class="psem-grp-hdr" onclick="toggleGrupo('${gNome}')">
+  <div class="psem-grp-ttl">${ico} ${gNome} <span class="psem-grp-cnt">${grupos[gNome].length}</span></div>
+  <span class="psem-grp-arrow${collapsed?' closed':''}">▼</span>
+</div>`;
+    if (!collapsed) {
+      grupos[gNome].forEach(p => {
+        html += _buildPsemCard(p, dias, segISO, DAY_LBLS, hoje);
+      });
+    }
+  });
+
+  html += `</div></div>`;
+  vw.innerHTML = html;
+}
+
+function _buildPsemCard(p, dias, segISO, dayLbls, hoje) {
+  const sk = _sortKeyProd(p);
+  const urgE = _urgEmoji(sk);
+  const priE = CK_CFG[p.id]?.prioritario ? '⭐' : '';
+  const urg = _urgProd(p.id);
+  const cls = urg==='cr'?'cr':urg==='at'?'at':'';
+  const meta = _metaSem(p, segISO);
+  const und = (p.unidade||'KG');
+
+  // Labels dos dias
+  let lblRow = '', cellRow = '';
+  dayLbls.forEach((lbl,i) => {
+    const dateISO = dias[i];
+    const dsem = _diaSemNum(dateISO);   // 0=dom
+    const lote = getLoteProduto(p.nome, SETOR, dsem, dateISO);
+    const item = PROD_ITENS[`${p.id}_${dateISO}`];
+    const isHoje = dateISO === hoje;
+    const isFut  = dateISO > hoje;
+    const isPast = dateISO < hoje;
+    const isDom  = dsem === 0;
+    const isBloq = isDom && _isDomBloqueado(p);
+    const ehProd = lote.diasProducao && lote.diasProducao.includes(dsem);
+
+    const isHojeHL = isHoje ? ' style="outline:2px solid var(--grn);outline-offset:1px;"' : '';
+    const lblStyle = isHoje ? ' style="color:var(--grn);font-weight:800;"' : '';
+    lblRow += `<div class="psem-day-lbl"${lblStyle}>${lbl}</div>`;
+
+    let cellCls, ico, val, onclick;
+    if (isBloq) {
+      cellCls = 'bloq'; ico = '⛔'; val = '';
+      onclick = '';
+    } else if (!ehProd && lote.regra) {
+      cellCls = 'off'; ico = ''; val = '—';
+      onclick = '';
+    } else {
+      const st = item?.status;
+      const qty = st==='confirmado' ? (item.qtd_produzida??lote.qtd)
+                : st==='planejado'  ? (item.qtd_planejada??lote.qtd)
+                : lote.qtd;
+      if (st==='confirmado') {
+        cellCls='ok'; ico='✅'; val=qty||'0';
+      } else if (st==='planejado') {
+        cellCls='plan'; ico='📝'; val=qty||'0';
+      } else {
+        cellCls='sug'; ico=''; val=qty>0?('['+qty+']'):'—';
+      }
+      if (isHoje)  onclick = `onclick="abrirConfirmarHoje()"`;
+      else if (isFut)  onclick = `onclick="abrirPlanModal('${p.id}','${dateISO}','${escHtml(p.nome)}',${lote.qtd},'${und}')"`;
+      else onclick = `onclick="tooltipPassado('${p.id}','${dateISO}')"`;
+    }
+    cellRow += `<div class="psem-cell ${cellCls}" ${onclick}${isHojeHL}>
+  <span class="psem-cell-ico">${ico}</span>
+  <span class="psem-cell-val">${val}</span>
+</div>`;
+  });
+
+  return `<div class="psem-card${cls?' '+cls:''}">
+  <div class="psem-card-top">
+    <div class="psem-card-nm">${urgE}${priE} ${escHtml(p.nome)}</div>
+    <div class="psem-card-unit">${und}</div>
+  </div>
+  <div class="psem-card-meta">Meta/sem: <strong>${meta}${und.toLowerCase()}</strong></div>
+  <div class="psem-days">
+    ${lblRow}
+    ${cellRow}
+  </div>
+</div>`;
+}
+
+// ── Navegação de semana ──
+function navSemana(dir) {
+  PROD_OFFSET += dir;
+  renderProducao();
+}
+
+// ── Colapsar/expandir grupo ──
+function toggleGrupo(nome) {
+  PROD_GRP_COL[nome] = !PROD_GRP_COL[nome];
+  if (!PROD_SEM_ISO) return;
+  const vw = document.getElementById('v-producao');
+  _renderTabelaSemanal(vw, PROD_SEM_ISO);
+}
+
+// ── Tooltip para célula passada ──
+function tooltipPassado(prodId, dateISO) {
+  const it = PROD_ITENS[`${prodId}_${dateISO}`];
+  const prod = TODOS_PRODS.find(p=>p.id===prodId);
+  const lote = getLoteProduto(prod?.nome||'', SETOR, _diaSemNum(dateISO), dateISO);
+  const conf = it?.qtd_produzida ?? '—';
+  const sug  = lote.qtd || '—';
+  toast(`📅 ${fmtDataBR(dateISO)} · Produzido: ${conf} · Sugerido: ${sug}`,'');
+}
+
+// ── Modal planejar dia futuro ──
+function abrirPlanModal(prodId, dateISO, prodNome, qtdSug, und) {
+  _planProdId  = prodId;
+  _planDateISO = dateISO;
+  document.getElementById('planTtl').textContent = '📝 Planejar ' + prodNome;
+  document.getElementById('planSub').textContent = fmtDataBR(dateISO) + ' · Sugestão: ' + qtdSug + ' ' + und.toLowerCase();
+  const inp = document.getElementById('planVal');
+  inp.value = qtdSug || '';
+  document.getElementById('planOv').classList.add('on');
+  setTimeout(()=>inp.focus(),200);
+}
+function fecharPlanModal() {
+  document.getElementById('planOv').classList.remove('on');
+  _planProdId = null; _planDateISO = null;
+}
+async function salvarPlanItem() {
+  if (!_planProdId || !_planDateISO) return;
+  const val = parseFloat(document.getElementById('planVal').value);
+  if (isNaN(val) || val < 0) { toast('⚠️ Informe uma quantidade válida','wa'); return; }
+  const prod = TODOS_PRODS.find(p=>p.id===_planProdId);
+  const lote = getLoteProduto(prod?.nome||'', SETOR, _diaSemNum(_planDateISO), _planDateISO);
+  await _upsertProdItem(_planProdId, _planDateISO, {
+    qtd_planejada: val,
+    status: 'planejado',
+  });
+  fecharPlanModal();
+  toast('✅ Planejado','ok');
+  if (PROD_SEM_ISO) {
+    const vw = document.getElementById('v-producao');
+    _renderTabelaSemanal(vw, PROD_SEM_ISO);
+  }
+}
+
+// ══════════════════════════════════════════════════
+// CONFIRMAR HOJE
+// ══════════════════════════════════════════════════
+function abrirConfirmarHoje() {
+  PROD_VIEW = 'hoje';
+  // Não limpa PROD_HOJE_VALS — preserva rascunho
+  const vw = document.getElementById('v-producao');
+  _renderConfirmarHoje(vw);
+}
+
+function _renderConfirmarHoje(vw) {
+  const hoje     = _today();
+  const dsem     = _diaSemNum(hoje); // 0=dom
+  const isDom    = dsem === 0;
+  const isFechado = isDom && SETOR !== 'PADARIA';
+
+  // Filtrar produtos para hoje
+  let prodsHoje = TODOS_PRODS.filter(p => {
+    if (isFechado) return false;
+    if (isDom && SETOR === 'PADARIA') return !_isDomBloqueado(p);
+    const lote = getLoteProduto(p.nome, SETOR, dsem, hoje);
+    // Mostra: dia de produção, urgente no checklist, ou já tem item confirmado
+    return lote.qtd > 0 || _urgProd(p.id)==='cr'
+      || !!(PROD_ITENS[`${p.id}_${hoje}`]);
+  });
+  prodsHoje.sort((a,b)=>_sortKeyProd(a)-_sortKeyProd(b));
+
+  // Contagem de confirmados
+  const nConf  = prodsHoje.filter(p=>PROD_HOJE_VALS[p.id]?.done).length;
+  const nTotal = prodsHoje.length;
+
+  const diaNm  = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'][dsem];
+  const dtBR   = fmtDataBR(hoje);
+
+  let html = `<div class="phoje-wrap">
+<div class="phoje-hdr">
+  <button class="phoje-back" onclick="voltarParaTabela()">←</button>
+  <div class="phoje-ttl">
+    <div class="phoje-ttl-main">${diaNm}, ${dtBR}</div>
+    <div class="phoje-ttl-sub">${SETOR.charAt(0)+SETOR.slice(1).toLowerCase()}</div>
+  </div>
+  <div class="phoje-prog">${nConf}/${nTotal}</div>
+</div>
+<div class="phoje-body" id="phojeBody">`;
+
+  if (isFechado) {
+    html += `<div class="phoje-aviso fech">🔒 Domingo — setor fechado.<br>Sem produção hoje.</div>`;
+  } else {
+    if (isDom) html += `<div class="phoje-aviso dom">⚠️ Domingo — equipe reduzida.<br>Somente pães básicos.</div>`;
+
+    prodsHoje.forEach((p,i) => {
+      html += _buildPhojeCard(p, hoje, dsem, i);
+    });
+
+    html += `<div style="height:10px;"></div>`;
+  }
+
+  html += `</div>
+<div class="phoje-footer">`;
+
+  if (!isFechado) {
+    html += _buildPhojeResumo(prodsHoje, hoje);
+    html += `<button class="phoje-add-btn" onclick="adicionarProdHoje()">➕ Produto não listado</button>`;
+  }
+
+  html += `<button class="btn-finalizar-hoje" onclick="finalizarHoje()">
+    ✅ Finalizar dia${nConf>0?' ('+nConf+'/'+nTotal+')':''}
+  </button>
+</div></div>`;
+
+  vw.innerHTML = html;
+
+  // Setup Enter → próximo
+  _setupHojeKeyNav();
+}
+
+function _buildPhojeCard(p, hoje, dsem, idx) {
+  const lote  = getLoteProduto(p.nome, SETOR, dsem, hoje);
+  const item  = PROD_ITENS[`${p.id}_${hoje}`];
+  const rascunho = PROD_HOJE_VALS[p.id];
+  const urg   = _urgProd(p.id);
+  const sk    = _sortKeyProd(p);
+  const und   = p.unidade||'KG';
+  const isDone = rascunho?.done || item?.status === 'confirmado';
+  const valAtual = rascunho?.val ?? item?.qtd_produzida ?? item?.qtd_planejada ?? lote.qtd ?? '';
+
+  const ckSt = _getStatus(p.id);
+  const ckVal = (() => {
+    const reg = REGISTROS[p.id];
+    if (!reg) return null;
+    const q = reg.qtd_gondola;
+    if (q === null || q === undefined) return null;
+    return Number(q);
+  })();
+
+  let alertHtml = '';
+  if (ckSt === 'cr' && ckVal !== null) {
+    alertHtml = `<div class="phoje-alert">⚠️ Crítico no checklist: ${ckVal}${und.toLowerCase()}</div>`;
+  }
+
+  const cardCls = isDone ? 'done' : urg==='cr'?'cr':urg==='at'?'at':'';
+  const urgE = _urgEmoji(sk);
+  const priE = CK_CFG[p.id]?.prioritario ? '⭐' : '';
+
+  return `<div class="phoje-card ${cardCls}" id="phoje-card-${p.id}">
+  <div class="phoje-card-nm">${urgE}${priE} ${escHtml(p.nome)}</div>
+  <div class="phoje-sug">Sugestão: <strong>${lote.qtd}${und.toLowerCase()}</strong>${lote.sazonalidade!==1?' · sazon. ×'+lote.sazonalidade:''}</div>
+  ${alertHtml}
+  <div class="phoje-inp-row">
+    <input class="phoje-inp" type="number" inputmode="decimal" min="0" step="0.5"
+      id="phoje-inp-${p.id}"
+      value="${valAtual}"
+      placeholder="${lote.qtd||0}"
+      data-prodid="${p.id}"
+      data-idx="${idx}"
+      data-und="${und}"
+      onchange="onPhojeChange('${p.id}',this.value)"
+      onkeydown="onPhojeKey(event,'${p.id}')">
+    <span class="phoje-inp-und">${und.toLowerCase()}</span>
+  </div>
+  <button class="phoje-conf-btn${isDone?' done':''}" id="phoje-btn-${p.id}"
+    onclick="confirmarItemHoje('${p.id}',${lote.qtd})">
+    ${isDone ? '✅ Confirmado' : '✅ Confirmar '+lote.qtd+und.toLowerCase()}
+  </button>
+</div>`;
+}
+
+function _buildPhojeResumo(prods, hoje) {
+  let conf=0, aj=0, np=0, extra=0;
+  prods.forEach(p => {
+    const r = PROD_HOJE_VALS[p.id];
+    const it = PROD_ITENS[`${p.id}_${hoje}`];
+    const lote = getLoteProduto(p.nome, SETOR, _diaSemNum(hoje), hoje);
+    if (!r && it?.status==='confirmado') {
+      if (it.qtd_produzida===lote.qtd) conf++;
+      else aj++;
+    } else if (r?.done) {
+      if (r.val===lote.qtd) conf++;
+      else if (Number(r.val)===0) np++;
+      else aj++;
+    }
+  });
+  if (!conf && !aj && !np) return '';
+  return `<div class="phoje-footer-resumo">
+✅ ${conf} conforme &nbsp; ✏️ ${aj} ajustado${aj!==1?'s':''} &nbsp; ❌ ${np} não produzido${np!==1?'s':''}
+</div>`;
+}
+
+function onPhojeChange(prodId, val) {
+  if (!PROD_HOJE_VALS[prodId]) PROD_HOJE_VALS[prodId] = {};
+  PROD_HOJE_VALS[prodId].val = parseFloat(val)||0;
+  PROD_HOJE_VALS[prodId].done = false;
+  const btn = document.getElementById('phoje-btn-'+prodId);
+  const und = document.querySelector(`#phoje-inp-${prodId}`)?.dataset?.und||'kg';
+  if (btn) {
+    const v = parseFloat(val)||0;
+    btn.className='phoje-conf-btn';
+    btn.textContent = '✅ Confirmar '+v+und.toLowerCase();
+  }
+}
+
+function onPhojeKey(e, prodId) {
+  if (e.key==='Enter' || e.key==='Next' || e.keyCode===13) {
+    e.preventDefault();
+    // Confirma automaticamente e pula para o próximo
+    const inp = document.getElementById('phoje-inp-'+prodId);
+    const val = parseFloat(inp?.value)||0;
+    confirmarItemHoje(prodId, val);
+    _pularProximoPhojeInp(prodId);
+  }
+}
+
+function _pularProximoPhojeInp(prodId) {
+  const inps = Array.from(document.querySelectorAll('.phoje-inp'));
+  const idx = inps.findIndex(el=>el.id==='phoje-inp-'+prodId);
+  if (idx>=0 && idx<inps.length-1) {
+    const next = inps[idx+1];
+    next.focus();
+    next.select();
+    next.scrollIntoView({behavior:'smooth',block:'center'});
+  }
+}
+
+function _setupHojeKeyNav() {
+  // já feito via onkeydown inline
+}
+
+async function confirmarItemHoje(prodId, qtdSug) {
+  const inp = document.getElementById('phoje-inp-'+prodId);
+  const und = inp?.dataset?.und||'KG';
+  const val = inp ? (parseFloat(inp.value)||0) : (parseFloat(qtdSug)||0);
+  if (!PROD_HOJE_VALS[prodId]) PROD_HOJE_VALS[prodId] = {};
+  PROD_HOJE_VALS[prodId].val  = val;
+  PROD_HOJE_VALS[prodId].done = true;
+
+  // Atualiza card visualmente
+  const card = document.getElementById('phoje-card-'+prodId);
+  const btn  = document.getElementById('phoje-btn-'+prodId);
+  if (card) { card.className='phoje-card done'; }
+  if (btn)  { btn.className='phoje-conf-btn done'; btn.textContent='✅ Confirmado'; }
+
+  // Atualiza contador no header
+  const prodsHoje = TODOS_PRODS.filter(p => {
+    const lote = getLoteProduto(p.nome, SETOR, _diaSemNum(_today()), _today());
+    return lote.qtd > 0 || _urgProd(p.id)==='cr' || !!(PROD_ITENS[`${p.id}_${_today()}`]);
+  });
+  const nConf = prodsHoje.filter(p=>PROD_HOJE_VALS[p.id]?.done).length;
+  const prog  = document.querySelector('.phoje-prog');
+  if (prog) prog.textContent = nConf+'/'+prodsHoje.length;
+
+  // Salvar silenciosamente (qtd_sugerida é gerenciada internamente por _upsertProdItem)
+  await _upsertProdItem(prodId, _today(), {
+    qtd_produzida: val,
+    status: 'confirmado',
+  });
+}
+
+async function finalizarHoje() {
+  const hoje = _today();
+  const dsem = _diaSemNum(hoje);
+  let salvos = 0;
+
+  // Salvar todos os rascunhos não confirmados
+  for (const [prodId, r] of Object.entries(PROD_HOJE_VALS)) {
+    if (!r.done) continue;
+    salvos++;
+  }
+
+  // Contar resumo
+  const prods = TODOS_PRODS.filter(p => {
+    const lote = getLoteProduto(p.nome, SETOR, dsem, hoje);
+    return lote.qtd > 0 || _urgProd(p.id)==='cr';
+  });
+  let conf=0, aj=0, np=0;
+  prods.forEach(p => {
+    const r = PROD_HOJE_VALS[p.id];
+    const lote = getLoteProduto(p.nome, SETOR, dsem, hoje);
+    if (!r) return;
+    if (!r.done) return;
+    if (Number(r.val)===0) np++;
+    else if (r.val===lote.qtd) conf++;
+    else aj++;
+  });
+
+  toast(`✅ ${conf} conforme · ✏️ ${aj} ajust. · ❌ ${np} n/prod.`,'ok');
+  PROD_VIEW = 'tabela';
+
+  // Recarregar dados e voltar para tabela
+  if (PROD_SEM_ISO) {
+    await _carregarProdItens(PROD_SEM_ISO);
+  } else {
+    PROD_SEM_ISO = _semISOMonday(PROD_OFFSET);
+    await _carregarProdItens(PROD_SEM_ISO);
+  }
+  const vw = document.getElementById('v-producao');
+  _renderTabelaSemanal(vw, PROD_SEM_ISO);
+}
+
+function voltarParaTabela() {
+  PROD_VIEW = 'tabela';
+  const vw = document.getElementById('v-producao');
+  if (PROD_SEM_ISO) {
+    _renderTabelaSemanal(vw, PROD_SEM_ISO);
+  } else {
+    renderProducao();
+  }
+}
+
+// ── Adicionar produto não listado ao Confirmar Hoje ──
+async function adicionarProdHoje() {
+  // Reutiliza confirmar() para pegar nome
+  // Simplificado: toast orientando
+  toast('🔍 Digite o nome do produto no campo de busca do Checklist para encontrá-lo','wa');
+}
+
+// ══════════════════════════════════════════════════
+// ABA HISTÓRICO — ESTADO
+// ══════════════════════════════════════════════════
+let HIST_MES     = new Date().getMonth() + 1;
+let HIST_ANO     = new Date().getFullYear();
+let HIST_SETOR   = null;  // init no primeiro render
+let HIST_VIEW    = 'dia'; // 'dia' | 'consolidado'
+let HIST_DADOS   = [];    // rows de producao_itens
+let HIST_DIA_EXP = {};    // dateISO → true se expandido
+
+const MESES_NOME = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const DIAS_SEMANA_NOME = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+
+// ── Unidade e categoria a partir do produto carregado ──
+function _histUnidade(it) {
+  // 1. Valor salvo na própria row (mais confiável)
+  if (it.unidade) return it.unidade.toUpperCase();
+  // 2. Lookup em TODOS_PRODS (setor atual)
+  if (it.produto_id) {
+    const p = TODOS_PRODS.find(x => x.id === it.produto_id);
+    if (p) return (p.unidade || 'KG').toUpperCase();
+  }
+  // 3. Heurística pelo nome
+  const n = normalizar(it.produto_nome || '');
+  return /\bund\b|\bunid|\bpeca|\bun\b/.test(n) ? 'UND' : 'KG';
+}
+function _histCategoria(it) {
+  if (it.produto_id) {
+    const p = TODOS_PRODS.find(x => x.id === it.produto_id);
+    if (p) return (p.categoria || 'OUTROS').toUpperCase();
+  }
+  return 'OUTROS';
+}
+function fmtQtd(v) {
+  const n = Number(v) || 0;
+  if (n >= 10000) return n.toLocaleString('pt-BR', {maximumFractionDigits:0});
+  if (Number.isInteger(n)) return String(n);
+  return n.toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1});
+}
+
+// ── Carregar dados ──
+async function _carregarHistorico() {
+  const m  = String(HIST_MES).padStart(2, '0');
+  const ultimo = new Date(HIST_ANO, HIST_MES, 0).getDate();
+  const de = `${HIST_ANO}-${m}-01`;
+  const ate= `${HIST_ANO}-${m}-${String(ultimo).padStart(2,'0')}`;
+  try {
+    const rows = await sbSelect('producao_itens',
+      `status=eq.confirmado&data_producao=gte.${de}&data_producao=lte.${ate}`+
+      `&setor=eq.${encodeURIComponent(HIST_SETOR)}&limit=5000&order=data_producao.asc`);
+    HIST_DADOS = rows || [];
+  } catch(e) {
+    HIST_DADOS = [];
+    if (_isTabelaFaltando(e)) toast('⚠️ Tabelas de produção não criadas — veja console','wa');
+    else toast('❌ Erro ao carregar histórico: ' + e.message.slice(0,40),'er');
+  }
+}
+
+// ══════════════════════════════════════════════════
+// RENDER PRINCIPAL DO HISTÓRICO
+// ══════════════════════════════════════════════════
+async function renderHistorico() {
+  if (!HIST_SETOR) HIST_SETOR = SETOR;
+  const vw = document.getElementById('v-historico');
+  if (!vw) return;
+  vw.innerHTML = _buildHistLayout();
+  await _carregarHistorico();
+  _renderHistBody();
+}
+
+function _buildHistLayout() {
+  const anoAtual = new Date().getFullYear();
+  const anos = [anoAtual - 1, anoAtual, anoAtual + 1];
+  const setores = IS_ADMIN ? ['PADARIA','CONFEITARIA','ROTISSERIA'] : [SETOR];
+
+  const setorSel = IS_ADMIN
+    ? `<select class="hist-sel" id="histSetorSel" style="max-width:140px;" onchange="onHistSetor(this.value)">
+        ${setores.map(s => `<option value="${s}"${s===HIST_SETOR?' selected':''}>${s.charAt(0)+s.slice(1).toLowerCase()}</option>`).join('')}
+       </select>`
+    : '';
+
+  const mesOpts = Array.from({length:12}, (_,i) =>
+    `<option value="${i+1}"${i+1===HIST_MES?' selected':''}>${MESES_NOME[i+1]}</option>`).join('');
+  const anoOpts = anos.map(y =>
+    `<option value="${y}"${y===HIST_ANO?' selected':''}>${y}</option>`).join('');
+
+  return `<div class="hist-wrap">
+<div class="hist-hdr">
+  <div class="hist-filters">
+    <select class="hist-sel" id="histMesSel" onchange="onHistFiltro()">${mesOpts}</select>
+    <select class="hist-sel" id="histAnoSel" style="max-width:82px;" onchange="onHistFiltro()">${anoOpts}</select>
+    ${setorSel}
+  </div>
+  <div class="hist-row2">
+    <div class="hist-toggle">
+      <button class="hist-tog-btn${HIST_VIEW==='dia'?' on':''}" id="histTogDia" onclick="onHistView('dia')">📅 Por dia</button>
+      <button class="hist-tog-btn${HIST_VIEW==='consolidado'?' on':''}" id="histTogCons" onclick="onHistView('consolidado')">📊 Consolidado</button>
+    </div>
+    <button class="hist-print-btn" id="histPrintBtn" style="display:${HIST_VIEW==='consolidado'?'inline-flex':'none'};" onclick="window.print()">🖨️ Imprimir</button>
+  </div>
+</div>
+<div class="hist-body" id="histBody">
+  <div class="loading-wrap"><div class="spin"></div></div>
+</div>
+</div>`;
+}
+
+function _renderHistBody() {
+  const body = document.getElementById('histBody');
+  if (!body) return;
+  if (!HIST_DADOS.length) {
+    body.innerHTML = `<div class="hist-empty">
+<div class="hist-empty-ico">📊</div>
+<div class="hist-empty-ttl">Sem dados para este período</div>
+<div class="hist-empty-sub">Nenhuma produção confirmada em ${MESES_NOME[HIST_MES]} ${HIST_ANO} para ${HIST_SETOR.charAt(0)+HIST_SETOR.slice(1).toLowerCase()}</div>
+</div>`;
+    return;
+  }
+  body.innerHTML = HIST_VIEW === 'dia' ? _buildHistPorDia() : _buildHistConsolidado();
+}
+
+// ══════════════════════════════════════════════════
+// VISÃO POR DIA
+// ══════════════════════════════════════════════════
+function _buildHistPorDia() {
+  const porDia = {};
+  HIST_DADOS.forEach(it => {
+    const d = (it.data_producao || '').slice(0, 10);
+    if (!d) return;
+    if (!porDia[d]) porDia[d] = [];
+    porDia[d].push(it);
+  });
+  const dias = Object.keys(porDia).sort().reverse();
+  return dias.map(d => _buildHistDiaCard(d, porDia[d])).join('');
+}
+
+function _buildHistDiaCard(dateISO, itens) {
+  const expanded = !!HIST_DIA_EXP[dateISO];
+  const dsem     = _diaSemNum(dateISO);
+  const diaNm    = DIAS_SEMANA_NOME[dsem];
+  const dtBR     = fmtDataBR(dateISO);
+  const resp     = itens[0]?.editado_por || '—';
+
+  let totalKg = 0, totalUnd = 0;
+  let conf = 0, aj = 0, np = 0;
+  itens.forEach(it => {
+    const und = _histUnidade(it);
+    const q   = Number(it.qtd_produzida) || 0;
+    const s   = Number(it.qtd_sugerida)   || 0;
+    if (und === 'KG') totalKg += q; else totalUnd += q;
+    if (q === 0)         np++;
+    else if (s > 0 && q >= s) conf++;
+    else                 aj++;
+  });
+
+  const nProd    = itens.filter(it => Number(it.qtd_produzida || 0) > 0).length;
+  const aderBase = itens.filter(it => Number(it.qtd_sugerida   || 0) > 0).length;
+  const ader     = aderBase > 0 ? Math.round((conf / aderBase) * 100) : 100;
+
+  let totStr = '';
+  if (totalKg  > 0) totStr += `${fmtQtd(totalKg)}kg`;
+  if (totalUnd > 0) totStr += (totStr ? ' | ' : '') + `${fmtQtd(totalUnd)}un`;
+
+  const det = expanded
+    ? `<div class="hist-dia-det">${_buildHistDiaTabela(itens)}</div>` : '';
+
+  return `<div class="hist-dia-card">
+<div class="hist-dia-hdr" onclick="toggleHistDia('${dateISO}')">
+  <div class="hist-dia-top">
+    <div>
+      <div class="hist-dia-nm">${diaNm}, ${dtBR}</div>
+      <div class="hist-dia-resp">👤 ${escHtml(resp)}</div>
+    </div>
+    <div class="hist-dia-cnt">${nProd} produto${nProd!==1?'s':''}</div>
+  </div>
+  <div class="hist-dia-stats">
+    ${totStr ? `<span>🏭 ${totStr}</span>` : ''}
+    <span>📊 ${ader}% aderência</span>
+  </div>
+  <div class="hist-dia-tags">
+    ${conf > 0 ? `<span class="hist-tag ok">✅ ${conf} conforme</span>`  : ''}
+    ${aj   > 0 ? `<span class="hist-tag aj">✏️ ${aj} ajust.</span>`      : ''}
+    ${np   > 0 ? `<span class="hist-tag np">❌ ${np} não prod.</span>`   : ''}
+  </div>
+  <button class="hist-dia-btn">${expanded ? '▲ Fechar detalhes' : '▼ Ver detalhes'}</button>
+</div>
+${det}
+</div>`;
+}
+
+function _buildHistDiaTabela(itens) {
+  const sorted = [...itens].sort((a,b) =>
+    (a.produto_nome||'').localeCompare(b.produto_nome||'','pt-BR'));
+
+  const rows = sorted.map(it => {
+    const und  = _histUnidade(it);
+    const q    = Number(it.qtd_produzida) || 0;
+    const s    = Number(it.qtd_sugerida)   || 0;
+    const diff = q - s;
+    const cls  = q === 0 ? 'np' : q >= s ? 'ok' : 'cr';
+    const diffTxt = diff === 0 ? '—'
+      : (diff > 0 ? '+' : '') + fmtQtd(diff) + und.toLowerCase();
+    const diffCls = diff > 0 ? 'hdiff-pos' : diff < 0 ? 'hdiff-neg' : '';
+    return `<tr class="hist-det-tr ${cls}">
+  <td class="hist-det-td">${escHtml(it.produto_nome||'—')}</td>
+  <td class="hist-det-td" style="text-align:right;">${s>0 ? fmtQtd(s)+und.toLowerCase() : '—'}</td>
+  <td class="hist-det-td" style="text-align:right;">${q>0 ? fmtQtd(q)+und.toLowerCase() : '—'}</td>
+  <td class="hist-det-td ${diffCls}" style="text-align:right;">${diffTxt}</td>
+</tr>`;
+  }).join('');
+
+  return `<table class="hist-det-tbl">
+<thead><tr>
+  <th class="hist-det-th">Produto</th>
+  <th class="hist-det-th" style="text-align:right;">Sugerido</th>
+  <th class="hist-det-th" style="text-align:right;">Produzido</th>
+  <th class="hist-det-th" style="text-align:right;">Dif.</th>
+</tr></thead>
+<tbody>${rows}</tbody>
+</table>`;
+}
+
+function toggleHistDia(dateISO) {
+  HIST_DIA_EXP[dateISO] = !HIST_DIA_EXP[dateISO];
+  _renderHistBody();
+}
+
+// ══════════════════════════════════════════════════
+// VISÃO CONSOLIDADO
+// ══════════════════════════════════════════════════
+function _buildHistConsolidado() {
+  // Agregar por produto
+  const agg = {};
+  HIST_DADOS.forEach(it => {
+    const q = Number(it.qtd_produzida) || 0;
+    if (!q) return;
+    const key = it.produto_id || it.produto_nome;
+    if (!agg[key]) {
+      agg[key] = {
+        nome: it.produto_nome || '—',
+        und:  _histUnidade(it),
+        cat:  _histCategoria(it),
+        total: 0
+      };
+    }
+    agg[key].total += q;
+  });
+
+  const items = Object.values(agg);
+  if (!items.length) {
+    return `<div class="hist-empty">
+<div class="hist-empty-ico">📊</div>
+<div class="hist-empty-ttl">Sem produções confirmadas</div>
+<div class="hist-empty-sub">${MESES_NOME[HIST_MES]} ${HIST_ANO} — ${HIST_SETOR.charAt(0)+HIST_SETOR.slice(1).toLowerCase()}</div>
+</div>`;
+  }
+
+  // Agrupar por grupo
+  const porGrupo = {};
+  items.forEach(it => {
+    const g = _grupoParaCategoria(it.cat);
+    if (!porGrupo[g]) porGrupo[g] = [];
+    porGrupo[g].push(it);
+  });
+  Object.values(porGrupo).forEach(arr =>
+    arr.sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR')));
+
+  const diasProd = new Set(HIST_DADOS.map(it => (it.data_producao||'').slice(0,10))).size;
+  const mesNm    = MESES_NOME[HIST_MES].toUpperCase();
+  const setNm    = HIST_SETOR.charAt(0) + HIST_SETOR.slice(1).toLowerCase();
+
+  let html = `
+<div class="hist-ph-print">
+  <h1>Produção Consolidada — ${MESES_NOME[HIST_MES]} ${HIST_ANO}</h1>
+  <p>Setor: ${escHtml(HIST_SETOR)} &nbsp;·&nbsp; ${diasProd} dia${diasProd!==1?'s':''} de produção &nbsp;·&nbsp; Gerado em: ${fmtDataBR(_today())}</p>
+</div>
+<div class="hist-cons-head">
+  <div class="hist-cons-ttl">PRODUÇÃO CONSOLIDADA — ${mesNm} ${HIST_ANO}</div>
+  <div class="hist-cons-sub">Setor: ${escHtml(setNm)} &nbsp;·&nbsp; ${diasProd} dia${diasProd!==1?'s':''} de produção</div>
+</div>
+<div class="hist-cons-body">`;
+
+  let totalKg = 0, totalUnd = 0;
+  const grpOrder = PROD_GRUPOS_DEF.map(g => g.nome);
+
+  grpOrder.forEach(gNome => {
+    if (!porGrupo[gNome] || !porGrupo[gNome].length) return;
+    const gDef = PROD_GRUPOS_DEF.find(x => x.nome === gNome);
+    const ico  = gDef?.ico || '📦';
+    let subKg = 0, subUnd = 0;
+
+    html += `<div class="hist-cons-grp-ttl">${ico} ${gNome}</div>`;
+
+    porGrupo[gNome].forEach(it => {
+      if (it.und === 'KG') subKg += it.total;
+      else                 subUnd += it.total;
+      html += `<div class="hist-cons-row">
+  <span class="hist-cons-nm">${escHtml(it.nome)}</span>
+  <span class="hist-cons-val">${fmtQtd(it.total)} ${it.und.toLowerCase()}</span>
+</div>`;
+    });
+
+    totalKg  += subKg;
+    totalUnd += subUnd;
+    let subStr = '';
+    if (subKg  > 0) subStr += `${fmtQtd(subKg)} kg`;
+    if (subUnd > 0) subStr += (subStr ? ' | ' : '') + `${fmtQtd(subUnd)} un`;
+    html += `<div class="hist-cons-sub-row"><span>Subtotal</span><span>${subStr}</span></div>`;
+  });
+
+  html += `</div>`;
+
+  // Total geral — kg e UND NUNCA misturados
+  let totStr = '';
+  if (totalKg  > 0) totStr += `${fmtQtd(totalKg)} kg`;
+  if (totalUnd > 0) totStr += (totStr ? ' &nbsp;|&nbsp; ' : '') + `${fmtQtd(totalUnd)} un`;
+
+  html += `<div class="hist-cons-total"><span>TOTAL GERAL</span><span>${totStr}</span></div>`;
+  html += `<div class="hist-assin">
+  <span>Responsável: ___________________________</span>
+  <span>Data: ___/___/______</span>
+</div>`;
+
+  return html;
+}
+
+// ── Handlers ──
+function onHistFiltro() {
+  const m = document.getElementById('histMesSel');
+  const a = document.getElementById('histAnoSel');
+  if (m) HIST_MES = parseInt(m.value);
+  if (a) HIST_ANO = parseInt(a.value);
+  HIST_DIA_EXP = {};
+  const body = document.getElementById('histBody');
+  if (body) body.innerHTML = '<div class="loading-wrap"><div class="spin"></div></div>';
+  _carregarHistorico().then(() => _renderHistBody());
+}
+function onHistSetor(s) {
+  HIST_SETOR = s;
+  HIST_DIA_EXP = {};
+  const body = document.getElementById('histBody');
+  if (body) body.innerHTML = '<div class="loading-wrap"><div class="spin"></div></div>';
+  _carregarHistorico().then(() => _renderHistBody());
+}
+function onHistView(v) {
+  HIST_VIEW = v;
+  document.getElementById('histTogDia') .classList.toggle('on', v === 'dia');
+  document.getElementById('histTogCons').classList.toggle('on', v === 'consolidado');
+  const pb = document.getElementById('histPrintBtn');
+  if (pb) pb.style.display = v === 'consolidado' ? 'inline-flex' : 'none';
+  _renderHistBody();
+}
+
+// ══════════════════════════════════════════════════
 // IMPRESSÃO
 // ══════════════════════════════════════════════════
 function imprimirChecklist() {
   window.print();
 }
+
+// ══════════════════════════════════════════════════
+// SUGESTÕES DE PRODUÇÃO — FUNÇÕES DE CÁLCULO
+// ══════════════════════════════════════════════════
+
+// Cache para overrides vindos do Supabase (futuro)
+let _PROJECAO_BASE = {};
+
+// Médias diárias históricas por produto [dom,seg,ter,qua,qui,sex,sab]
+const _MEDIAS_BASE = {
+  // PADARIA — Pães
+  'pao kg':           [126, 253, 225, 239, 230, 232, 225],
+  'pao frances':      [110, 220, 200, 210, 205, 215, 200],
+  'pao doce':         [60,  120, 100, 110, 105, 115, 100],
+  'pao forma':        [8,   18,  15,  16,  15,  17,  15],
+  'pao hot dog':      [0,   20,  15,  18,  15,  18,  20],
+  'pao hamburguer':   [0,   20,  15,  18,  15,  18,  20],
+  'pao ciabatta':     [0,   12,  10,  11,  10,  12,  10],
+  'pao australiano':  [0,   10,  8,   9,   8,   10,  8],
+  'pao integral':     [0,   15,  12,  13,  12,  14,  12],
+  'croissant':        [0,   20,  18,  20,  18,  22,  20],
+  'sonho':            [0,   30,  25,  28,  25,  30,  25],
+  'coxinha de pao':   [0,   40,  35,  38,  35,  40,  35],
+  'enroladinho':      [0,   40,  35,  38,  35,  40,  35],
+
+  // PADARIA — Bolos simples
+  'bolo simples':     [0,   5,   5,   5,   5,   5,   5],
+  'bolo cenoura':     [0,   3,   3,   3,   3,   4,   3],
+  'bolo chocolate':   [0,   3,   3,   3,   3,   4,   3],
+  'bolo fuba':        [0,   3,   3,   3,   3,   3,   3],
+  'bolo banana':      [0,   2,   2,   2,   2,   3,   2],
+  'bolo laranja':     [0,   2,   2,   2,   2,   3,   2],
+  'bolo maracuja':    [0,   2,   2,   2,   2,   2,   2],
+  'bolo aipim':       [0,   2,   2,   2,   2,   2,   2],
+  'bolo macaxeira':   [0,   2,   2,   2,   2,   2,   2],
+  'bolo milho':       [0,   3,   3,   3,   3,   3,   3],
+  'bolo carne seca':  [0,   2,   2,   2,   2,   2,   2],
+  'rocambole':        [0,   2,   2,   2,   2,   3,   2],
+
+  // PADARIA — Salgados assados
+  'esfiha':           [0,   40,  35,  38,  35,  40,  35],
+  'empada':           [0,   30,  25,  28,  25,  30,  28],
+  'quibe assado':     [0,   25,  20,  22,  20,  25,  22],
+  'risole':           [0,   30,  25,  28,  25,  30,  25],
+  'pastel forno':     [0,   25,  20,  22,  20,  25,  22],
+  'coxinha':          [0,   50,  45,  48,  45,  55,  48],
+
+  // PADARIA — Tortas e quiches
+  'torta salgada':    [0,   3,   3,   3,   3,   4,   3],
+  'quiche':           [0,   4,   3,   4,   3,   4,   4],
+  'torta doce':       [0,   2,   2,   2,   2,   3,   3],
+
+  // CONFEITARIA — Bolos decorados
+  'bolo de macaxeira': [1,  2,   2,   2,   2,   2,   3],
+  'bolo de festa':    [1,   2,   2,   2,   2,   3,   4],
+  'bolo de aniversario': [1, 2,  2,   2,   2,   3,   4],
+  'bolo no pote':     [0,   6,   5,   6,   5,   8,   8],
+  'cake pop':         [0,   12,  10,  12,  10,  15,  15],
+  'brigadeiro':       [0,   30,  25,  30,  25,  40,  40],
+  'doce de leite':    [0,   10,  8,   10,  8,   12,  12],
+  'beijinho':         [0,   20,  18,  20,  18,  25,  25],
+  'trufa':            [0,   15,  12,  15,  12,  20,  20],
+  'palha italiana':   [0,   10,  8,   10,  8,   15,  15],
+  'brownie':          [0,   10,  8,   10,  8,   15,  15],
+  'cookie':           [0,   15,  12,  15,  12,  20,  20],
+  'macaron':          [0,   8,   6,   8,   6,   12,  12],
+  'eclair':           [0,   10,  8,   10,  8,   12,  12],
+  'mousse':           [0,   8,   6,   8,   6,   10,  10],
+  'pavlova':          [0,   2,   1,   2,   1,   3,   3],
+  'cheesecake':       [0,   3,   2,   3,   2,   4,   4],
+  'pave':             [0,   4,   3,   4,   3,   5,   5],
+  'torta mousse':     [0,   2,   2,   2,   2,   3,   3],
+
+  // ROTISSERIA
+  'frango assado':    [4,   8,   6,   8,   6,   10,  12],
+  'frango grelhado':  [0,   6,   5,   6,   5,   8,   8],
+  'file de frango':   [0,   5,   4,   5,   4,   6,   6],
+  'carne assada':     [2,   5,   4,   5,   4,   6,   6],
+  'costela':          [2,   4,   3,   4,   3,   5,   6],
+  'lasanha':          [2,   6,   5,   6,   5,   8,   8],
+  'marmita':          [4,   20,  18,  20,  18,  25,  25],
+  'feijoada':         [0,   0,   0,   0,   0,   10,  0],
+  'arroz carreteiro': [0,   0,   0,   0,   8,   0,   0],
+};
+
+// Regras de produção por categoria
+// diasProducao: dias da semana em que se produz (0=dom ... 6=sab)
+// fatorLote: múltiplo mínimo de lote
+// cap: capacidade máxima sugerida (0 = sem limite)
+// calcLote: 'direto' | 'cobertura2' | 'cobertura3' | 'rodizio'
+//   direto     → produz exatamente a média do dia
+//   cobertura2 → produz para cobrir os próximos 2 dias
+//   cobertura3 → produz para cobrir os próximos 3 dias
+//   rodizio    → produz para o próximo dia de produção + estoque segurança 20%
+const _REGRAS_PROD = [
+  {
+    categoria: 'Pão Quilo',
+    setor: 'PADARIA',
+    nomes: ['pao kg','pao frances','pao doce'],
+    diasProducao: [0,1,2,3,4,5,6],   // todos os dias
+    fatorLote: 1,
+    cap: 0,
+    calcLote: 'direto',
+    observacao: 'Produção diária conforme demanda'
+  },
+  {
+    categoria: 'Pão Forma/Especial',
+    setor: 'PADARIA',
+    nomes: ['pao forma','pao hot dog','pao hamburguer','pao ciabatta','pao australiano','pao integral'],
+    diasProducao: [1,2,3,4,5,6],     // seg a sab
+    fatorLote: 2,
+    cap: 0,
+    calcLote: 'cobertura2',
+    observacao: 'Produzir para 2 dias; arredonda para múltiplo de 2'
+  },
+  {
+    categoria: 'Folhados e Fermentados',
+    setor: 'PADARIA',
+    nomes: ['croissant','sonho'],
+    diasProducao: [1,2,3,4,5,6],
+    fatorLote: 5,
+    cap: 0,
+    calcLote: 'cobertura2',
+    observacao: 'Lote mínimo 5 unidades; cobertura 2 dias'
+  },
+  {
+    categoria: 'Salgados Assados',
+    setor: 'PADARIA',
+    nomes: ['esfiha','empada','quibe assado','risole','pastel forno','coxinha de pao','enroladinho','coxinha'],
+    diasProducao: [1,2,3,4,5,6],
+    fatorLote: 10,
+    cap: 0,
+    calcLote: 'direto',
+    observacao: 'Lote mínimo 10 unidades; produção diária'
+  },
+  {
+    categoria: 'Bolos Simples',
+    setor: 'PADARIA',
+    nomes: ['bolo simples','bolo cenoura','bolo chocolate','bolo fuba','bolo banana',
+            'bolo laranja','bolo maracuja','bolo aipim','bolo macaxeira','bolo milho',
+            'bolo carne seca','rocambole'],
+    diasProducao: [1,2,3,4,5],       // seg a sex
+    fatorLote: 1,
+    cap: 0,
+    calcLote: 'cobertura2',
+    observacao: 'Cobertura 2 dias; não produzir sáb/dom'
+  },
+  {
+    categoria: 'Tortas e Quiches',
+    setor: 'PADARIA',
+    nomes: ['torta salgada','quiche','torta doce'],
+    diasProducao: [1,3,5],           // seg, qua, sex
+    fatorLote: 1,
+    cap: 0,
+    calcLote: 'cobertura3',
+    observacao: 'Rodízio seg/qua/sex; cobre 3 dias'
+  },
+  {
+    categoria: 'Bolos Decorados',
+    setor: 'CONFEITARIA',
+    nomes: ['bolo de macaxeira','bolo de festa','bolo de aniversario'],
+    diasProducao: [1,2,3,4,5,6],
+    fatorLote: 1,
+    cap: 5,
+    calcLote: 'direto',
+    observacao: 'Produção sob demanda; máximo 5/dia'
+  },
+  {
+    categoria: 'Bolo no Pote e Cake Pop',
+    setor: 'CONFEITARIA',
+    nomes: ['bolo no pote','cake pop'],
+    diasProducao: [1,2,3,4,5,6],
+    fatorLote: 6,
+    cap: 0,
+    calcLote: 'cobertura2',
+    observacao: 'Lote múltiplo de 6; cobertura 2 dias'
+  },
+  {
+    categoria: 'Doces Finos',
+    setor: 'CONFEITARIA',
+    nomes: ['brigadeiro','beijinho','trufa','palha italiana','cookie','brownie',
+            'macaron','eclair'],
+    diasProducao: [1,2,3,4,5,6],
+    fatorLote: 12,
+    cap: 0,
+    calcLote: 'cobertura2',
+    observacao: 'Lote mínimo 12; cobertura 2 dias'
+  },
+  {
+    categoria: 'Sobremesas Refrigeradas',
+    setor: 'CONFEITARIA',
+    nomes: ['mousse','pavlova','cheesecake','pave','torta mousse','doce de leite'],
+    diasProducao: [1,3,5],
+    fatorLote: 1,
+    cap: 0,
+    calcLote: 'cobertura3',
+    observacao: 'Produção seg/qua/sex; cobre 3 dias'
+  },
+  {
+    categoria: 'Docinhos',
+    setor: 'CONFEITARIA',
+    nomes: ['cake pop'],
+    diasProducao: [1,2,3,4,5,6],
+    fatorLote: 12,
+    cap: 0,
+    calcLote: 'cobertura2',
+    observacao: 'Lote mínimo 12'
+  },
+  {
+    categoria: 'Frango e Proteínas',
+    setor: 'ROTISSERIA',
+    nomes: ['frango assado','frango grelhado','file de frango','carne assada','costela'],
+    diasProducao: [0,1,2,3,4,5,6],
+    fatorLote: 1,
+    cap: 0,
+    calcLote: 'direto',
+    observacao: 'Produção diária conforme demanda'
+  },
+  {
+    categoria: 'Pratos Quentes',
+    setor: 'ROTISSERIA',
+    nomes: ['lasanha','marmita'],
+    diasProducao: [0,1,2,3,4,5,6],
+    fatorLote: 2,
+    cap: 0,
+    calcLote: 'direto',
+    observacao: 'Lote mínimo 2; produção diária'
+  },
+  {
+    categoria: 'Pratos Especiais',
+    setor: 'ROTISSERIA',
+    nomes: ['feijoada','arroz carreteiro'],
+    diasProducao: [5,4],             // feijoada=sex, carreteiro=qui (índice por produto)
+    fatorLote: 1,
+    cap: 0,
+    calcLote: 'direto',
+    observacao: 'Somente no dia específico da semana'
+  },
+];
+
+// ──────────────────────────────────────────────────
+// Helpers internos
+// ──────────────────────────────────────────────────
+
+/**
+ * Normaliza nome de produto para matching
+ */
+function _normProdNome(nome) {
+  return (nome || '').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9 ]/g,'')
+    .replace(/\s+/g,' ').trim();
+}
+
+/**
+ * Dado o dia atual e o array diasProducao de uma regra,
+ * retorna quantos dias até o próximo dia de produção (mínimo 1).
+ */
+function _intervaloDias(diaAtual, diasProducao) {
+  if (!diasProducao || diasProducao.length === 0) return 1;
+  for (let i = 1; i <= 7; i++) {
+    const d = (diaAtual + i) % 7;
+    if (diasProducao.includes(d)) return i;
+  }
+  return 1;
+}
+
+/**
+ * Encontra a regra de produção para um produto.
+ * Retorna null se não encontrar.
+ */
+function _encontrarRegra(nomeNorm, setor) {
+  for (const regra of _REGRAS_PROD) {
+    // filtra por setor se especificado
+    if (regra.setor && setor && regra.setor !== setor.toUpperCase()) continue;
+    if (regra.nomes.some(n => _normProdNome(n) === nomeNorm)) return regra;
+  }
+  // tenta sem filtro de setor
+  for (const regra of _REGRAS_PROD) {
+    if (regra.nomes.some(n => _normProdNome(n) === nomeNorm)) return regra;
+  }
+  return null;
+}
+
+/**
+ * Retorna a média histórica para um produto num dado dia da semana.
+ * diaSemana: 0=dom, 1=seg, ..., 6=sab
+ * Retorna 0 se produto não encontrado.
+ */
+function _getMediaDia(nomeNorm, diaSemana) {
+  // verifica se há override no cache _PROJECAO_BASE
+  if (_PROJECAO_BASE[nomeNorm] && Array.isArray(_PROJECAO_BASE[nomeNorm])) {
+    return _PROJECAO_BASE[nomeNorm][diaSemana] || 0;
+  }
+  // busca direta
+  if (_MEDIAS_BASE[nomeNorm]) return _MEDIAS_BASE[nomeNorm][diaSemana] || 0;
+  // busca por correspondência parcial
+  for (const [key, arr] of Object.entries(_MEDIAS_BASE)) {
+    if (nomeNorm.includes(key) || key.includes(nomeNorm)) {
+      return arr[diaSemana] || 0;
+    }
+  }
+  return 0;
+}
+
+// ──────────────────────────────────────────────────
+// Funções públicas de sugestão
+// ──────────────────────────────────────────────────
+
+/**
+ * Retorna a sugestão base (média do dia) para um produto.
+ * @param {string} produtoNome - Nome do produto
+ * @param {string} setor       - Setor (PADARIA, CONFEITARIA, ROTISSERIA…)
+ * @param {number} diaSemana   - 0=dom, 1=seg … 6=sab
+ * @returns {number} Quantidade sugerida (média histórica do dia)
+ */
+function getSugestao(produtoNome, setor, diaSemana) {
+  const norm = _normProdNome(produtoNome);
+  return _getMediaDia(norm, diaSemana);
+}
+
+/**
+ * Retorna o multiplicador de sazonalidade para uma data.
+ * Baseia-se na semana do mês (1ª, 2ª, 3ª, 4ª/5ª).
+ * Datas de pico (Páscoa, Natal, Junina) recebem bônus adicional.
+ * @param {string} dataISO - Data no formato 'YYYY-MM-DD'
+ * @returns {number} Multiplicador (ex: 1.0, 1.15, 0.90)
+ */
+function getSazonalidade(dataISO) {
+  const d = new Date(dataISO + 'T12:00:00');
+  const dia    = d.getDate();
+  const mes    = d.getMonth() + 1;    // 1-12
+  const semana = Math.ceil(dia / 7);  // 1-5
+
+  // Multiplicador base por semana do mês
+  // 1ª semana: fluxo normal | 2ª: leve queda | 3ª: médio | 4ª/5ª: pico (quinzena)
+  const baseMap = { 1: 1.00, 2: 0.95, 3: 1.00, 4: 1.10, 5: 1.10 };
+  let mult = baseMap[semana] || 1.00;
+
+  // Bônus por mês/período especial
+  if (mes === 12 && dia >= 20) mult *= 1.30; // Natal/fim de ano
+  if (mes === 1  && dia <= 5)  mult *= 1.20; // Ano Novo
+  if (mes === 6)               mult *= 1.15; // São João / Festa Junina
+  if (mes === 2 || mes === 3)  {
+    // Carnaval — impacto variável (semana de carnaval: queda; pós-carnaval: pico)
+    // Simplificado: sem ajuste especial (carnaval muda todo ano)
+  }
+  if (mes === 5 && dia >= 8 && dia <= 14) mult *= 1.10; // Dia das Mães
+  if (mes === 10 && dia >= 8 && dia <= 14) mult *= 1.05; // Dia das Crianças
+
+  return Math.round(mult * 100) / 100;
+}
+
+/**
+ * Calcula o lote de produção recomendado para um produto.
+ *
+ * Leva em conta:
+ *  - Média histórica do dia
+ *  - Tipo de cálculo da categoria (direto/cobertura2/cobertura3/rodizio)
+ *  - Sazonalidade da data
+ *  - Fator de lote mínimo (arredonda para cima)
+ *  - Capacidade máxima (cap)
+ *
+ * @param {string} produtoNome - Nome do produto
+ * @param {string} setor       - Setor
+ * @param {number} diaSemana   - 0=dom … 6=sab
+ * @param {string} dataISO     - 'YYYY-MM-DD'
+ * @returns {{
+ *   qtd: number,
+ *   mediaDia: number,
+ *   sazonalidade: number,
+ *   loteBase: number,
+ *   cap: number,
+ *   regra: object|null,
+ *   categoria: string,
+ *   observacao: string,
+ *   diasProducao: number[]
+ * }}
+ */
+function getLoteProduto(produtoNome, setor, diaSemana, dataISO) {
+  const norm       = _normProdNome(produtoNome);
+  const regra      = _encontrarRegra(norm, setor);
+  const mediaDia   = _getMediaDia(norm, diaSemana);
+  const sazon      = getSazonalidade(dataISO);
+
+  if (!regra) {
+    // sem regra: retorna média simples com sazonalidade
+    const qtd = Math.ceil(mediaDia * sazon);
+    return {
+      qtd,
+      mediaDia,
+      sazonalidade: sazon,
+      loteBase: mediaDia,
+      cap: 0,
+      regra: null,
+      categoria: '—',
+      observacao: 'Sem regra cadastrada — média do dia aplicada',
+      diasProducao: []
+    };
+  }
+
+  // Verifica se hoje é dia de produção para esta categoria
+  const ehDiaProd = regra.diasProducao.includes(diaSemana);
+
+  // Calcula quantidade base conforme tipo de cálculo
+  let loteBase = 0;
+  if (regra.calcLote === 'direto') {
+    loteBase = mediaDia;
+  } else if (regra.calcLote === 'cobertura2') {
+    // soma média do dia atual + próximo dia
+    const prox = (diaSemana + 1) % 7;
+    loteBase = mediaDia + _getMediaDia(norm, prox);
+  } else if (regra.calcLote === 'cobertura3') {
+    const d1 = (diaSemana + 1) % 7;
+    const d2 = (diaSemana + 2) % 7;
+    loteBase = mediaDia + _getMediaDia(norm, d1) + _getMediaDia(norm, d2);
+  } else if (regra.calcLote === 'rodizio') {
+    // cobre até o próximo dia de produção + 20% segurança
+    const intervalo = _intervaloDias(diaSemana, regra.diasProducao);
+    let soma = 0;
+    for (let i = 0; i < intervalo; i++) {
+      soma += _getMediaDia(norm, (diaSemana + i) % 7);
+    }
+    loteBase = soma * 1.20;
+  }
+
+  // Aplica sazonalidade
+  let qtd = loteBase * sazon;
+
+  // Arredonda para múltiplo do fatorLote (sempre para cima)
+  if (regra.fatorLote > 1) {
+    qtd = Math.ceil(qtd / regra.fatorLote) * regra.fatorLote;
+  } else {
+    qtd = Math.ceil(qtd);
+  }
+
+  // Aplica capacidade máxima
+  if (regra.cap > 0 && qtd > regra.cap) qtd = regra.cap;
+
+  // Se não é dia de produção da categoria → sugestão 0
+  if (!ehDiaProd) qtd = 0;
+
+  return {
+    qtd,
+    mediaDia,
+    sazonalidade: sazon,
+    loteBase: Math.round(loteBase * 100) / 100,
+    cap: regra.cap,
+    regra,
+    categoria: regra.categoria,
+    observacao: ehDiaProd ? regra.observacao : `Não produzir hoje — próx. produção: ${regra.diasProducao.map(d=>['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][d]).join('/')}`,
+    diasProducao: regra.diasProducao
+  };
+}
+
 </script>
 </body>
 </html>
