@@ -212,6 +212,22 @@ body{display:flex;flex-direction:column;}
   padding:2px 7px;border-radius:20px;letter-spacing:.5px;
 }
 
+/* ── Legacy section ── */
+.legacy-section{margin-top:16px;}
+.legacy-summary{
+  list-style:none;display:flex;align-items:center;gap:6px;
+  padding:9px 14px;border-radius:10px;border:1.5px dashed var(--border);
+  background:var(--bg);font-size:.75rem;font-weight:700;color:var(--gray);
+  cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;
+}
+.legacy-summary::-webkit-details-marker{display:none;}
+.legacy-summary::before{content:'▶';font-size:.6rem;transition:transform .2s;}
+details[open] .legacy-summary::before{transform:rotate(90deg);}
+.legacy-cnt{
+  background:var(--gray-l);color:var(--gray);
+  border-radius:10px;padding:1px 7px;font-size:.65rem;font-weight:600;
+}
+
 /* Cores */
 .m-prod .mod-chip{background:var(--accent-l);color:var(--accent-d);}
 .m-prod .mod-title{color:var(--accent-d);}
@@ -232,6 +248,11 @@ body{display:flex;flex-direction:column;}
 .m-chk .mod-title{color:var(--accent-d);}
 .m-chk .mod-foot{border-color:var(--accent-l);color:var(--accent);}
 .m-chk{border-color:var(--accent);}
+
+.m-plano .mod-chip{background:var(--blue-l);color:var(--blue);}
+.m-plano .mod-title{color:var(--blue);}
+.m-plano .mod-foot{border-color:var(--blue-l);color:var(--blue);}
+.m-plano{border-color:var(--blue);border-left:4px solid var(--blue);}
 
 .m-proj .mod-chip{background:var(--accent-l);color:var(--accent-d);}
 .m-proj .mod-title{color:var(--accent-d);}
@@ -347,9 +368,8 @@ body{display:flex;flex-direction:column;}
     <div class="sidebar-date" id="sidebarDate">—</div>
 
     <div class="sidebar-section">Registros</div>
-    <div class="nav-item active" onclick="irMod('PRODUCAO_BETA_1.0.html')">
-      <span class="nav-ico">📝</span> Produção
-      <span class="nav-badge" id="navProd">—</span>
+    <div class="nav-item active" onclick="irMod('GESTAO_PRODUCAO.html')">
+      <span class="nav-ico">🏭</span> Gestão de Produção
     </div>
     <div class="nav-item" onclick="irMod('DESPERDICIOS_BETA_1.1.html')">
       <span class="nav-ico">🗑️</span> Desperdícios
@@ -359,11 +379,6 @@ body{display:flex;flex-direction:column;}
     <div class="sidebar-section">Análise</div>
     <div class="nav-item" onclick="irMod('DASHBOARD_GERAL.html')">
       <span class="nav-ico">📊</span> Dashboard Geral
-    </div>
-
-    <div class="sidebar-section">Planejamento</div>
-    <div class="nav-item" onclick="irMod('CHECKLIST_PROJECAO.html')">
-      <span class="nav-ico">✅</span> Checklist & Projeção
     </div>
 
     <div class="sidebar-section">Sistema</div>
@@ -408,13 +423,13 @@ body{display:flex;flex-direction:column;}
     <!-- Módulos -->
     <div class="modules-grid">
 
-      <div class="mod-card m-prod" onclick="irMod('PRODUCAO_BETA_1.0.html')">
-        <div class="mod-chip">📝 Produção</div>
-        <span class="mod-ico">🍞</span>
-        <div class="mod-title">Produção</div>
-        <div class="mod-desc">Registre o que foi produzido hoje por setor</div>
+      <div class="mod-card m-prod wide" onclick="irMod('GESTAO_PRODUCAO.html')" style="border-color:#2D6A4F;background:linear-gradient(135deg,#F0FAF4 0%,#fff 100%);">
+        <div class="mod-chip" style="background:#EAF4EF;color:#1B4332;">🏭 Novo</div>
+        <span class="mod-ico">🏭</span>
+        <div class="mod-title">Gestão de Produção</div>
+        <div class="mod-desc">Checklist de estoque, semáforo por produto e controle de produção por setor</div>
         <div class="mod-foot">
-          <span id="statProd">— registros</span>
+          <span>Checklist · Semáforo · Histórico</span>
           <span>→</span>
         </div>
       </div>
@@ -441,17 +456,6 @@ body{display:flex;flex-direction:column;}
         </div>
       </div>
 
-      <div class="mod-card m-chk" onclick="irMod('CHECKLIST_PROJECAO.html')">
-        <div class="mod-chip">✅ Planejamento</div>
-        <span class="mod-ico">📋</span>
-        <div class="mod-title">Checklist & Projeção</div>
-        <div class="mod-desc">Controle de estoque diário + planejamento semanal de produção</div>
-        <div class="mod-foot">
-          <span>Padaria · Conf. · Lanch.</span>
-          <span>→</span>
-        </div>
-      </div>
-
       <!-- Configurações -->
       <div class="mod-card m-cfg wide" onclick="irMod('GESTFOOD_CONFIG.html')">
         <div class="mod-chip">⚙️ Sistema</div>
@@ -465,6 +469,48 @@ body{display:flex;flex-direction:column;}
       </div>
 
     </div>
+
+    <!-- Legacy -->
+    <details class="legacy-section">
+      <summary class="legacy-summary">🗄️ Módulos legados <span class="legacy-cnt">3</span></summary>
+      <div class="modules-grid" style="margin-top:10px;">
+
+        <div class="mod-card m-prod" onclick="irMod('PRODUCAO_BETA_1.0.html')">
+          <div class="mod-chip" style="background:#F3F4F6;color:#6B7280;">🔧 Legacy</div>
+          <span class="mod-ico">🍞</span>
+          <div class="mod-title">Produção (Beta)</div>
+          <div class="mod-desc">Módulo antigo de registro de produção diária</div>
+          <div class="mod-foot">
+            <span id="statProd">— registros</span>
+            <span>→</span>
+          </div>
+        </div>
+
+        <div class="mod-card m-chk" onclick="irMod('CHECKLIST_PROJECAO.html')">
+          <div class="mod-chip" style="background:#F3F4F6;color:#6B7280;">🔧 Legacy</div>
+          <span class="mod-ico">📋</span>
+          <div class="mod-title">Checklist & Projeção</div>
+          <div class="mod-desc">Controle de estoque e planejamento semanal (versão anterior)</div>
+          <div class="mod-foot">
+            <span>Padaria · Conf. · Lanch.</span>
+            <span>→</span>
+          </div>
+        </div>
+
+        <div class="mod-card m-plano" onclick="irMod('PLANO_PRODUCAO.html')">
+          <div class="mod-chip" style="background:#F3F4F6;color:#6B7280;">🔧 Legacy</div>
+          <span class="mod-ico">🗓️</span>
+          <div class="mod-title">Plano de Produção</div>
+          <div class="mod-desc">Planejamento diário com sugestões automáticas (versão anterior)</div>
+          <div class="mod-foot">
+            <span>Dia a dia · Projeção</span>
+            <span>→</span>
+          </div>
+        </div>
+
+      </div>
+    </details>
+
   </div>
 </div>
 
