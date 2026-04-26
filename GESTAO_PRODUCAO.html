@@ -399,6 +399,23 @@ body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif
 .hist-ph-print{display:none;padding-bottom:12px;margin-bottom:14px;border-bottom:2px solid #000;}
 .hist-ph-print h1{font-size:13pt;font-weight:700;margin-bottom:3px;}
 .hist-ph-print p{font-size:10pt;color:#555;}
+
+/* ── Tabela calendário de produção ── */
+.prod-tabela-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.prod-tabela{border-collapse:collapse;min-width:700px;width:100%;font-size:.82rem;}
+.prod-tabela th{background:#1B4332;color:#fff;padding:10px 8px;text-align:center;white-space:nowrap;}
+.prod-tabela .col-produto{position:sticky;left:0;background:#fff;z-index:2;min-width:140px;max-width:160px;text-align:left;padding:8px 10px;font-weight:600;border-right:2px solid #EAF4EF;}
+.prod-tabela th.col-produto{background:#1B4332;z-index:3;}
+.prod-tabela .col-meta{min-width:60px;background:#F7F7F5;font-weight:700;text-align:center;padding:8px 6px;border-right:2px solid #EAF4EF;color:#2D6A4F;}
+.prod-tabela td.col-dia{min-width:58px;text-align:center;padding:6px 4px;vertical-align:middle;cursor:pointer;}
+.dia-hoje{background:#EAF4EF!important;}
+.prod-tabela th.dia-hoje{background:#2D6A4F!important;font-weight:800;}
+.prod-tabela tr:hover td:not(.col-produto){background:#F0F7F4;}
+.cel-confirmado{background:#D1FAE5;color:#065F46;font-weight:700;border-radius:6px;padding:3px 6px;font-size:.78rem;display:inline-block;}
+.cel-planejado{background:#DBEAFE;color:#1E40AF;font-weight:600;border-radius:6px;padding:3px 6px;font-size:.78rem;display:inline-block;}
+.cel-sugerido{color:#374151;font-size:.78rem;}
+.cel-bloqueado{color:#D1D5DB;font-size:.75rem;}
+.prod-grupo-header td{background:#F0F7F4!important;font-weight:800;color:#1B4332;font-size:.78rem;padding:6px 10px!important;border-top:2px solid #2D6A4F;}
 </style>
 </head>
 <body>
@@ -453,7 +470,77 @@ body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif
   </div>
 
   <div class="vw" id="v-producao">
-    <div class="loading-wrap"><div class="spin"></div></div>
+
+    <!-- Cabeçalho semana -->
+    <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;">
+      <button onclick="semanaAnterior()"
+        style="background:#EAF4EF;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:1rem;">←</button>
+      <span id="lblSemana" style="font-weight:700;font-size:.9rem;color:#1B4332;flex:1;text-align:center;">
+        14/04 – 20/04
+      </span>
+      <button onclick="semanaProxima()"
+        style="background:#EAF4EF;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:1rem;">→</button>
+      <button onclick="confirmarHoje()"
+        style="background:#2D6A4F;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:.82rem;font-weight:700;">✅ Hoje</button>
+    </div>
+
+    <!-- Mini resumo -->
+    <div id="resumoSemana"
+      style="padding:6px 16px;font-size:.75rem;color:#6B7280;">
+      ✅ 2 confirmados | 📝 1 planejado | ⏳ 4 pendentes
+    </div>
+
+    <!-- Tabela -->
+    <div class="prod-tabela-wrap" style="margin:0 12px 80px;">
+      <table class="prod-tabela" id="tabelaSemanal">
+        <thead>
+          <tr id="headerSemana">
+            <th class="col-produto">Produto</th>
+            <th class="col-meta">Meta<br>/sem</th>
+            <th>Seg<br><span style="font-weight:400;font-size:.7rem;">14/04</span></th>
+            <th>Ter<br><span style="font-weight:400;font-size:.7rem;">15/04</span></th>
+            <th>Qua<br><span style="font-weight:400;font-size:.7rem;">16/04</span></th>
+            <th>Qui<br><span style="font-weight:400;font-size:.7rem;">17/04</span></th>
+            <th>Sex<br><span style="font-weight:400;font-size:.7rem;">18/04</span></th>
+            <th>Sab<br><span style="font-weight:400;font-size:.7rem;">19/04</span></th>
+            <th>Dom<br><span style="font-weight:400;font-size:.7rem;">20/04</span></th>
+          </tr>
+        </thead>
+        <tbody id="bodyTabela">
+          <!-- Exemplo estático para visualizar -->
+          <tr class="prod-grupo-header">
+            <td colspan="9">🍞 PÃES</td>
+          </tr>
+          <tr>
+            <td class="col-produto">⭐ PAO KG</td>
+            <td class="col-meta">1.868</td>
+            <td class="col-dia dia-hoje">
+              <span class="cel-confirmado">✅ 253</span>
+            </td>
+            <td class="col-dia"><span class="cel-sugerido">[225]</span></td>
+            <td class="col-dia"><span class="cel-sugerido">[239]</span></td>
+            <td class="col-dia"><span class="cel-sugerido">[230]</span></td>
+            <td class="col-dia"><span class="cel-sugerido">[232]</span></td>
+            <td class="col-dia"><span class="cel-sugerido">[460]</span></td>
+            <td class="col-dia"><span class="cel-bloqueado">—</span></td>
+          </tr>
+          <tr>
+            <td class="col-produto">⭐ PAO DOCE</td>
+            <td class="col-meta">88</td>
+            <td class="col-dia dia-hoje">
+              <span class="cel-confirmado">✅ 13</span>
+            </td>
+            <td class="col-dia"><span class="cel-sugerido">[11]</span></td>
+            <td class="col-dia"><span class="cel-sugerido">[13]</span></td>
+            <td class="col-dia"><span class="cel-sugerido">[13]</span></td>
+            <td class="col-dia"><span class="cel-sugerido">[12]</span></td>
+            <td class="col-dia"><span class="cel-sugerido">[22]</span></td>
+            <td class="col-dia"><span class="cel-sugerido">[3]</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
   </div>
 
   <div class="vw" id="v-historico">
@@ -1068,6 +1155,15 @@ function setFiltro(f, btn) {
 // ══════════════════════════════════════════════════
 // STATUS / SEMÁFORO
 // ══════════════════════════════════════════════════
+function _getUndLabel(prodId) {
+  const cfg = CK_CFG[prodId];
+  if (!cfg) return 'kg';
+  const u = (cfg.unidade_checklist || 'kg').toLowerCase();
+  if (u === 'unidade' || u === 'un') return 'un';
+  if (u === 'pacote'  || u === 'pct') return 'pct';
+  return 'kg';
+}
+
 function _getStatusGon(prodId) {
   const cfg = CK_CFG[prodId];
   const reg = REGISTROS[prodId];
@@ -1197,9 +1293,10 @@ function _buildProdCard(p) {
     ? `<div class="badge-sem-min" onclick="abrirModalCfgMin('${p.id}')">⚙️ Configure o mínimo</div>`
     : '';
 
+  const undL = _getUndLabel(p.id);
   const minHtml = temFreezer
-    ? `<div class="prod-min">Mín gôndola: <strong>${cfg.qtd_minima_gondola||0}${und==='kg'?'kg':' un'}</strong> · freezer: <strong>${cfg.qtd_minima_freezer||0}${und==='kg'?'kg':' un'}</strong></div>`
-    : `<div class="prod-min">Mínimo: <strong>${cfg.qtd_minima_gondola||0}${und==='kg'?'kg':' un'}</strong></div>`;
+    ? `<div class="prod-min">Mín gôndola: <strong>${cfg.qtd_minima_gondola||0}${undL}</strong> · freezer: <strong>${cfg.qtd_minima_freezer||0}${undL}</strong></div>`
+    : `<div class="prod-min">Mínimo: <strong>${cfg.qtd_minima_gondola||0}${undL}</strong></div>`;
 
   // ── MODO SIMPLES (sem embalagens) ──
   if (!temEmbs) {
@@ -1463,12 +1560,13 @@ function _updateCardStatus(prodId) {
     ? Number(reg.qtd_gondola) : null;
 
   // Texto descritivo para gôndola
+  const undL = _getUndLabel(prodId);
   const lbl = s => {
     if (s === 'cr' && q !== null) {
       const faltam = Math.ceil(min - q);
-      return `🔴 CRÍTICO — faltam ${faltam > 0 ? faltam : 0}kg para o mínimo`;
+      return `🔴 CRÍTICO — faltam ${faltam > 0 ? faltam : 0}${undL} para o mínimo`;
     }
-    return {cr:'🔴 CRÍTICO',at:'🟡 ATENÇÃO — próximo do mínimo',ok:'🟢 OK',
+    return {cr:'🔴 CRÍTICO',at:`🟡 ATENÇÃO — próximo do mínimo`,ok:`🟢 OK`,
             sc:'⚫ Sem controle',sem:'⚫ Sem registro hoje'}[s] || '⚫ Sem registro';
   };
 
@@ -1716,6 +1814,9 @@ async function salvarEmbalagem(prodId, prodNome, nomeEmb, gramaturaG, ordem) {
     if (row) {
       if (!CK_EMBS[prodId]) CK_EMBS[prodId] = [];
       CK_EMBS[prodId].push(row);
+      renderEmbalagensProduto(prodId);
+      _updateCardStatus(prodId);
+      _renderProdList();
       toast('✅ Embalagem salva!', 'ok');
       return row;
     }
@@ -1740,8 +1841,10 @@ async function removerEmbalagem(embId, prodId) {
     if (CK_EMBS[prodId]) {
       CK_EMBS[prodId] = CK_EMBS[prodId].filter(e => e.id !== embId);
     }
-    toast('✅ Embalagem removida', 'ok');
     renderEmbalagensProduto(prodId);
+    _updateCardStatus(prodId);
+    _renderProdList();
+    toast('✅ Embalagem removida', 'ok');
   } catch(e) {
     toast('❌ Erro ao remover: ' + e.message.slice(0, 50), 'er');
   }
@@ -1855,9 +1958,10 @@ async function salvarCfgMin() {
     if (row) CK_CFG[_cfgMinProdId] = row;
     toast('✅ Mínimo salvo!', 'ok');
     fecharModalCfgMin();
-    // Re-renderiza o card imediatamente
+    // Re-renderiza o card e atualiza o semáforo imediatamente
     renderEmbalagensProduto(_cfgMinProdId);
     _updateCardStatus(_cfgMinProdId);
+    _renderProdList();
   } catch(e) {
     toast('❌ Erro: ' + e.message.slice(0, 50), 'er');
   }
@@ -1898,8 +2002,7 @@ CREATE TABLE IF NOT EXISTS producao_itens (
   produto_nome     text,
   setor            text,
   unidade          text        default 'KG',
-  data_producao    date        not null,
-  data_dia         date,
+  data_dia         date        not null,
   qtd_sugerida     numeric,
   qtd_planejada    numeric,
   qtd_produzida    numeric,
@@ -1907,7 +2010,7 @@ CREATE TABLE IF NOT EXISTS producao_itens (
   status           text        default 'sugerido',
   editado_por      text,
   atualizado_em    timestamptz default now(),
-  CONSTRAINT uq_prod_item UNIQUE(semana_id, produto_id, data_producao)
+  CONSTRAINT uq_prod_item UNIQUE(semana_id, produto_id, data_dia)
 );
 ALTER TABLE producao_itens ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "allow all" ON producao_itens FOR ALL USING (true) WITH CHECK (true);
@@ -1919,6 +2022,8 @@ CREATE POLICY "allow all" ON producao_itens FOR ALL USING (true) WITH CHECK (tru
 -- ALTER TABLE producao_itens ADD COLUMN IF NOT EXISTS responsavel_nome text;
 -- ALTER TABLE producao_itens ADD COLUMN IF NOT EXISTS unidade text default 'KG';
 -- UPDATE producao_itens SET data_dia = data_producao WHERE data_dia IS NULL;
+-- ALTER TABLE producao_itens DROP CONSTRAINT IF EXISTS uq_prod_item;
+-- ALTER TABLE producao_itens ADD CONSTRAINT uq_prod_item UNIQUE(semana_id, produto_id, data_dia);
 `.trim();
 
 // ── Helpers de semana ──
@@ -1977,7 +2082,7 @@ const PROD_GRUPOS_DEF = [
   {nome:'BOLOS',   ico:'🎂', cats:['BOLOS','BOLO']},
   {nome:'TORTAS',  ico:'🍰', cats:['TORTAS','TORTA','QUICHES']},
   {nome:'DOCES',   ico:'🍬', cats:['DOCES','DOCE','CONFEITARIA','SOBREMESAS']},
-  {nome:'OUTROS',  ico:'📦', cats:['OUTROS','ROTISSERIA']},
+  {nome:'OUTROS',  ico:'📦', cats:['OUTROS']},
 ];
 function _grupoParaCategoria(cat) {
   const c = (cat||'OUTROS').toUpperCase();
@@ -1987,8 +2092,78 @@ function _grupoParaCategoria(cat) {
   return 'OUTROS';
 }
 
+// ── Metas semanais fixas — Confeitaria ──
+const META_SEMANAL_CONF = {
+  'SALG DE QUEIJO KG':          23,
+  'BOLO DE MACAXEIRA':          29,
+  'BOLO PAMONHA KG':            24,
+  'BOLO DE QUEIJO KG':          22,
+  'TORTA CHOCOLATE KG':         11,
+  'TORTA DE DC LEITE KG':        8,
+  'BOLO FORMIGUEIRO KG':        16,
+  'MINI BROA KG':               15,
+  'SALG DE CEBOLA KG':           9,
+  'BOLO TRIGO PQ':              14,
+  'BOLO DE BANANA C/CANELA':    10.5,
+  'BOLO DE MACA/CANELA KG':     10,
+  'TORTA MORANGO KG':            5,
+  'BOLO CENOURA KG':            10,
+  'BOLO MESCLADO KG':           10,
+  'BOLO INGLES KG':             10,
+  'TORTA MARACUJA KG':           4,
+  'BOLO DE BANANA KG':           8.5,
+  'BOLO DE ABACAXI KG':          8,
+  'BOLO ENG MARIDO KG':          7,
+  'BOLO DE LARANJA KG':          7,
+  'BROA KG':                     8,
+  'PASTEL DE FORNO FRANGO':     15,
+  'PASTEL DE FORNO QUEIJO':     25,
+  'BOLO LEITE CONDENSADO KG':    6,
+  'BOLO NATA GOIABA KG':         4.5,
+  'BOLO XADREZ KG':              5.5,
+  'BOLO AIPIM KG':               4.5,
+  'BOLO DE MILHO KG':            5,
+  'BOLO DE AMEIXA KG':           5,
+  'MOUSSE UND':                 25,
+  'BOLO DE MANDIOCA KG':         5,
+  'LOLITA KG':                   3,
+  'PUDIM KG':                    2.5,
+  'BOLO DE PE MOLEQUE':          2.6,
+  'BOLO DE COCADA KG':           3,
+  'BROA SALGADA KG':             3,
+  'COCADA KG':                   1.2,
+  'DONUTS KG':                   1.2,
+  'TORTA DE LIMAO KG':           0.7,
+  'BOLO PRESTIGIO KG':           1,
+  'BOLO DE LIMAO KG':            1.5,
+  'BRIGADEIRAO UND':            12,
+  'BOLO DE AMENDOIM KG':         1,
+  'BOLO DE MILHO VERDE KG':      1,
+  'DOCINHOS DIVERSOS UND':      20,
+  'BOLO SOUZA LEAO KG':          0.7,
+  'SURPRESA DE AMENDOIM KG':     1,
+  'ROCAMBOLE':                   1,
+};
+
+// Normaliza as chaves do lookup uma única vez
+const _META_CONF_NORM = Object.fromEntries(
+  Object.entries(META_SEMANAL_CONF).map(([k, v]) => [normalizar(k), v])
+);
+
 // ── Meta semanal ──
+// Para Confeitaria: usa META_SEMANAL_CONF se houver entrada; senão calcula via getLoteProduto
+// Para outros setores: calcula sempre via getLoteProduto
 function _metaSem(prod, segISO) {
+  if (SETOR === 'CONFEITARIA') {
+    const norm = normalizar(prod.nome);
+    // Busca exata
+    if (_META_CONF_NORM[norm] !== undefined) return _META_CONF_NORM[norm];
+    // Busca parcial (nome do produto contém a chave ou vice-versa)
+    for (const [key, val] of Object.entries(_META_CONF_NORM)) {
+      if (norm.includes(key) || key.includes(norm)) return val;
+    }
+  }
+  // Cálculo dinâmico via lote (Padaria, Rotisseria ou Confeitaria sem entrada fixada)
   const dias = _diasSemana(segISO);
   let total = 0;
   dias.forEach(d => {
@@ -2018,7 +2193,7 @@ async function _carregarProdItens(segISO) {
     const itens = await sbSelect('producao_itens',
       `semana_id=eq.${PROD_SEM_ID}&limit=2000`);
     (itens||[]).forEach(it => {
-      PROD_ITENS[`${it.produto_id}_${it.data_producao}`] = it;
+      PROD_ITENS[`${it.produto_id}_${it.data_dia}`] = it;
     });
   } catch(e) {
     if (_isTabelaFaltando(e)) {
@@ -2062,8 +2237,7 @@ async function _upsertProdItem(prodId, dateISO, fields) {
         produto_nome: prod?.nome || '',
         setor:        SETOR,
         unidade,
-        data_producao: dateISO,
-        data_dia:      dateISO,      // explícito para o Dashboard
+        data_dia:      dateISO,
         qtd_sugerida:  lote.qtd,    // ← gravado UMA vez, nunca mais alterado
         ...auditoria,
         ...fields,                  // qtd_planejada / qtd_produzida / status
@@ -2088,7 +2262,6 @@ async function _upsertProdItem(prodId, dateISO, fields) {
       delete update.qtd_sugerida;
       delete update.semana_id;
       delete update.produto_id;
-      delete update.data_producao;
       delete update.produto_nome;
       // Garantir unidade e data_dia caso ainda não existam
       update.unidade  = unidade;
@@ -2116,7 +2289,12 @@ async function _upsertProdItem(prodId, dateISO, fields) {
 
   } catch(e) {
     console.error('Erro ao salvar prod item:', e.message);
-    toast('❌ Erro ao salvar: ' + e.message.slice(0, 50), 'er');
+    if (e.message && e.message.includes('PGRST204')) {
+      toast('❌ Erro de coluna inválida no banco (PGRST204) — veja console (F12)', 'er');
+      console.error('PGRST204 — campos inválidos enviados ao Supabase:', e);
+    } else {
+      toast('❌ Erro ao salvar: ' + e.message.slice(0, 50), 'er');
+    }
   }
 }
 
@@ -2124,43 +2302,111 @@ async function _upsertProdItem(prodId, dateISO, fields) {
 // RENDER PRINCIPAL DA ABA PRODUÇÃO
 // ══════════════════════════════════════════════════
 async function renderProducao() {
-  const vw = document.getElementById('v-producao');
-  if (!vw) return;
   if (PROD_VIEW === 'hoje') {
-    _renderConfirmarHoje(vw);
+    const vw = document.getElementById('v-producao');
+    if (vw) _renderConfirmarHoje(vw);
     return;
   }
-  vw.innerHTML = '<div class="loading-wrap"><div class="spin"></div></div>';
-  PROD_SEM_ISO = _semISOMonday(PROD_OFFSET);
-  await _carregarProdItens(PROD_SEM_ISO);
-  _renderTabelaSemanal(vw, PROD_SEM_ISO);
+  await renderTabelaSemanal();
+}
+
+// ── Wrappers chamados pelos botões HTML da tabela ──
+function semanaAnterior() { navSemana(-1); }
+function semanaProxima()  { navSemana(1); }
+function confirmarHoje()  { abrirConfirmarHoje(); }
+
+// ── Navegação de semana ──
+function navSemana(dir) {
+  PROD_OFFSET += dir;
+  renderTabelaSemanal();
 }
 
 // ══════════════════════════════════════════════════
-// TABELA SEMANAL
+// TABELA CALENDÁRIO SEMANAL
 // ══════════════════════════════════════════════════
-function _renderTabelaSemanal(vw, segISO) {
-  const dias = _diasSemana(segISO);
-  const hoje = _today();
 
-  // Stats: quantos dias confirmados
-  let diasConf = 0, totalDias = 0;
-  dias.forEach(d => {
-    const prods = TODOS_PRODS.filter(p=>{
-      const lote = getLoteProduto(p.nome,SETOR,_diaSemNum(d),d);
-      return lote.qtd > 0;
-    });
-    if (!prods.length) return;
-    totalDias++;
-    const confirmados = prods.every(p => {
-      const it = PROD_ITENS[`${p.id}_${d}`];
-      return it && it.status === 'confirmado';
-    });
-    if (confirmados) diasConf++;
+// Esqueleto HTML restaurado quando ConfirmarHoje apaga o conteúdo da view
+function _buildTabelaEsqueleto() {
+  return `
+  <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;">
+    <button onclick="semanaAnterior()" style="background:#EAF4EF;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:1rem;">←</button>
+    <span id="lblSemana" style="font-weight:700;font-size:.9rem;color:#1B4332;flex:1;text-align:center;">...</span>
+    <button onclick="semanaProxima()" style="background:#EAF4EF;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:1rem;">→</button>
+    <button onclick="confirmarHoje()" style="background:#2D6A4F;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:.82rem;font-weight:700;">✅ Hoje</button>
+  </div>
+  <div id="resumoSemana" style="padding:6px 16px;font-size:.75rem;color:#6B7280;">⏳ Carregando...</div>
+  <div class="prod-tabela-wrap" style="margin:0 12px 80px;">
+    <table class="prod-tabela" id="tabelaSemanal">
+      <thead><tr id="headerSemana">
+        <th class="col-produto">Produto</th>
+        <th class="col-meta">Meta<br>/sem</th>
+        <th>Seg</th><th>Ter</th><th>Qua</th><th>Qui</th><th>Sex</th><th>Sáb</th><th>Dom</th>
+      </tr></thead>
+      <tbody id="bodyTabela">
+        <tr><td colspan="9" style="text-align:center;padding:24px;color:#6B7280;"><div class="spin" style="margin:0 auto;"></div></td></tr>
+      </tbody>
+    </table>
+  </div>`;
+}
+
+const _DIAS_TH = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+
+async function renderTabelaSemanal() {
+  const vw = document.getElementById('v-producao');
+  if (!vw) return;
+
+  // Restaurar estrutura caso ConfirmarHoje tenha apagado o conteúdo
+  if (!document.getElementById('tabelaSemanal')) {
+    vw.innerHTML = _buildTabelaEsqueleto();
+  }
+
+  // Calcular semana
+  PROD_SEM_ISO = _semISOMonday(PROD_OFFSET);
+  const dias   = _diasSemana(PROD_SEM_ISO);
+  const hoje   = _today();
+
+  // Atualizar label de semana
+  const lbl = document.getElementById('lblSemana');
+  if (lbl) lbl.textContent = _semStr(PROD_SEM_ISO);
+
+  // Atualizar cabeçalho com datas reais
+  _atualizarHeaderTabela(dias, hoje);
+
+  // Mostrar loading no corpo
+  const body = document.getElementById('bodyTabela');
+  if (body) body.innerHTML =
+    '<tr><td colspan="9" style="text-align:center;padding:24px;color:#6B7280;">' +
+    '<div class="spin" style="margin:0 auto;"></div></td></tr>';
+
+  // Carregar dados do Supabase
+  await _carregarProdItens(PROD_SEM_ISO);
+
+  // Preencher corpo com dados reais
+  _popularBodyTabela(dias, hoje);
+
+  // Atualizar resumo
+  _atualizarResumoSemana(dias);
+}
+
+function _atualizarHeaderTabela(dias, hoje) {
+  const tr = document.getElementById('headerSemana');
+  if (!tr) return;
+  let html = '<th class="col-produto">Produto</th><th class="col-meta">Meta<br>/sem</th>';
+  dias.forEach((d, i) => {
+    const isHoje = d === hoje;
+    const partes = d.split('-');
+    const dd = partes[2], mm = partes[1];
+    const cls = isHoje ? ' class="dia-hoje"' : '';
+    html += `<th${cls}>${_DIAS_TH[i]}<br><span style="font-weight:400;font-size:.7rem;">${dd}/${mm}</span></th>`;
   });
-  const ader = totalDias > 0 ? Math.round(diasConf/totalDias*100) : 0;
+  tr.innerHTML = html;
+}
 
-  // Agrupamento e ordenação
+function _popularBodyTabela(dias, hoje) {
+  const body = document.getElementById('bodyTabela');
+  if (!body) return;
+
+  // Agrupar e ordenar produtos
   const grupos = {};
   TODOS_PRODS.forEach(p => {
     const g = _grupoParaCategoria(p.categoria);
@@ -2168,132 +2414,111 @@ function _renderTabelaSemanal(vw, segISO) {
     grupos[g].push(p);
   });
   Object.keys(grupos).forEach(g => {
-    grupos[g].sort((a,b) => _sortKeyProd(a) - _sortKeyProd(b));
+    grupos[g].sort((a, b) => _sortKeyProd(a) - _sortKeyProd(b));
   });
 
-  // Cabeçalho
-  let html = `<div class="psem-wrap">
-<div class="psem-hdr">
-  <div class="psem-nav">
-    <button class="psem-nav-btn" onclick="navSemana(-1)">←</button>
-    <div class="psem-nav-lbl">${_semStr(segISO)}</div>
-    <button class="psem-nav-btn" onclick="navSemana(1)">→</button>
-    <button class="psem-hoje-btn" onclick="abrirConfirmarHoje()">✅ Hoje</button>
-  </div>
-  <div class="psem-stats">
-    <span class="psem-stat"><strong>${diasConf}/${totalDias}</strong> dias confirmados</span>
-    <span class="psem-stat"><strong>${ader}%</strong> aderência</span>
-  </div>
-</div>
-<div class="psem-body" id="psemBody">`;
-
-  // Linha de labels de dias (seg=index 0 … dom=index 6)
-  // Índice→dia: [Seg,Ter,Qua,Qui,Sex,Sáb,Dom]
-  const DAY_LBLS = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
-
-  // Grupos
-  const grpOrder = PROD_GRUPOS_DEF.map(g=>g.nome);
-  grpOrder.forEach(gNome => {
-    if (!grupos[gNome] || !grupos[gNome].length) return;
-    const gDef = PROD_GRUPOS_DEF.find(x=>x.nome===gNome);
-    const collapsed = !!PROD_GRP_COL[gNome];
-    const ico = gDef?.ico || '📦';
-    html += `<div class="psem-grp-hdr" onclick="toggleGrupo('${gNome}')">
-  <div class="psem-grp-ttl">${ico} ${gNome} <span class="psem-grp-cnt">${grupos[gNome].length}</span></div>
-  <span class="psem-grp-arrow${collapsed?' closed':''}">▼</span>
-</div>`;
-    if (!collapsed) {
-      grupos[gNome].forEach(p => {
-        html += _buildPsemCard(p, dias, segISO, DAY_LBLS, hoje);
-      });
-    }
+  let html = '';
+  PROD_GRUPOS_DEF.forEach(gDef => {
+    const lista = grupos[gDef.nome];
+    if (!lista || !lista.length) return;
+    html += `<tr class="prod-grupo-header"><td colspan="9">${gDef.ico} ${gDef.nome}</td></tr>`;
+    lista.forEach(p => { html += _buildTabelaRow(p, dias, hoje); });
   });
 
-  html += `</div></div>`;
-  vw.innerHTML = html;
+  if (!html) {
+    html = '<tr><td colspan="9" style="text-align:center;padding:32px;color:#6B7280;">' +
+           'Nenhum produto cadastrado para este setor.</td></tr>';
+  }
+  body.innerHTML = html;
 }
 
-function _buildPsemCard(p, dias, segISO, dayLbls, hoje) {
-  const sk = _sortKeyProd(p);
+function _buildTabelaRow(p, dias, hoje) {
+  const sk   = _sortKeyProd(p);
   const urgE = _urgEmoji(sk);
   const priE = CK_CFG[p.id]?.prioritario ? '⭐' : '';
-  const urg = _urgProd(p.id);
-  const cls = urg==='cr'?'cr':urg==='at'?'at':'';
-  const meta = _metaSem(p, segISO);
-  const und = (p.unidade||'KG');
+  const und  = (p.unidade || 'KG').toUpperCase();
+  const meta = _metaSem(p, PROD_SEM_ISO);
+  const metaFmt = meta > 0
+    ? (Number.isInteger(meta) ? String(meta) : meta.toFixed(1))
+    : '—';
 
-  // Labels dos dias
-  let lblRow = '', cellRow = '';
-  dayLbls.forEach((lbl,i) => {
-    const dateISO = dias[i];
-    const dsem = _diaSemNum(dateISO);   // 0=dom
-    const lote = getLoteProduto(p.nome, SETOR, dsem, dateISO);
-    const item = PROD_ITENS[`${p.id}_${dateISO}`];
+  let cells = '';
+  dias.forEach(dateISO => {
+    const dsem   = _diaSemNum(dateISO);
+    const lote   = getLoteProduto(p.nome, SETOR, dsem, dateISO);
+    const item   = PROD_ITENS[`${p.id}_${dateISO}`];
     const isHoje = dateISO === hoje;
     const isFut  = dateISO > hoje;
-    const isPast = dateISO < hoje;
     const isDom  = dsem === 0;
-    const isBloq = isDom && _isDomBloqueado(p);
-    const ehProd = lote.diasProducao && lote.diasProducao.includes(dsem);
+    // Confeitaria e outros setores: bloqueado no domingo
+    const isBloq = isDom && SETOR !== 'PADARIA';
+    const ehProd = lote.qtd > 0;
 
-    const isHojeHL = isHoje ? ' style="outline:2px solid var(--grn);outline-offset:1px;"' : '';
-    const lblStyle = isHoje ? ' style="color:var(--grn);font-weight:800;"' : '';
-    lblRow += `<div class="psem-day-lbl"${lblStyle}>${lbl}</div>`;
+    const diaCls  = isHoje ? ' dia-hoje' : '';
+    const onclk   = `onclick="aoClicarCelula('${p.id}','${dateISO}','${escHtml(p.nome)}',${lote.qtd},'${und}')"`;
 
-    let cellCls, ico, val, onclick;
+    let inner;
     if (isBloq) {
-      cellCls = 'bloq'; ico = '⛔'; val = '';
-      onclick = '';
-    } else if (!ehProd && lote.regra) {
-      cellCls = 'off'; ico = ''; val = '—';
-      onclick = '';
+      inner = '<span class="cel-bloqueado">⛔</span>';
+    } else if (!ehProd) {
+      inner = '<span class="cel-bloqueado">—</span>';
     } else {
-      const st = item?.status;
-      const qty = st==='confirmado' ? (item.qtd_produzida??lote.qtd)
-                : st==='planejado'  ? (item.qtd_planejada??lote.qtd)
+      const st  = item?.status;
+      const raw = st === 'confirmado' ? (item.qtd_produzida ?? lote.qtd)
+                : st === 'planejado'  ? (item.qtd_planejada ?? lote.qtd)
                 : lote.qtd;
-      if (st==='confirmado') {
-        cellCls='ok'; ico='✅'; val=qty||'0';
-      } else if (st==='planejado') {
-        cellCls='plan'; ico='📝'; val=qty||'0';
+      const qty = (raw !== null && raw !== undefined) ? raw : '—';
+      if (st === 'confirmado') {
+        inner = `<span class="cel-confirmado">✅ ${qty}</span>`;
+      } else if (st === 'planejado') {
+        inner = `<span class="cel-planejado">📝 ${qty}</span>`;
       } else {
-        cellCls='sug'; ico=''; val=qty>0?('['+qty+']'):'—';
+        inner = `<span class="cel-sugerido">[${qty}]</span>`;
       }
-      if (isHoje)  onclick = `onclick="abrirConfirmarHoje()"`;
-      else if (isFut)  onclick = `onclick="abrirPlanModal('${p.id}','${dateISO}','${escHtml(p.nome)}',${lote.qtd},'${und}')"`;
-      else onclick = `onclick="tooltipPassado('${p.id}','${dateISO}')"`;
     }
-    cellRow += `<div class="psem-cell ${cellCls}" ${onclick}${isHojeHL}>
-  <span class="psem-cell-ico">${ico}</span>
-  <span class="psem-cell-val">${val}</span>
-</div>`;
+
+    const clicavel = !isBloq && ehProd;
+    cells += `<td class="col-dia${diaCls}"${clicavel ? ' ' + onclk : ''}>${inner}</td>`;
   });
 
-  return `<div class="psem-card${cls?' '+cls:''}">
-  <div class="psem-card-top">
-    <div class="psem-card-nm">${urgE}${priE} ${escHtml(p.nome)}</div>
-    <div class="psem-card-unit">${und}</div>
-  </div>
-  <div class="psem-card-meta">Meta/sem: <strong>${meta}${und.toLowerCase()}</strong></div>
-  <div class="psem-days">
-    ${lblRow}
-    ${cellRow}
-  </div>
-</div>`;
+  return `<tr>
+    <td class="col-produto" title="${escHtml(p.nome)}">${urgE}${priE} ${escHtml(p.nome)}</td>
+    <td class="col-meta">${metaFmt}</td>
+    ${cells}
+  </tr>`;
 }
 
-// ── Navegação de semana ──
-function navSemana(dir) {
-  PROD_OFFSET += dir;
-  renderProducao();
+function _atualizarResumoSemana(dias) {
+  const el = document.getElementById('resumoSemana');
+  if (!el) return;
+  // Contar itens da semana (PROD_ITENS já filtrado por semana via _carregarProdItens)
+  const itens = Object.values(PROD_ITENS);
+  const confirmados = itens.filter(i => i.status === 'confirmado').length;
+  const planejados  = itens.filter(i => i.status === 'planejado').length;
+  // Dias úteis com ao menos 1 produto esperado (seg–sáb)
+  const diasComProd = (dias || []).filter(d => {
+    const dsem = _diaSemNum(d);
+    if (dsem === 0) return false; // domingo sempre fora
+    return TODOS_PRODS.some(p => getLoteProduto(p.nome, SETOR, dsem, d).qtd > 0);
+  }).length;
+  const pendentes = Math.max(0, diasComProd - confirmados);
+  el.innerHTML =
+    `✅ ${confirmados} confirmados | 📝 ${planejados} planejados | ⏳ ${pendentes} pendentes`;
 }
 
-// ── Colapsar/expandir grupo ──
-function toggleGrupo(nome) {
-  PROD_GRP_COL[nome] = !PROD_GRP_COL[nome];
-  if (!PROD_SEM_ISO) return;
-  const vw = document.getElementById('v-producao');
-  _renderTabelaSemanal(vw, PROD_SEM_ISO);
+// ── Click numa célula da tabela ──
+function aoClicarCelula(prodId, dateISO, prodNome, qtdSug, und) {
+  const hoje = _today();
+  if (dateISO === hoje) {
+    abrirConfirmarHoje();
+    return;
+  }
+  if (dateISO > hoje) {
+    abrirPlanModal(prodId, dateISO, prodNome, qtdSug, und);
+    return;
+  }
+  // Passado: info rápida via toast
+  tooltipPassado(prodId, dateISO);
 }
 
 // ── Tooltip para célula passada ──
@@ -2333,10 +2558,8 @@ async function salvarPlanItem() {
   });
   fecharPlanModal();
   toast('✅ Planejado','ok');
-  if (PROD_SEM_ISO) {
-    const vw = document.getElementById('v-producao');
-    _renderTabelaSemanal(vw, PROD_SEM_ISO);
-  }
+  _popularBodyTabela(_diasSemana(PROD_SEM_ISO), _today());
+  _atualizarResumoSemana(_diasSemana(PROD_SEM_ISO));
 }
 
 // ══════════════════════════════════════════════════
@@ -2593,18 +2816,12 @@ async function finalizarHoje() {
     PROD_SEM_ISO = _semISOMonday(PROD_OFFSET);
     await _carregarProdItens(PROD_SEM_ISO);
   }
-  const vw = document.getElementById('v-producao');
-  _renderTabelaSemanal(vw, PROD_SEM_ISO);
+  await renderTabelaSemanal();
 }
 
 function voltarParaTabela() {
   PROD_VIEW = 'tabela';
-  const vw = document.getElementById('v-producao');
-  if (PROD_SEM_ISO) {
-    _renderTabelaSemanal(vw, PROD_SEM_ISO);
-  } else {
-    renderProducao();
-  }
+  renderTabelaSemanal();
 }
 
 // ── Adicionar produto não listado ao Confirmar Hoje ──
@@ -2661,11 +2878,13 @@ async function _carregarHistorico() {
   const ultimo = new Date(HIST_ANO, HIST_MES, 0).getDate();
   const de = `${HIST_ANO}-${m}-01`;
   const ate= `${HIST_ANO}-${m}-${String(ultimo).padStart(2,'0')}`;
+  console.log('📋 Histórico query:', { de, ate, setor: HIST_SETOR });
   try {
     const rows = await sbSelect('producao_itens',
-      `status=eq.confirmado&data_producao=gte.${de}&data_producao=lte.${ate}`+
-      `&setor=eq.${encodeURIComponent(HIST_SETOR)}&limit=5000&order=data_producao.asc`);
+      `status=eq.confirmado&data_dia=gte.${de}&data_dia=lte.${ate}`+
+      `&setor=eq.${encodeURIComponent(HIST_SETOR)}&limit=5000&order=data_dia.asc`);
     HIST_DADOS = rows || [];
+    console.log('📋 Histórico itens encontrados:', HIST_DADOS.length);
   } catch(e) {
     HIST_DADOS = [];
     if (_isTabelaFaltando(e)) toast('⚠️ Tabelas de produção não criadas — veja console','wa');
@@ -2688,7 +2907,7 @@ async function renderHistorico() {
 function _buildHistLayout() {
   const anoAtual = new Date().getFullYear();
   const anos = [anoAtual - 1, anoAtual, anoAtual + 1];
-  const setores = IS_ADMIN ? ['PADARIA','CONFEITARIA','ROTISSERIA'] : [SETOR];
+  const setores = IS_ADMIN ? ['PADARIA','Confeitaria/Pastelaria'] : [SETOR];
 
   const setorSel = IS_ADMIN
     ? `<select class="hist-sel" id="histSetorSel" style="max-width:140px;" onchange="onHistSetor(this.value)">
@@ -2742,7 +2961,7 @@ function _renderHistBody() {
 function _buildHistPorDia() {
   const porDia = {};
   HIST_DADOS.forEach(it => {
-    const d = (it.data_producao || '').slice(0, 10);
+    const d = (it.data_dia || it.data_producao || '').slice(0, 10);
     if (!d) return;
     if (!porDia[d]) porDia[d] = [];
     porDia[d].push(it);
@@ -2882,7 +3101,7 @@ function _buildHistConsolidado() {
   Object.values(porGrupo).forEach(arr =>
     arr.sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR')));
 
-  const diasProd = new Set(HIST_DADOS.map(it => (it.data_producao||'').slice(0,10))).size;
+  const diasProd = new Set(HIST_DADOS.map(it => (it.data_dia||it.data_producao||'').slice(0,10))).size;
   const mesNm    = MESES_NOME[HIST_MES].toUpperCase();
   const setNm    = HIST_SETOR.charAt(0) + HIST_SETOR.slice(1).toLowerCase();
 
