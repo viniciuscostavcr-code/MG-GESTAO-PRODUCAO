@@ -909,12 +909,44 @@ function goTab(t) {
 // ══════════════════════════════════════════════════
 // SETOR
 // ══════════════════════════════════════════════════
-function setSetor(s) {
+async function setSetor(s) {
   SETOR = s;
-  document.getElementById('sbPad').classList.toggle('on', s==='PADARIA');
-  document.getElementById('sbConf').classList.toggle('on', s==='CONFEITARIA');
-  SESSAO = null; REGISTROS = {}; FILTRO='todos'; BUSCA=''; _gramOverrides = {};
-  _carregarDados().then(() => renderCkHome());
+
+  // Atualizar botões visuais
+  const btnPad  = document.getElementById('sbPad');
+  const btnConf = document.getElementById('sbConf');
+  if (btnPad)  btnPad.classList.toggle('on',  s === 'PADARIA');
+  if (btnConf) btnConf.classList.toggle('on', s === 'CONFEITARIA');
+
+  // Resetar estado do checklist
+  SESSAO         = null;
+  REGISTROS      = {};
+  FILTRO         = 'todos';
+  BUSCA          = '';
+  _gramOverrides = {};
+
+  // Resetar estado da produção
+  TODOS_PRODS    = [];
+  PROD_ITENS     = {};
+  PROD_HOJE_VALS = {};
+
+  // Resetar estado do histórico
+  HIST_DADOS  = [];
+  HIST_SETOR  = s;
+
+  // Recarregar catálogo e dados do novo setor
+  await _carregarDados();
+
+  // Renderizar a aba que está visível no momento
+  if (TAB === 'producao') {
+    await renderTabelaSemanal();
+  } else if (TAB === 'historico') {
+    await renderHistorico();
+  } else {
+    renderCkHome();
+  }
+
+  toast('✅ Setor: ' + s.charAt(0) + s.slice(1).toLowerCase(), 'ok');
 }
 
 // ══════════════════════════════════════════════════
