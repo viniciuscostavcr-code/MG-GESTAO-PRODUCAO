@@ -998,6 +998,20 @@ async function _carregarDados() {
     ).catch(()=>[]);
     ULTIMO_CK = (ults||[])[0] || null;
 
+    // Inicializar REGISTROS com qtd_gondola=0 para produtos ainda sem entrada
+    // (campo vazio = zero: operador só preenche se tiver produto)
+    TODOS_PRODS.forEach(p => {
+      if (!REGISTROS[p.id]) {
+        REGISTROS[p.id] = {
+          qtd_gondola: 0,
+          qtd_freezer: 0,
+          embs_gon: {},
+          embs_frz: {},
+          salvo: false
+        };
+      }
+    });
+
     // Upsert silencioso de mínimos padrão para produtos sem configuração
     await _upsertMinimosPadrao();
 
@@ -1106,6 +1120,7 @@ async function iniciarChecklist() {
     });
     SESSAO = Array.isArray(nova) ? nova[0] : nova;
     REGISTROS = {};
+    await _carregarRascunho();
     setSyncUI('ok');
     renderCkAtivo();
   } catch(e) {
@@ -1347,8 +1362,8 @@ function _buildProdCard(p) {
 
   // ── MODO SIMPLES (sem embalagens) ──
   if (!temEmbs) {
-    const qGon = reg.qtd_gondola != null ? reg.qtd_gondola : '';
-    const qFrz = reg.qtd_freezer != null ? reg.qtd_freezer : '';
+    const qGon = reg.qtd_gondola != null ? reg.qtd_gondola : 0;
+    const qFrz = reg.qtd_freezer != null ? reg.qtd_freezer : 0;
     let frzRow = '';
     if (temFreezer) {
       frzRow = `<div class="prod-inp-row">
@@ -1465,8 +1480,8 @@ function _buildProdCard(p) {
 // INPUT HANDLER
 // ══════════════════════════════════════════════════
 function onInput(prodId, campo, valor) {
-  if (!REGISTROS[prodId]) REGISTROS[prodId] = {qtd_gondola:null, qtd_freezer:null, embs_gon:{}, embs_frz:{}, salvo:false};
-  const v = (valor === '' || valor == null) ? null : parseFloat(valor);
+  if (!REGISTROS[prodId]) REGISTROS[prodId] = {qtd_gondola:0, qtd_freezer:0, embs_gon:{}, embs_frz:{}, salvo:false};
+  const v = (valor === '' || valor == null) ? 0 : parseFloat(String(valor).replace(',', '.'));
   if (campo === 'gondola') REGISTROS[prodId].qtd_gondola = v;
   else                     REGISTROS[prodId].qtd_freezer = v;
   REGISTROS[prodId].salvo = false;
@@ -1649,6 +1664,28 @@ function _updateProgress() {
 // ══════════════════════════════════════════════════
 // SALVAR
 // ══════════════════════════════════════════════════
+async function _carregarRascunho() {
+  try {
+    const raw = localStorage.getItem('gf_checklist_rascunho');
+    if (!raw) return false;
+    const r = JSON.parse(raw);
+    if (r.setor !== SETOR) return false;
+    if (r.data  !== DATA)  return false;
+    if (Date.now() - r.ts > 8 * 60 * 60 * 1000) return false;
+    if (r.registros && Object.keys(r.registros).length > 0) {
+      // Mesclar: o rascunho sobrescreve apenas entradas com valor > 0
+      Object.entries(r.registros).forEach(([id, reg]) => {
+        if (reg.qtd_gondola != null && reg.qtd_gondola !== 0) {
+          REGISTROS[id] = { ...REGISTROS[id], ...reg, salvo: false };
+        }
+      });
+      toast('📋 Rascunho restaurado', 'ok');
+      return true;
+    }
+  } catch(e) {}
+  return false;
+}
+
 function _salvarRascunho() {
   try {
     localStorage.setItem('gf_checklist_rascunho', JSON.stringify({
@@ -1662,7 +1699,8 @@ function _salvarRascunho() {
 async function _salvarRegistro(prodId) {
   if (!SESSAO) return;
   const reg = REGISTROS[prodId];
-  if (!reg || reg.qtd_gondola == null) return;
+  if (!reg) return;
+  if (reg.qtd_gondola == null) reg.qtd_gondola = 0;
   const prod = TODOS_PRODS.find(p => p.id === prodId);
   if (!prod) return;
   const cfg = CK_CFG[prodId] || {};
@@ -1738,7 +1776,7 @@ async function finalizarChecklist() {
     // Salvar todos os não salvos
     await Promise.all(
       TODOS_PRODS
-        .filter(p => { const r = REGISTROS[p.id]; return r && r.qtd_gondola != null && !r.salvo; })
+        .filter(p => { const r = REGISTROS[p.id]; return r && !r.salvo; })
         .map(p => _salvarRegistro(p.id))
     );
 

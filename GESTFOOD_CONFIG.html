@@ -738,6 +738,9 @@ function abrirNovoProd(){
   _preencherSetorSelect('mpSetor','PADARIA');
   document.getElementById('mpUnd').value='kg';
   document.getElementById('embSection').style.display='none';
+  // Sempre mostrar seção checklist com valores padrão
+  document.getElementById('ckSection').style.display='block';
+  _preencherCkSection(null);
   document.getElementById('modalProd').classList.add('on');
   setTimeout(()=>document.getElementById('mpNome').focus(),80);
 }
@@ -791,35 +794,38 @@ async function salvarProd(){
       PRODS.push(dados);
     }
 
-    // Upsert checklist_config (só ao editar — seção visível)
-    if(_editId && document.getElementById('ckSection').style.display !== 'none'){
-      const ckPayload = {
-        produto_id: _editId,
-        produto_nome: nome,
-        setor: setor,
-        prioritario: document.getElementById('ckPrior').checked,
-        qtd_minima_gondola: parseFloat(document.getElementById('ckMinGon').value) || 0,
-        tem_freezer: document.getElementById('ckFreezer').checked,
-        qtd_minima_freezer: parseFloat(document.getElementById('ckMinFrz').value) || 0,
-        unidade_checklist: und === 'kg' ? 'kg' : 'un',
-        ativo: true
-      };
-      try {
-        const r = await fetch(`${SUPA_URL}/rest/v1/checklist_config`, {
-          method: 'POST',
-          headers: {...H, 'Prefer': 'resolution=merge-duplicates,return=representation',
-                    'on_conflict': 'produto_id'},
-          body: JSON.stringify(ckPayload)
-        });
-        if (r.ok) {
-          const rows = await r.json();
-          const row = Array.isArray(rows) ? rows[0] : rows;
-          if (row) CK_CFGS[_editId] = row;
-        }
-      } catch(eCk) {
-        // Silencioso — tabela pode não existir ainda
-        console.warn('checklist_config upsert falhou:', eCk.message);
+    // Upsert checklist_config — sempre, para qualquer produto (novo ou editado)
+    // produtoId: _editId para edição, ou o id gerado para produto novo
+    const ckProdId = _editId || id;
+    const ckPayload = {
+      produto_id: ckProdId,
+      produto_nome: nome,
+      setor: setor,
+      prioritario: document.getElementById('ckPrior').checked,
+      qtd_minima_gondola: parseFloat(document.getElementById('ckMinGon').value) || 0,
+      tem_freezer: document.getElementById('ckFreezer').checked,
+      qtd_minima_freezer: parseFloat(document.getElementById('ckMinFrz').value) || 0,
+      unidade_checklist: und === 'kg' ? 'kg' : 'un',
+      ativo: true
+    };
+    try {
+      // on_conflict como query param (padrão PostgREST) + Prefer header para merge
+      const r = await fetch(
+        `${SUPA_URL}/rest/v1/checklist_config?on_conflict=produto_id,setor`, {
+        method: 'POST',
+        headers: {...H, 'Prefer': 'resolution=merge-duplicates,return=representation'},
+        body: JSON.stringify(ckPayload)
+      });
+      if (r.ok) {
+        const rows = await r.json();
+        const row = Array.isArray(rows) ? rows[0] : rows;
+        if (row) CK_CFGS[ckProdId] = row;
+      } else {
+        console.warn('checklist_config upsert status:', r.status, await r.text());
       }
+    } catch(eCk) {
+      // Silencioso — tabela pode não existir ainda
+      console.warn('checklist_config upsert falhou:', eCk.message);
     }
 
     fecharModalProd();renderProds();
@@ -831,13 +837,13 @@ async function salvarProd(){
 // CHECKLIST CONFIG — seção no modal de produto
 // ══════════════════════════════════════════════════
 function _preencherCkSection(prodId) {
-  const cfg = CK_CFGS[prodId] || {};
+  const cfg = (prodId && CK_CFGS[prodId]) || {};
   document.getElementById('ckPrior').checked = !!cfg.prioritario;
-  document.getElementById('ckMinGon').value = Number(cfg.qtd_minima_gondola) || '';
+  document.getElementById('ckMinGon').value = cfg.qtd_minima_gondola != null ? Number(cfg.qtd_minima_gondola) : '';
   const temFrz = !!cfg.tem_freezer;
   document.getElementById('ckFreezer').checked = temFrz;
   document.getElementById('ckFrzRow').style.display = temFrz ? 'block' : 'none';
-  document.getElementById('ckMinFrz').value = Number(cfg.qtd_minima_freezer) || '';
+  document.getElementById('ckMinFrz').value = cfg.qtd_minima_freezer != null ? Number(cfg.qtd_minima_freezer) : '';
 }
 
 function _toggleFreezerField() {
