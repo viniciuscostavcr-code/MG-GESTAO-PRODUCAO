@@ -73,7 +73,7 @@ select:focus,input:focus{border-color:var(--grn);background:#fff;}
 .sp.on{color:#fff;border-color:transparent;background:var(--green);}
 .sp[data-s="TODOS"].on{background:var(--brown);}
 .sp[data-s="PADARIA"].on{background:var(--blue);}
-.sp[data-s="CONFEITARIA"].on{background:var(--red2);}
+.sp[data-s="CONFEITARIA/PASTELARIA"].on{background:var(--red2);}
 .sp[data-s="LANCHONETE"].on{background:var(--green);}
 
 /* SEARCH */
@@ -90,7 +90,7 @@ select:focus,input:focus{border-color:var(--grn);background:#fff;}
 .pc{background:var(--white);border-radius:12px;padding:11px 12px;display:flex;align-items:flex-start;gap:10px;box-shadow:0 1px 8px rgba(61,28,10,.06);border-left:4px solid var(--border);transition:all .15s;}
 .pc.filled{border-left-color:var(--red2);}
 .pc[data-s="PADARIA"].filled{border-left-color:var(--blue);}
-.pc[data-s="CONFEITARIA"].filled{border-left-color:var(--red2);}
+.pc[data-s="CONFEITARIA/PASTELARIA"].filled{border-left-color:var(--red2);}
 .pc[data-s="LANCHONETE"].filled{border-left-color:var(--green);}
 .pfoto{width:44px;height:44px;border-radius:8px;background:var(--cream);display:flex;align-items:center;justify-content:center;font-size:1.4rem;overflow:hidden;flex-shrink:0;border:2px solid var(--border);margin-top:2px;}
 .pfoto img{width:100%;height:100%;object-fit:cover;}
@@ -795,7 +795,7 @@ const MOTS_DEFAULT=[
 let D={
   hist:[],extra:[],
   resps:['FUNCIONÁRIO 1','FUNCIONÁRIO 2'],
-  sets:['PADARIA','CONFEITARIA','LANCHONETE','PASTELARIA'],
+  sets:['PADARIA','CONFEITARIA/PASTELARIA','LANCHONETE','PASTELARIA'],
   motivos:[...MOTS_DEFAULT],
   fotos:{},overrides:{},
   alertas:{PADARIA:5,CONFEITARIA:5,LANCHONETE:5,PASTELARIA:5}
@@ -982,11 +982,12 @@ async function setAlerta(s,v){
 }
 
 // ═══ RENDER PRODUTOS ═══
+function normalizar(str){return(str||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();}
 function render(){
-  const q=document.getElementById('iSrc').value.toLowerCase().trim();
+  const q=normalizar(document.getElementById('iSrc').value);
   let list=allProds();
   if(SF!=='TODOS')list=list.filter(p=>p.s===SF);
-  if(q)list=list.filter(p=>p.n.toLowerCase().includes(q)||p.c.includes(q));
+  if(q)list=list.filter(p=>normalizar(p.n).includes(q)||p.c.includes(q));
   document.getElementById('lLbl').textContent=SF==='TODOS'?'Todos os produtos':SF;
   document.getElementById('lCnt').textContent=list.length+' produto'+(list.length!==1?'s':'');
   if(!list.length){document.getElementById('pList').innerHTML=`<div class="emp"><div class="big">🔍</div><p>Produto não encontrado.<br>Verifique a ortografia.</p></div>`;return;}
@@ -2179,7 +2180,7 @@ async function delResp(r){
 
 // ═══ CONFIG — SETORES ═══
 function renderSets(){
-  document.getElementById('sList').innerHTML=D.sets.map(s=>`<div class="ci"><span style="font-size:1.3rem">${ICO[s]||'📦'}</span><div class="ci-info"><div class="ci-nm">${s}</div></div>${!['PADARIA','CONFEITARIA','LANCHONETE'].includes(s)?`<button class="ci-del" onclick="delSet('${s}')">🗑</button>`:`<span style="font-size:.6rem;color:var(--gray)">padrão</span>`}</div>`).join('');
+  document.getElementById('sList').innerHTML=D.sets.map(s=>`<div class="ci"><span style="font-size:1.3rem">${ICO[s]||'📦'}</span><div class="ci-info"><div class="ci-nm">${s}</div></div>${!['PADARIA','CONFEITARIA/PASTELARIA','LANCHONETE'].includes(s)?`<button class="ci-del" onclick="delSet('${s}')">🗑</button>`:`<span style="font-size:.6rem;color:var(--gray)">padrão</span>`}</div>`).join('');
   const sel=document.getElementById('nPSt');if(sel)sel.innerHTML=D.sets.map(s=>`<option>${s}</option>`).join('');
 }
 async function addSet(){
