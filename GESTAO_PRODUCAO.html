@@ -10,6 +10,7 @@
 <link rel="apple-touch-icon" href="icon-gestfood-192.png">
 <title>🏭 Gestão de Produção — GestFood</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
   --bg:#F7F7F5;--white:#FFF;--brown:#1C1C1A;--brown2:#4A4A46;
@@ -298,6 +299,7 @@ body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif
 .phoje-ttl-sub{font-size:.68rem;color:var(--gray);}
 .phoje-prog{font-size:.72rem;font-weight:700;color:var(--grn2);}
 .phoje-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 0 6px;}
+.phoje-sec-lbl{font-size:.72rem;font-weight:700;color:#2D6A4F;padding:6px 14px 2px;text-transform:uppercase;letter-spacing:.04em;}
 .phoje-aviso{border-radius:10px;padding:10px 12px;font-size:.78rem;font-weight:600;line-height:1.5;margin:0 12px 10px;}
 .phoje-aviso.dom{background:var(--amber-l);border:1.5px solid #FCD34D;color:#92400E;}
 .phoje-aviso.fech{background:#FEF2F2;border:1.5px solid #FCA5A5;color:#B91C1C;}
@@ -399,6 +401,12 @@ body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif
 .hist-ph-print{display:none;padding-bottom:12px;margin-bottom:14px;border-bottom:2px solid #000;}
 .hist-ph-print h1{font-size:13pt;font-weight:700;margin-bottom:3px;}
 .hist-ph-print p{font-size:10pt;color:#555;}
+
+/* ── Botões de gerenciamento do histórico (admin) ── */
+.hist-act-btn{background:none;border:none;cursor:pointer;font-size:.85rem;padding:2px 4px;border-radius:5px;line-height:1;}
+.hist-act-btn:active{background:#EAF4EF;}
+.hist-del-dia-btn{background:#FFF5F5;border:1.5px solid #FCA5A5;color:#991B1B;border-radius:7px;padding:3px 9px;font-size:.7rem;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.hist-del-dia-btn:active{background:#FEE2E2;}
 
 /* ── Tabela calendário de produção ── */
 .prod-tabela-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);}
@@ -650,6 +658,12 @@ async function sbPatch(t, id, body) {
   if (!r.ok) { const m = await r.text(); throw new Error(m); }
   return r.json();
 }
+async function sbDelete(t, filtro) {
+  const r = await fetch(`${SUPA_URL}/rest/v1/${t}?${filtro}`, {
+    method:'DELETE', headers:SH
+  });
+  if (!r.ok) { const m = await r.text(); throw new Error(m); }
+}
 
 // ══════════════════════════════════════════════════
 // SESSÃO (8h, redireciona para LOGIN.html se inválida)
@@ -781,12 +795,7 @@ let _addEmbProdId = null; // produto sendo editado no modal de embalagem
 const PRODUTOS_DOMINGO_PADARIA = ['pao kg','pao frances','pao doce'];
 function _isDomingo() { return new Date().getDay() === 0; }
 function _isDomBloqueado(prod) {
-  if (!_isDomingo()) return false;
-  if (SETOR === 'PADARIA') {
-    const n = normalizar(prod.nome);
-    return !PRODUTOS_DOMINGO_PADARIA.some(kw => n.includes(kw));
-  }
-  return true; // outros setores fechados no domingo
+  return false; // domingo liberado — operador decide
 }
 
 const CAT_ICO = {
@@ -1001,7 +1010,7 @@ function renderCkHome() {
       </div>
       <div class="data-row">
         <span class="data-lbl">📅 Data:</span>
-        <input class="data-inp" type="date" value="${DATA}" onchange="DATA=this.value" style="min-height:44px;">
+        <input class="data-inp" type="date" value="${DATA}" onchange="setCkData(this.value)" style="min-height:44px;">
       </div>
       ${ultimoHtml}
       <button class="btn-iniciar" onclick="iniciarChecklist()">
@@ -1012,6 +1021,12 @@ function renderCkHome() {
 
 function setTurno(t) {
   TURNO = t;
+  renderCkHome();
+}
+function setCkData(dataISO) {
+  DATA = dataISO;
+  SESSAO = null;
+  REGISTROS = {};
   renderCkHome();
 }
 
@@ -2460,8 +2475,6 @@ function _buildTabelaRow(p, dias, hoje) {
     let inner;
     if (isBloq) {
       inner = '<span class="cel-bloqueado">⛔</span>';
-    } else if (!ehProd) {
-      inner = '<span class="cel-bloqueado">—</span>';
     } else {
       const st  = item?.status;
       const raw = st === 'confirmado' ? (item.qtd_produzida ?? lote.qtd)
@@ -2472,12 +2485,19 @@ function _buildTabelaRow(p, dias, hoje) {
         inner = `<span class="cel-confirmado">✅ ${qty}</span>`;
       } else if (st === 'planejado') {
         inner = `<span class="cel-planejado">📝 ${qty}</span>`;
-      } else {
+      } else if (ehProd) {
         inner = `<span class="cel-sugerido">[${qty}]</span>`;
+      } else {
+        // Sem sugestão mas editável (hoje/futuro) ou vazio (passado)
+        inner = (isHoje || isFut)
+          ? `<span class="cel-bloqueado" style="color:#9CA3AF;font-size:.7rem;">+</span>`
+          : `<span class="cel-bloqueado">—</span>`;
       }
     }
 
-    const clicavel = !isBloq && ehProd;
+    // Passado: só clicável se tem dado registrado
+    // Hoje/Futuro: sempre clicável (exceto bloqueado)
+    const clicavel = !isBloq && (isHoje || isFut || isPas || item != null);
     cells += `<td class="col-dia${diaCls}"${clicavel ? ' ' + onclk : ''}>${inner}</td>`;
   });
 
@@ -2536,9 +2556,13 @@ function abrirPlanModal(prodId, dateISO, prodNome, qtdSug, und) {
   _planProdId  = prodId;
   _planDateISO = dateISO;
   document.getElementById('planTtl').textContent = '📝 Planejar ' + prodNome;
-  document.getElementById('planSub').textContent = fmtDataBR(dateISO) + ' · Sugestão: ' + qtdSug + ' ' + und.toLowerCase();
+  const subTxt = qtdSug > 0
+    ? fmtDataBR(dateISO) + ' · Sugestão: ' + qtdSug + ' ' + und.toLowerCase()
+    : fmtDataBR(dateISO) + ' · Sem sugestão automática';
+  document.getElementById('planSub').textContent = subTxt;
   const inp = document.getElementById('planVal');
-  inp.value = qtdSug || '';
+  inp.value = qtdSug > 0 ? qtdSug : '';
+  inp.placeholder = qtdSug > 0 ? qtdSug : '0';
   document.getElementById('planOv').classList.add('on');
   setTimeout(()=>inp.focus(),200);
 }
@@ -2578,16 +2602,19 @@ function _renderConfirmarHoje(vw) {
   const isDom    = dsem === 0;
   const isFechado = isDom && SETOR !== 'PADARIA';
 
-  // Filtrar produtos para hoje
-  let prodsHoje = TODOS_PRODS.filter(p => {
-    if (isFechado) return false;
-    if (isDom && SETOR === 'PADARIA') return !_isDomBloqueado(p);
-    const lote = getLoteProduto(p.nome, SETOR, dsem, hoje);
-    // Mostra: dia de produção, urgente no checklist, ou já tem item confirmado
-    return lote.qtd > 0 || _urgProd(p.id)==='cr'
-      || !!(PROD_ITENS[`${p.id}_${hoje}`]);
+  // Mostrar TODOS os produtos — operador decide o que produzir
+  let prodsHoje = TODOS_PRODS.filter(p => !isFechado);
+  prodsHoje.sort((a, b) => {
+    // 1º: prioritários urgentes, 2º: prioritários, 3º: com sugestão, 4º: demais
+    const sk = (p) => {
+      const k = _sortKeyProd(p);
+      const lote = getLoteProduto(p.nome, SETOR, dsem, hoje);
+      if (k <= 1) return k;          // 0=🔴⭐, 1=🟡⭐
+      if (k === 2) return 2;         // ⭐ ok
+      return lote.qtd > 0 ? 3 : 4;  // com sugestão vs sem sugestão
+    };
+    return sk(a) - sk(b);
   });
-  prodsHoje.sort((a,b)=>_sortKeyProd(a)-_sortKeyProd(b));
 
   // Contagem de confirmados
   const nConf  = prodsHoje.filter(p=>PROD_HOJE_VALS[p.id]?.done).length;
@@ -2612,7 +2639,19 @@ function _renderConfirmarHoje(vw) {
   } else {
     if (isDom) html += `<div class="phoje-aviso dom">⚠️ Domingo — equipe reduzida.<br>Somente pães básicos.</div>`;
 
-    prodsHoje.forEach((p,i) => {
+    // Separar em dois grupos: com sugestão e sem sugestão
+    let _secaoComSug = false, _secaoSemSug = false;
+    prodsHoje.forEach((p, i) => {
+      const lote = getLoteProduto(p.nome, SETOR, dsem, hoje);
+      const temSug = lote.qtd > 0 || !!(PROD_ITENS[`${p.id}_${hoje}`]);
+      if (temSug && !_secaoComSug) {
+        html += `<div class="phoje-sec-lbl">📋 Produção do dia</div>`;
+        _secaoComSug = true;
+      }
+      if (!temSug && !_secaoSemSug) {
+        html += `<div class="phoje-sec-lbl" style="margin-top:12px;">➕ Outros produtos</div>`;
+        _secaoSemSug = true;
+      }
       html += _buildPhojeCard(p, hoje, dsem, i);
     });
 
@@ -2933,6 +2972,7 @@ function _buildHistLayout() {
       <button class="hist-tog-btn${HIST_VIEW==='consolidado'?' on':''}" id="histTogCons" onclick="onHistView('consolidado')">📊 Consolidado</button>
     </div>
     <button class="hist-print-btn" id="histPrintBtn" style="display:${HIST_VIEW==='consolidado'?'inline-flex':'none'};" onclick="window.print()">🖨️ Imprimir</button>
+    <button class="hist-print-btn" id="histExcelBtn" style="display:${HIST_VIEW==='consolidado'?'inline-flex':'none'};" onclick="exportarExcel()">📥 Excel</button>
   </div>
 </div>
 <div class="hist-body" id="histBody">
@@ -3000,6 +3040,10 @@ function _buildHistDiaCard(dateISO, itens) {
   const det = expanded
     ? `<div class="hist-dia-det">${_buildHistDiaTabela(itens)}</div>` : '';
 
+  const delDiaBtnHtml = IS_ADMIN
+    ? `<button class="hist-del-dia-btn" onclick="event.stopPropagation();delDia('${dateISO}')">🗑️ Apagar dia</button>`
+    : '';
+
   return `<div class="hist-dia-card">
 <div class="hist-dia-hdr" onclick="toggleHistDia('${dateISO}')">
   <div class="hist-dia-top">
@@ -3007,7 +3051,10 @@ function _buildHistDiaCard(dateISO, itens) {
       <div class="hist-dia-nm">${diaNm}, ${dtBR}</div>
       <div class="hist-dia-resp">👤 ${escHtml(resp)}</div>
     </div>
-    <div class="hist-dia-cnt">${nProd} produto${nProd!==1?'s':''}</div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="hist-dia-cnt">${nProd} produto${nProd!==1?'s':''}</div>
+      ${delDiaBtnHtml}
+    </div>
   </div>
   <div class="hist-dia-stats">
     ${totStr ? `<span>🏭 ${totStr}</span>` : ''}
@@ -3037,13 +3084,34 @@ function _buildHistDiaTabela(itens) {
     const diffTxt = diff === 0 ? '—'
       : (diff > 0 ? '+' : '') + fmtQtd(diff) + und.toLowerCase();
     const diffCls = diff > 0 ? 'hdiff-pos' : diff < 0 ? 'hdiff-neg' : '';
+
+    // Célula "Produzido" — admin vê input editável ao clicar ✏️
+    const produzidoCell = IS_ADMIN
+      ? `<span class="hist-qtd-val" id="hqv_${it.id}">${q>0 ? fmtQtd(q)+und.toLowerCase() : '—'}</span>` +
+        `<input class="hist-qtd-inp" id="hqi_${it.id}" type="number" min="0" step="0.1"` +
+        ` value="${q}" style="display:none;width:72px;padding:3px 6px;border:1.5px solid #2D6A4F;border-radius:6px;font-size:.8rem;font-family:inherit;"` +
+        ` onblur="editarItem('${it.id}',this.value)"` +
+        ` onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape')_cancelEditItem('${it.id}',${q})">`
+      : `${q>0 ? fmtQtd(q)+und.toLowerCase() : '—'}`;
+
+    // Coluna de ações (admin only)
+    const acoesCell = IS_ADMIN
+      ? `<td class="hist-det-td" style="text-align:right;white-space:nowrap;">` +
+        `<button class="hist-act-btn" onclick="_iniciarEditItem('${it.id}')" title="Editar">✏️</button>` +
+        `<button class="hist-act-btn" onclick="delItem('${it.id}')" title="Remover">🗑️</button>` +
+        `</td>`
+      : '';
+
     return `<tr class="hist-det-tr ${cls}">
   <td class="hist-det-td">${escHtml(it.produto_nome||'—')}</td>
   <td class="hist-det-td" style="text-align:right;">${s>0 ? fmtQtd(s)+und.toLowerCase() : '—'}</td>
-  <td class="hist-det-td" style="text-align:right;">${q>0 ? fmtQtd(q)+und.toLowerCase() : '—'}</td>
+  <td class="hist-det-td" style="text-align:right;">${produzidoCell}</td>
   <td class="hist-det-td ${diffCls}" style="text-align:right;">${diffTxt}</td>
+  ${acoesCell}
 </tr>`;
   }).join('');
+
+  const thAcoes = IS_ADMIN ? '<th class="hist-det-th" style="text-align:right;">Ações</th>' : '';
 
   return `<table class="hist-det-tbl">
 <thead><tr>
@@ -3051,6 +3119,7 @@ function _buildHistDiaTabela(itens) {
   <th class="hist-det-th" style="text-align:right;">Sugerido</th>
   <th class="hist-det-th" style="text-align:right;">Produzido</th>
   <th class="hist-det-th" style="text-align:right;">Dif.</th>
+  ${thAcoes}
 </tr></thead>
 <tbody>${rows}</tbody>
 </table>`;
@@ -3059,6 +3128,83 @@ function _buildHistDiaTabela(itens) {
 function toggleHistDia(dateISO) {
   HIST_DIA_EXP[dateISO] = !HIST_DIA_EXP[dateISO];
   _renderHistBody();
+}
+
+// ══════════════════════════════════════════════════
+// GERENCIAMENTO DO HISTÓRICO (admin)
+// ══════════════════════════════════════════════════
+
+async function delItem(itemId) {
+  if (!IS_ADMIN) return;
+  const ok = await confirmar(
+    'Remover este item do histórico?',
+    'Remover item', '🗑️', 'Remover'
+  );
+  if (!ok) return;
+  try {
+    await sbDelete('producao_itens', 'id=eq.' + itemId);
+    toast('✅ Item removido', 'ok');
+    await _carregarHistorico();
+    _renderHistBody();
+  } catch(e) {
+    toast('❌ Erro ao remover: ' + e.message.slice(0, 50), 'er');
+  }
+}
+
+async function delDia(dataISO) {
+  if (!IS_ADMIN) return;
+  const ok = await confirmar(
+    'Apagar toda a produção de ' + fmtDataBR(dataISO) + '?',
+    'Apagar dia', '🗑️', 'Apagar'
+  );
+  if (!ok) return;
+  try {
+    await sbDelete('producao_itens',
+      'data_dia=eq.' + dataISO + '&setor=eq.' + encodeURIComponent(HIST_SETOR));
+    toast('✅ Dia removido', 'ok');
+    await _carregarHistorico();
+    _renderHistBody();
+  } catch(e) {
+    toast('❌ Erro: ' + e.message.slice(0, 50), 'er');
+  }
+}
+
+function _iniciarEditItem(itemId) {
+  const val = document.getElementById('hqv_' + itemId);
+  const inp = document.getElementById('hqi_' + itemId);
+  if (!val || !inp) return;
+  val.style.display = 'none';
+  inp.style.display = 'inline-block';
+  inp.focus();
+  inp.select();
+}
+
+function _cancelEditItem(itemId, qtdOriginal) {
+  const val = document.getElementById('hqv_' + itemId);
+  const inp = document.getElementById('hqi_' + itemId);
+  if (val) val.style.display = 'inline';
+  if (inp) { inp.value = qtdOriginal; inp.style.display = 'none'; }
+}
+
+async function editarItem(itemId, novaQtd) {
+  if (!IS_ADMIN) return;
+  const qtd = parseFloat(novaQtd);
+  if (isNaN(qtd) || qtd < 0) {
+    toast('⚠️ Quantidade inválida', 'wa');
+    return;
+  }
+  try {
+    await sbPatch('producao_itens', itemId, {
+      qtd_produzida: qtd,
+      editado_por:   GF_USER.nome,
+      atualizado_em: new Date().toISOString()
+    });
+    toast('✅ Quantidade atualizada', 'ok');
+    await _carregarHistorico();
+    _renderHistBody();
+  } catch(e) {
+    toast('❌ Erro: ' + e.message.slice(0, 50), 'er');
+  }
 }
 
 // ══════════════════════════════════════════════════
@@ -3171,12 +3317,14 @@ function onHistFiltro() {
   if (body) body.innerHTML = '<div class="loading-wrap"><div class="spin"></div></div>';
   _carregarHistorico().then(() => _renderHistBody());
 }
-function onHistSetor(s) {
-  HIST_SETOR = s;
+async function onHistSetor(novoSetor) {
+  HIST_SETOR = novoSetor;
+  HIST_DADOS = [];
   HIST_DIA_EXP = {};
   const body = document.getElementById('histBody');
   if (body) body.innerHTML = '<div class="loading-wrap"><div class="spin"></div></div>';
-  _carregarHistorico().then(() => _renderHistBody());
+  await _carregarHistorico();
+  _renderHistBody();
 }
 function onHistView(v) {
   HIST_VIEW = v;
@@ -3184,14 +3332,68 @@ function onHistView(v) {
   document.getElementById('histTogCons').classList.toggle('on', v === 'consolidado');
   const pb = document.getElementById('histPrintBtn');
   if (pb) pb.style.display = v === 'consolidado' ? 'inline-flex' : 'none';
+  const eb = document.getElementById('histExcelBtn');
+  if (eb) eb.style.display = v === 'consolidado' ? 'inline-flex' : 'none';
   _renderHistBody();
 }
 
 // ══════════════════════════════════════════════════
-// IMPRESSÃO
+// IMPRESSÃO E EXPORTAÇÃO
 // ══════════════════════════════════════════════════
 function imprimirChecklist() {
   window.print();
+}
+
+function exportarExcel() {
+  if (!HIST_DADOS || !HIST_DADOS.length) {
+    toast('⚠️ Nenhum dado para exportar', 'wa');
+    return;
+  }
+  // Agrupar por categoria
+  const grupos = {};
+  HIST_DADOS.forEach(item => {
+    const cat = item.categoria || 'OUTROS';
+    if (!grupos[cat]) grupos[cat] = {};
+    const key = (item.produto_nome || '—') + '|' + (item.unidade || 'kg');
+    grupos[cat][key] = (grupos[cat][key] || 0) + (item.qtd_produzida || 0);
+  });
+
+  // Montar linhas
+  const rows = [];
+  const mesNm = new Date(HIST_ANO, HIST_MES - 1, 1)
+    .toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+
+  rows.push(['GestFood — Relatório de Produção']);
+  rows.push(['Setor: ' + HIST_SETOR + ' | Período: ' + mesNm]);
+  rows.push(['Gerado em: ' + new Date().toLocaleString('pt-BR')]);
+  rows.push([]);
+  rows.push(['PRODUTO', 'UNIDADE', 'TOTAL PRODUZIDO']);
+
+  Object.entries(grupos).forEach(function(entry) {
+    var cat  = entry[0];
+    var prods = entry[1];
+    rows.push(['--- ' + cat + ' ---', '', '']);
+    var subtotal = 0;
+    Object.entries(prods).forEach(function(pe) {
+      var parts = pe[0].split('|');
+      var nome  = parts[0];
+      var und   = parts[1] || 'kg';
+      var total = pe[1];
+      rows.push([nome, und, total]);
+      subtotal += total;
+    });
+    rows.push(['Subtotal ' + cat + ':', '', subtotal]);
+    rows.push([]);
+  });
+
+  var ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:35}, {wch:10}, {wch:18}];
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Consolidado');
+
+  var fileName = 'GestFood_' + HIST_SETOR + '_' + mesNm.replace(' ', '_') + '.xlsx';
+  XLSX.writeFile(wb, fileName);
+  toast('✅ Excel baixado!', 'ok');
 }
 
 // ══════════════════════════════════════════════════
