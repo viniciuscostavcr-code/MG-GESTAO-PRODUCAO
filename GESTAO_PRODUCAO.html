@@ -784,6 +784,9 @@ let REGISTROS = {};     // produto_id → {_dbId, qtd_gondola, qtd_freezer, embs
 let ULTIMO_CK = null;
 let FILTRO = 'todos';
 let BUSCA = '';
+let BUSCA_PROD = '';
+let BUSCA_HOJE = '';
+let BUSCA_HIST = '';
 let TAB = 'checklist';
 let CK_VIEW = 'home';   // 'home' | 'active' | 'resumo'
 let _saveTimers = {};
@@ -898,6 +901,9 @@ init();
 // ══════════════════════════════════════════════════
 function goTab(t) {
   TAB = t;
+  BUSCA_PROD = '';
+  BUSCA_HOJE = '';
+  BUSCA_HIST = '';
   ['checklist','producao','historico'].forEach(id => {
     document.getElementById('tab-'+id).classList.toggle('on', id===t);
     document.getElementById('v-'+id).classList.toggle('on', id===t);
@@ -2395,6 +2401,15 @@ async function renderProducao() {
   await renderTabelaSemanal();
 }
 
+// ── Filtro de busca no Confirmar Hoje ──
+function _filtrarHoje() {
+  const q = normalizar(BUSCA_HOJE);
+  document.querySelectorAll('.phoje-card').forEach(card => {
+    const nome = normalizar(card.dataset.nome || '');
+    card.style.display = (!q || nome.includes(q)) ? '' : 'none';
+  });
+}
+
 // ── Wrappers chamados pelos botões HTML da tabela ──
 function semanaAnterior() { navSemana(-1); }
 function semanaProxima()  { navSemana(1); }
@@ -2420,6 +2435,12 @@ function _buildTabelaEsqueleto() {
     <button onclick="confirmarHoje()" style="background:#2D6A4F;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:.82rem;font-weight:700;">✅ Hoje</button>
   </div>
   <div id="resumoSemana" style="padding:6px 16px;font-size:.75rem;color:#6B7280;">⏳ Carregando...</div>
+  <div class="ck-search" style="margin:8px 12px;">
+    <span>🔍</span>
+    <input type="text" id="buscaProdInp" placeholder="Buscar produto..." autocomplete="off"
+      style="font-size:16px;"
+      oninput="BUSCA_PROD=this.value;_popularBodyTabela(_diasSemana(PROD_SEM_ISO),_today())">
+  </div>
   <div class="prod-tabela-wrap" style="margin:0 12px 80px;">
     <table class="prod-tabela" id="tabelaSemanal">
       <thead><tr id="headerSemana">
@@ -2491,9 +2512,15 @@ function _popularBodyTabela(dias, hoje) {
   const body = document.getElementById('bodyTabela');
   if (!body) return;
 
+  // Filtrar por busca
+  const q = normalizar(BUSCA_PROD);
+  const prodsFiltrados = q
+    ? TODOS_PRODS.filter(p => normalizar(p.nome).includes(q))
+    : TODOS_PRODS;
+
   // Agrupar e ordenar produtos
   const grupos = {};
-  TODOS_PRODS.forEach(p => {
+  prodsFiltrados.forEach(p => {
     const g = _grupoParaCategoria(p.categoria);
     if (!grupos[g]) grupos[g] = [];
     grupos[g].push(p);
@@ -2512,7 +2539,9 @@ function _popularBodyTabela(dias, hoje) {
 
   if (!html) {
     html = '<tr><td colspan="9" style="text-align:center;padding:32px;color:#6B7280;">' +
-           'Nenhum produto cadastrado para este setor.</td></tr>';
+           (q ? 'Nenhum produto encontrado para "' + escHtml(BUSCA_PROD) + '".'
+              : 'Nenhum produto cadastrado para este setor.') +
+           '</td></tr>';
   }
   body.innerHTML = html;
 }
@@ -2702,6 +2731,12 @@ function _renderConfirmarHoje(vw) {
   </div>
   <div class="phoje-prog">${nConf}/${nTotal}</div>
 </div>
+<div class="ck-search" style="margin:8px 12px;">
+  <span>🔍</span>
+  <input type="text" placeholder="Buscar produto..." autocomplete="off"
+    style="font-size:16px;"
+    oninput="BUSCA_HOJE=this.value;_filtrarHoje()">
+</div>
 <div class="phoje-body" id="phojeBody">`;
 
   if (isFechado) {
@@ -2775,7 +2810,7 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
   const urgE = _urgEmoji(sk);
   const priE = CK_CFG[p.id]?.prioritario ? '⭐' : '';
 
-  return `<div class="phoje-card ${cardCls}" id="phoje-card-${p.id}">
+  return `<div class="phoje-card ${cardCls}" id="phoje-card-${p.id}" data-nome="${escHtml(p.nome)}">
   <div class="phoje-card-nm">${urgE}${priE} ${escHtml(p.nome)}</div>
   <div class="phoje-sug">Sugestão: <strong>${lote.qtd}${und.toLowerCase()}</strong>${lote.sazonalidade!==1?' · sazon. ×'+lote.sazonalidade:''}</div>
   ${alertHtml}
@@ -3062,21 +3097,37 @@ function _renderHistBody() {
 </div>`;
     return;
   }
-  body.innerHTML = HIST_VIEW === 'dia' ? _buildHistPorDia() : _buildHistConsolidado();
+  const buscaBar = `<div class="ck-search" style="margin:8px 12px 4px;">
+  <span>🔍</span>
+  <input type="text" placeholder="Buscar produto..." autocomplete="off"
+    value="${escHtml(BUSCA_HIST)}"
+    style="font-size:16px;"
+    oninput="BUSCA_HIST=this.value;_renderHistBody()">
+</div>`;
+  body.innerHTML = buscaBar + (HIST_VIEW === 'dia' ? _buildHistPorDia() : _buildHistConsolidado());
 }
 
 // ══════════════════════════════════════════════════
 // VISÃO POR DIA
 // ══════════════════════════════════════════════════
 function _buildHistPorDia() {
+  const q = normalizar(BUSCA_HIST);
+  const dados = q
+    ? HIST_DADOS.filter(i => normalizar(i.produto_nome || '').includes(q))
+    : HIST_DADOS;
   const porDia = {};
-  HIST_DADOS.forEach(it => {
+  dados.forEach(it => {
     const d = (it.data_dia || it.data_producao || '').slice(0, 10);
     if (!d) return;
     if (!porDia[d]) porDia[d] = [];
     porDia[d].push(it);
   });
   const dias = Object.keys(porDia).sort().reverse();
+  if (!dias.length) return `<div class="hist-empty" style="margin-top:12px;">
+<div class="hist-empty-ico">🔍</div>
+<div class="hist-empty-ttl">Nenhum produto encontrado</div>
+<div class="hist-empty-sub">Nenhum resultado para "${escHtml(BUSCA_HIST)}"</div>
+</div>`;
   return dias.map(d => _buildHistDiaCard(d, porDia[d])).join('');
 }
 
@@ -3281,9 +3332,13 @@ async function editarItem(itemId, novaQtd) {
 // VISÃO CONSOLIDADO
 // ══════════════════════════════════════════════════
 function _buildHistConsolidado() {
-  // Agregar por produto
+  // Agregar por produto (com filtro de busca)
+  const q = normalizar(BUSCA_HIST);
   const agg = {};
-  HIST_DADOS.forEach(it => {
+  const dadosFiltrados = q
+    ? HIST_DADOS.filter(i => normalizar(i.produto_nome || '').includes(q))
+    : HIST_DADOS;
+  dadosFiltrados.forEach(it => {
     const q = Number(it.qtd_produzida) || 0;
     if (!q) return;
     const key = it.produto_id || it.produto_nome;
