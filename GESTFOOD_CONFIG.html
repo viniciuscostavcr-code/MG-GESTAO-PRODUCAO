@@ -292,7 +292,7 @@ input:focus,select:focus{border-color:var(--grn);background:#fff;}
     <div class="card-sub">Configure a meta semanal por produto e a distribuição por dia da semana.</div>
     <div class="meta-setor-bar">
       <button class="meta-setor-btn on" id="metaBtnPad" onclick="setMetaSetor('PADARIA')">🍞 Padaria</button>
-      <button class="meta-setor-btn" id="metaBtnConf" onclick="setMetaSetor('CONFEITARIA/PASTELARIA')">🎂 Confeitaria/Pastelaria</button>
+      <button class="meta-setor-btn" id="metaBtnConf" onclick="setMetaSetor('CONFEITARIA')">🎂 Confeitaria/Pastelaria</button>
     </div>
     <div id="metaTabelaWrap">
       <div style="text-align:center;padding:24px;color:#6B7280;">⏳ Carregando...</div>
@@ -464,7 +464,7 @@ const H={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'ap
 
 // Estado
 let PRODS = [];
-let SETORES = ['PADARIA','CONFEITARIA/PASTELARIA','LANCHONETE','PASTELARIA'];
+let SETORES = ['PADARIA','CONFEITARIA','LANCHONETE','PASTELARIA'];
 let RESPS = [];
 let _setorFiltro = 'TODOS';
 let _editId = null;
@@ -1199,7 +1199,7 @@ function _getDefMeta(nome, setor) {
 function setMetaSetor(s) {
   META_SETOR = s;
   document.getElementById('metaBtnPad').classList.toggle('on', s === 'PADARIA');
-  document.getElementById('metaBtnConf').classList.toggle('on', s === 'CONFEITARIA/PASTELARIA');
+  document.getElementById('metaBtnConf').classList.toggle('on', s === 'CONFEITARIA');
   renderMetas();
 }
 
