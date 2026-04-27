@@ -65,6 +65,24 @@ input:focus,select:focus{border-color:var(--grn);background:#fff;}
 .btn-full{width:100%;margin-top:10px;}
 .btn-sm{padding:6px 10px;font-size:.72rem;}
 
+/* ABA METAS */
+.meta-tabela-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.meta-tabela{border-collapse:collapse;min-width:600px;width:100%;font-size:.82rem;}
+.meta-tabela th{background:#1B4332;color:#fff;padding:8px 6px;text-align:center;white-space:nowrap;}
+.meta-tabela td{padding:5px 4px;text-align:center;border-bottom:1px solid #F0F0EE;}
+.meta-tabela .col-produto{position:sticky;left:0;background:#fff;z-index:2;min-width:140px;text-align:left;padding:6px 8px;font-weight:600;border-right:2px solid #EAF4EF;font-size:.78rem;}
+.meta-tabela th.col-produto{background:#1B4332;z-index:3;}
+.meta-tabela tr:hover td:not(.col-produto){background:#F7FBF9;}
+.meta-tabela .grupo-hdr td{background:#F0F7F4;font-weight:800;color:#1B4332;font-size:.72rem;padding:5px 8px;border-top:2px solid #2D6A4F;}
+.meta-input{width:52px;border:1px solid #E5E7EB;border-radius:6px;padding:4px;text-align:center;font-size:.8rem;background:#F9FAFB;font-family:inherit;}
+.meta-input:focus{border-color:#2D6A4F;background:#fff;outline:none;}
+.meta-meta-input{width:58px;border:1.5px solid #2D6A4F;border-radius:6px;padding:4px;text-align:center;font-size:.82rem;font-weight:700;color:#2D6A4F;background:#EAF4EF;font-family:inherit;}
+.meta-meta-input:focus{background:#fff;outline:none;}
+.meta-meta{font-weight:700;color:#2D6A4F;font-size:.82rem;}
+.meta-setor-bar{display:flex;gap:6px;margin-bottom:12px;}
+.meta-setor-btn{padding:7px 16px;border-radius:10px;border:1.5px solid var(--border);background:#fff;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;color:var(--brown2);}
+.meta-setor-btn.on{background:var(--grn);color:#fff;border-color:var(--grn);}
+
 /* BUSCA */
 .sw{position:relative;margin-bottom:10px;}
 .sw input{padding-left:36px;background:#fff;}
@@ -191,6 +209,7 @@ input:focus,select:focus{border-color:var(--grn);background:#fff;}
   <div class="tab" onclick="go('resps')">👤 Resp.</div>
   <div class="tab" onclick="go('usuarios')">🔐 Usuários</div>
   <div class="tab" onclick="go('sync')">☁️ Sync</div>
+  <div class="tab" onclick="go('metas')">📊 Metas</div>
 </div>
 
 <div class="scr">
@@ -263,6 +282,21 @@ input:focus,select:focus{border-color:var(--grn);background:#fff;}
   <div class="card">
     <div class="card-title">📊 Estatísticas</div>
     <div id="statsBox" style="font-size:.78rem;color:var(--gray);">Carregando...</div>
+  </div>
+</div>
+
+<!-- ═══ ABA METAS ═══ -->
+<div class="vw" id="v-metas">
+  <div class="card">
+    <div class="card-title">📊 Metas de Produção</div>
+    <div class="card-sub">Configure a meta semanal por produto e a distribuição por dia da semana.</div>
+    <div class="meta-setor-bar">
+      <button class="meta-setor-btn on" id="metaBtnPad" onclick="setMetaSetor('PADARIA')">🍞 Padaria</button>
+      <button class="meta-setor-btn" id="metaBtnConf" onclick="setMetaSetor('CONFEITARIA/PASTELARIA')">🎂 Confeitaria/Pastelaria</button>
+    </div>
+    <div id="metaTabelaWrap">
+      <div style="text-align:center;padding:24px;color:#6B7280;">⏳ Carregando...</div>
+    </div>
   </div>
 </div>
 
@@ -515,13 +549,14 @@ function _confResp(ok){
 
 // ── Tabs ──
 function go(t){
-  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('on',['produtos','setores','resps','usuarios','sync'][i]===t));
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('on',['produtos','setores','resps','usuarios','sync','metas'][i]===t));
   document.querySelectorAll('.vw').forEach(v=>v.classList.remove('on'));
   document.getElementById('v-'+t).classList.add('on');
   if(t==='setores')renderSetores();
   if(t==='resps')renderResps();
   if(t==='usuarios')renderUsuarios();
   if(t==='sync')renderSyncStats();
+  if(t==='metas')renderMetas();
 }
 
 // ── USUÁRIOS ──
@@ -1042,6 +1077,307 @@ async function renderSyncStats(){
       </div>`;
   }catch(e){
     document.getElementById('statsBox').textContent='Erro ao carregar estatísticas.';
+  }
+}
+
+// ══════════════════════════════════════════════════
+// ABA METAS — projecao_base
+// ══════════════════════════════════════════════════
+
+let METAS = {};         // `${produto_id}_${setor}` → row
+let META_SETOR = 'PADARIA';
+
+const _SQL_PROJECAO_BASE = `
+CREATE TABLE IF NOT EXISTS projecao_base (
+  id uuid default gen_random_uuid() primary key,
+  produto_id text,
+  produto_nome text,
+  setor text,
+  categoria text,
+  unidade text,
+  meta_semanal numeric,
+  seg numeric default 0,
+  ter numeric default 0,
+  qua numeric default 0,
+  qui numeric default 0,
+  sex numeric default 0,
+  sab numeric default 0,
+  dom numeric default 0,
+  atualizado_em timestamptz default now(),
+  CONSTRAINT uq_proj_base UNIQUE(produto_id, setor)
+);
+ALTER TABLE projecao_base ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "allow all" ON projecao_base FOR ALL USING (true) WITH CHECK (true);
+`.trim();
+
+// Metas hardcoded por setor (fallback quando não há registro no banco)
+const _META_DEF = {
+  PADARIA: {
+    'PAO KG':                      [304,270,287,277,279,250,151],
+    'PAO DOCE':                    [16,12,15,15,15,13,3],
+    'PAO DE CACH QUENTE DA CASA':  [10,10,12,13,15,11,8],
+    'PAO DE HAMB DA CASA':         [7,8,9,11,13,8,5],
+    'PAO DE CX DA CASA':           [7,6,7,6,8,6,4],
+    'PAO RECIFE':                  [7,4,4,4,3,3,2],
+    'PAO DE QUEIJO KG':            [4,4,4,4,4,3,1],
+    'MINI CROISSANT KG':           [0,5,0,0,5,4,0],
+    'SANDUICHE CROISSANT KG':      [0,3,0,0,3,2,0],
+    'BOL PRAEIRA DA CASA':         [5,0,0,0,5,4,0],
+    'BOL SODA DA CASA':            [2,0,0,0,2,2,0],
+    'BOLACHA SUICA DA CASA':       [2,0,0,0,2,2,0],
+    'BOL COCO DA CASA':            [1,0,0,0,1,1,0],
+    'BOLACHA PORTUGUESA KG':       [1,0,0,0,1,1,0],
+    'BOL SETE CAPA':               [1,0,0,0,1,1,0],
+    'BOLACHA CEBOLA':              [1,0,0,0,1,1,0],
+    'BOLACHA ALHO':                [1,0,0,0,1,1,0],
+    'BOLACHA SODA INT':            [1,0,0,0,1,1,0],
+    'TORRADA DA CASA ALHO':        [0,0,4,0,3,3,0],
+    'TORRADA DA CASA':             [0,0,2,0,2,2,0],
+    'FARINHA DE ROSCA':            [0,0,2,0,2,2,0],
+    'TORRADA INT DA CASA':         [0,0,1,0,1,1,0],
+    'PAO FRANCES INTEGRAL':        [4,0,0,0,0,4,0],
+    'MINI PAO DOCE':               [6,0,0,0,0,3,0],
+    'PAO MANDIOQUINHA KG':         [1,0,0,0,0,1,0],
+    'PAO DE BATATA KG':            [1,0,0,0,0,1,0],
+    'PAO FAZENDA KG':              [0,1,0,0,0,1,0],
+    'PAO ITALIANO KG':             [0,1,0,0,0,1,0],
+    'PAO BAGUETE GERGELIM':        [0,1,0,0,0,1,0],
+    'BRIOCHE KG':                  [0,0,1,0,0,1,0],
+    'SALGADOS FOLHADOS UN':        [0,0,0,37,42,32,0],
+    'SALG DE BATATA/FGO UND':      [0,0,0,19,25,20,0],
+    'EMPADA DE FRANGO UN':         [0,0,0,6,7,8,0],
+    'MINI EMPADA UN':              [0,0,0,6,7,8,0],
+    'SALGADO JOELHO UN':           [0,0,0,28,18,15,0],
+    'PIZZA DA CASA PQ KG':         [0,0,0,6,5,4,0],
+    'CHOCOTONE DA CASA KG':        [0,0,0,5,0,4,0],
+    'PANETONE DA CASA KG':         [0,0,0,4,0,4,0],
+  },
+  CONFEITARIA: {
+    'BOLO DE MACAXEIRA':           [5,0,6,0,5,6,0],
+    'BOLO PAMONHA KG':             [3,0,5,0,4,4,0],
+    'BOLO DE QUEIJO KG':           [3,0,4,0,3,4,0],
+    'BOLO FORMIGUEIRO KG':         [3,0,2,0,3,3,0],
+    'BOLO TRIGO PQ':               [0,2,0,2,3,2,0],
+    'BOLO DE BANANA C/CANELA':     [0,3,0,3,2,3,0],
+    'BOLO DE MACA/CANELA KG':      [0,2,0,1,1,2,0],
+    'BOLO CENOURA KG':             [0,2,0,2,1,2,0],
+    'BOLO INGLES KG':              [0,2,0,2,2,2,0],
+    'BOLO MESCLADO KG':            [0,1,0,1,2,2,0],
+    'BOLO DE BANANA KG':           [0,1,0,2,2,2,0],
+    'TORTA CHOCOLATE KG':          [2,0,0,3,0,2,0],
+    'TORTA DE DC LEITE KG':        [1,0,0,1,0,2,0],
+    'TORTA MORANGO KG':            [1,0,0,1,0,2,0],
+    'TORTA MARACUJA KG':           [1,0,0,1,0,2,0],
+    'MOUSSE UND':                  [0,4,0,5,0,4,0],
+    'PUDIM KG':                    [0,1,0,1,0,1,0],
+    'DONUTS KG':                   [0,1,0,1,0,1,0],
+    'COOKIES KG':                  [0,1,0,1,0,1,0],
+    'BROA KG':                     [0,1,0,1,0,2,0],
+    'MINI BROA KG':                [0,2,0,3,0,3,0],
+    'BRIGADEIRAO UND':             [0,5,0,5,0,4,0],
+    'SALG DE QUEIJO KG':           [3,0,4,0,5,0,0],
+    'SALG DE CEBOLA KG':           [2,0,2,0,2,0,0],
+  }
+};
+
+const _DIAS_META = ['seg','ter','qua','qui','sex','sab','dom'];
+
+function _normMeta(s) {
+  return (s||'').toUpperCase().trim()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'');
+}
+
+function _getDefMeta(nome, setor) {
+  const def = _META_DEF[setor] || {};
+  const n = _normMeta(nome);
+  for (const [k, v] of Object.entries(def)) {
+    if (_normMeta(k) === n) return v;
+  }
+  return null;
+}
+
+function setMetaSetor(s) {
+  META_SETOR = s;
+  document.getElementById('metaBtnPad').classList.toggle('on', s === 'PADARIA');
+  document.getElementById('metaBtnConf').classList.toggle('on', s === 'CONFEITARIA/PASTELARIA');
+  renderMetas();
+}
+
+async function renderMetas() {
+  if (!IS_ADMIN) {
+    document.getElementById('metaTabelaWrap').innerHTML =
+      '<div style="text-align:center;padding:24px;color:#6B7280;">🔒 Acesso restrito ao administrador.</div>';
+    return;
+  }
+  const wrap = document.getElementById('metaTabelaWrap');
+  if (!wrap) return;
+  wrap.innerHTML = '<div style="text-align:center;padding:24px;color:#6B7280;">⏳ Carregando...</div>';
+
+  try {
+    // Carregar registros do banco
+    const rows = await sbSelect('projecao_base',
+      'setor=eq.' + encodeURIComponent(META_SETOR) + '&limit=500').catch(e => {
+      if (_isTabelaFaltando(e)) {
+        console.warn('projecao_base não existe. Execute:\n\n' + _SQL_PROJECAO_BASE);
+        toast('⚠️ Tabela projecao_base não criada — veja console (F12)', 'er');
+      }
+      return [];
+    });
+    METAS = {};
+    (rows || []).forEach(r => { METAS[r.produto_id + '_' + r.setor] = r; });
+
+    // Produtos do setor
+    const prods = PRODS.filter(p => (p.setor||'').toUpperCase().trim() === META_SETOR);
+    if (!prods.length) {
+      wrap.innerHTML = '<div style="text-align:center;padding:24px;color:#6B7280;">Nenhum produto cadastrado para ' + META_SETOR + '.</div>';
+      return;
+    }
+
+    // Agrupar por categoria
+    const grupos = {};
+    prods.forEach(p => {
+      const cat = (p.categoria || 'OUTROS').toUpperCase();
+      if (!grupos[cat]) grupos[cat] = [];
+      grupos[cat].push(p);
+    });
+    const catOrder = Object.keys(grupos).sort();
+
+    // Montar tabela
+    let tbRows = '';
+    catOrder.forEach(cat => {
+      tbRows += `<tr class="grupo-hdr"><td colspan="9" class="col-produto">${cat}</td></tr>`;
+      grupos[cat].sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR')).forEach(p => {
+        const mk = p.id + '_' + META_SETOR;
+        const dbRow = METAS[mk];
+        const def   = _getDefMeta(p.nome, META_SETOR);
+        const dias  = _DIAS_META.map((d, i) => {
+          const v = dbRow ? (Number(dbRow[d]) || 0) : (def ? (def[i] || 0) : 0);
+          return v;
+        });
+        const metaSem = dias.reduce((a, v) => a + v, 0);
+        const priIco  = CK_CFGS[p.id]?.prioritario ? '⭐ ' : '';
+        const cells   = dias.map((v, i) => {
+          const d = _DIAS_META[i];
+          const vStr = v > 0 ? String(v) : '';
+          return `<td><input class="meta-input" type="number" min="0" step="0.5"
+            id="mi_${p.id}_${d}" value="${vStr}" placeholder=""
+            oninput="_onMetaInput('${p.id}')"
+            onblur="salvarMeta('${p.id}')"></td>`;
+        }).join('');
+
+        tbRows += `<tr>
+          <td class="col-produto" title="${p.nome}">${priIco}${p.nome}</td>
+          <td><input class="meta-meta-input" type="number" min="0" step="1"
+            id="mm_${p.id}" value="${metaSem > 0 ? metaSem : ''}" placeholder=""
+            oninput="_onMetaSemInput('${p.id}')"
+            onblur="salvarMeta('${p.id}')"></td>
+          ${cells}
+        </tr>`;
+      });
+    });
+
+    wrap.innerHTML = `<div class="meta-tabela-wrap">
+<table class="meta-tabela">
+<thead><tr>
+  <th class="col-produto">Produto</th>
+  <th>Meta<br>/sem</th>
+  <th>Seg</th><th>Ter</th><th>Qua</th><th>Qui</th><th>Sex</th><th>Sáb</th><th>Dom</th>
+</tr></thead>
+<tbody>${tbRows}</tbody>
+</table></div>`;
+
+  } catch(e) {
+    wrap.innerHTML = '<div style="text-align:center;padding:24px;color:#C0392B;">❌ Erro: ' + e.message.slice(0,60) + '</div>';
+  }
+}
+
+function _onMetaInput(prodId) {
+  // Recalcular meta/sem em tempo real ao editar dias
+  const total = _DIAS_META.reduce((acc, d) => {
+    const el = document.getElementById('mi_' + prodId + '_' + d);
+    return acc + (el ? (parseFloat(el.value) || 0) : 0);
+  }, 0);
+  const mm = document.getElementById('mm_' + prodId);
+  if (mm) mm.value = total > 0 ? total : '';
+}
+
+function _onMetaSemInput(prodId) {
+  // Distribuir meta/sem proporcionalmente pelos dias ao editar a coluna total
+  const mm = document.getElementById('mm_' + prodId);
+  const novaMeta = parseFloat(mm ? mm.value : '') || 0;
+  if (novaMeta <= 0) return;
+
+  // Ler valores atuais dos dias
+  const vals = _DIAS_META.map(d => {
+    const el = document.getElementById('mi_' + prodId + '_' + d);
+    return el ? (parseFloat(el.value) || 0) : 0;
+  });
+  const totalAtual = vals.reduce((a, v) => a + v, 0);
+
+  if (totalAtual <= 0) {
+    // Se todos os dias estão zerados, distribuir igualmente pelos 7 dias
+    const por = Math.round(novaMeta / 7);
+    const resto = novaMeta - por * 6;
+    _DIAS_META.forEach((d, i) => {
+      const el = document.getElementById('mi_' + prodId + '_' + d);
+      if (el) el.value = i < 6 ? (por > 0 ? por : '') : (resto > 0 ? resto : '');
+    });
+  } else {
+    // Distribuir proporcionalmente e arredondar mantendo soma exata
+    let restante = novaMeta;
+    const novos = vals.map((v, i) => {
+      if (i === _DIAS_META.length - 1) return restante; // último recebe o resto
+      const proporcional = Math.round((v / totalAtual) * novaMeta);
+      restante -= proporcional;
+      return proporcional;
+    });
+    _DIAS_META.forEach((d, i) => {
+      const el = document.getElementById('mi_' + prodId + '_' + d);
+      if (el) el.value = novos[i] > 0 ? novos[i] : '';
+    });
+  }
+}
+
+async function salvarMeta(prodId) {
+  const prod = PRODS.find(p => p.id === prodId);
+  if (!prod) return;
+  const diasVals = {};
+  let metaSem = 0;
+  _DIAS_META.forEach(d => {
+    const el = document.getElementById('mi_' + prodId + '_' + d);
+    const v  = el ? (parseFloat(el.value) || 0) : 0;
+    diasVals[d] = v;
+    metaSem    += v;
+  });
+  const payload = {
+    produto_id:   prodId,
+    produto_nome: prod.nome,
+    setor:        META_SETOR,
+    categoria:    (prod.categoria || 'OUTROS').toUpperCase(),
+    unidade:      (prod.unidade || 'kg').toLowerCase(),
+    meta_semanal: metaSem,
+    ...diasVals,
+    atualizado_em: new Date().toISOString()
+  };
+  try {
+    const r = await fetch(
+      SUPA_URL + '/rest/v1/projecao_base?on_conflict=produto_id,setor', {
+      method: 'POST',
+      headers: {...H, 'Prefer': 'resolution=merge-duplicates,return=representation'},
+      body: JSON.stringify(payload)
+    });
+    if (r.ok) {
+      const rows = await r.json();
+      const row  = Array.isArray(rows) ? rows[0] : rows;
+      if (row) METAS[prodId + '_' + META_SETOR] = row;
+      toast('✅ Meta salva', 'ok');
+    } else {
+      const err = await r.text();
+      console.warn('salvarMeta erro:', err);
+      toast('❌ Erro ao salvar meta', 'er');
+    }
+  } catch(e) {
+    toast('❌ Erro: ' + e.message.slice(0, 40), 'er');
   }
 }
 

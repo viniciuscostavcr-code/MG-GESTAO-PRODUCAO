@@ -780,6 +780,7 @@ let SESSAO = null;
 let TODOS_PRODS = [];   // produtos do setor atual
 let CK_CFG = {};        // produto_id → checklist_config
 let CK_EMBS = {};       // produto_id → [{id, nome_embalagem, gramatura_g, ordem}]
+let PROJ_BASE = {};     // produto_id → projecao_base row (metas do Supabase)
 let REGISTROS = {};     // produto_id → {_dbId, qtd_gondola, qtd_freezer, embs_gon, embs_frz, salvo}
 let ULTIMO_CK = null;
 let FILTRO = 'todos';
@@ -798,7 +799,7 @@ let _addEmbProdId = null; // produto sendo editado no modal de embalagem
 const PRODUTOS_DOMINGO_PADARIA = ['pao kg','pao frances','pao doce'];
 function _isDomingo() { return new Date().getDay() === 0; }
 function _isDomBloqueado(prod) {
-  return false; // domingo liberado — operador decide
+  return false;
 }
 
 const CAT_ICO = {
@@ -935,6 +936,7 @@ async function setSetor(s) {
   TODOS_PRODS    = [];
   PROD_ITENS     = {};
   PROD_HOJE_VALS = {};
+  PROJ_BASE      = {};
 
   // Resetar estado do histórico
   HIST_DADOS  = [];
@@ -979,6 +981,13 @@ async function _carregarDados() {
       `setor=eq.${encodeURIComponent(SETOR)}&ativo=eq.true&limit=500`).catch(()=>[]);
     CK_CFG = {};
     (cfgs||[]).forEach(c => { if (c.produto_id) CK_CFG[c.produto_id] = c; });
+
+    // Projeção base (metas configuradas pelo admin)
+    const projRows = await sbSelect('projecao_base',
+      `setor=eq.${encodeURIComponent(SETOR)}&limit=500`).catch(() => []);
+    PROJ_BASE = {};
+    (projRows || []).forEach(r => { if (r.produto_id) PROJ_BASE[r.produto_id] = r; });
+    console.log('📊 projecao_base carregada:', Object.keys(PROJ_BASE).length, 'registros');
 
     // Embalagens por produto
     let embs = [];
@@ -1430,7 +1439,7 @@ function _buildProdCard(p) {
           id="egram-${campo}-${p.id}-${e.id}"
           oninput="onEmbGramInput('${p.id}','${campo}','${e.id}',this.value)">
         <span class="emb-gram-suf">g ×</span>
-        <input class="emb-inp" type="number" inputmode="numeric" min="0" step="1"
+        <input class="emb-inp" type="number" inputmode="numeric" min="0" placeholder="0" step="1"
           value="${qty}" placeholder="0"
           id="emb-${campo}-${p.id}-${e.id}"
           oninput="onEmbInput('${p.id}','${campo}','${e.id}',null,this.value)"
@@ -2636,8 +2645,12 @@ function aoClicarCelula(prodId, dateISO, prodNome, qtdSug, und) {
     abrirPlanModal(prodId, dateISO, prodNome, qtdSug, und);
     return;
   }
-  // Passado: info rápida via toast
-  tooltipPassado(prodId, dateISO);
+  // Passado: admin pode registrar, operador só vê
+  if (IS_ADMIN) {
+    abrirPlanModal(prodId, dateISO, prodNome, qtdSug, und);
+  } else {
+    tooltipPassado(prodId, dateISO);
+  }
 }
 
 // ── Tooltip para célula passada ──
@@ -2703,17 +2716,6 @@ function _renderConfirmarHoje(vw) {
 
   // Mostrar TODOS os produtos — operador decide o que produzir
   let prodsHoje = TODOS_PRODS.filter(p => !isFechado);
-  prodsHoje.sort((a, b) => {
-    // 1º: prioritários urgentes, 2º: prioritários, 3º: com sugestão, 4º: demais
-    const sk = (p) => {
-      const k = _sortKeyProd(p);
-      const lote = getLoteProduto(p.nome, SETOR, dsem, hoje);
-      if (k <= 1) return k;          // 0=🔴⭐, 1=🟡⭐
-      if (k === 2) return 2;         // ⭐ ok
-      return lote.qtd > 0 ? 3 : 4;  // com sugestão vs sem sugestão
-    };
-    return sk(a) - sk(b);
-  });
 
   // Contagem de confirmados
   const nConf  = prodsHoje.filter(p=>PROD_HOJE_VALS[p.id]?.done).length;
@@ -3900,6 +3902,26 @@ function getSazonalidade(dataISO) {
  * }}
  */
 function getLoteProduto(produtoNome, setor, diaSemana, dataISO) {
+  // 1ª prioridade: metas configuradas no Supabase (projecao_base)
+  const _diasIdx = ['dom','seg','ter','qua','qui','sex','sab'];
+  const pbMatch = Object.values(PROJ_BASE).find(r =>
+    _normProdNome(r.produto_nome || '') === _normProdNome(produtoNome));
+  if (pbMatch) {
+    const dKey = _diasIdx[diaSemana] || 'seg';
+    const qtd  = Number(pbMatch[dKey]) || 0;
+    return {
+      qtd,
+      mediaDia:     qtd,
+      sazonalidade: 1,
+      loteBase:     qtd,
+      cap:          0,
+      regra:        null,
+      categoria:    (pbMatch.categoria || '—').toUpperCase(),
+      observacao:   'Meta do Supabase (projecao_base)',
+      diasProducao: _diasIdx.map((d, i) => Number(pbMatch[d]) > 0 ? i : -1).filter(i => i >= 0)
+    };
+  }
+
   const norm       = _normProdNome(produtoNome);
   const regra      = _encontrarRegra(norm, setor);
   const mediaDia   = _getMediaDia(norm, diaSemana);
