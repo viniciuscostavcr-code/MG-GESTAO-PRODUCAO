@@ -414,7 +414,26 @@ body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif
 .prod-tabela th{background:#1B4332;color:#fff;padding:10px 8px;text-align:center;white-space:nowrap;}
 .prod-tabela .col-produto{position:sticky;left:0;background:#fff;z-index:2;min-width:140px;max-width:160px;text-align:left;padding:8px 10px;font-weight:600;border-right:2px solid #EAF4EF;}
 .prod-tabela th.col-produto{background:#1B4332;z-index:3;}
-.prod-tabela .col-meta{min-width:60px;background:#F7F7F5;font-weight:700;text-align:center;padding:8px 6px;border-right:2px solid #EAF4EF;color:#2D6A4F;}
+.prod-tabela .col-meta{min-width:60px;background:#F7F7F5;font-weight:700;text-align:center;padding:4px 4px;border-right:2px solid #EAF4EF;color:#2D6A4F;}
+/* meta cell clickável */
+.col-meta-btn{display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;padding:4px 2px;border-radius:6px;transition:background .15s;}
+.col-meta-btn:active{background:#EAF4EF;}
+.col-meta-val{font-size:.78rem;font-weight:700;color:#2D6A4F;}
+.col-meta-hint{font-size:.55rem;color:#9CA3AF;line-height:1;}
+/* popup meta */
+.meta-pop-ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1100;display:none;align-items:center;justify-content:center;padding:16px;}
+.meta-pop-ov.on{display:flex;}
+.meta-pop-box{background:#fff;border-radius:16px;padding:20px;width:min(320px,100%);box-shadow:0 8px 32px rgba(0,0,0,.2);}
+.meta-pop-ttl{font-weight:800;font-size:.9rem;color:#1B4332;margin-bottom:2px;}
+.meta-pop-prod{font-size:.78rem;color:#6B7280;margin-bottom:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.meta-pop-lbl{font-size:.78rem;font-weight:700;color:#374151;margin-bottom:6px;}
+.mp-dias-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px;}
+.mp-dia-btn{background:#F3F4F6;color:#374151;border:1.5px solid #E5E7EB;border-radius:7px;padding:6px 10px;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;min-width:38px;text-align:center;}
+.mp-dia-btn.on{background:#2D6A4F;color:#fff;border-color:#2D6A4F;}
+.meta-pop-row{display:flex;align-items:center;gap:8px;margin-bottom:18px;}
+.meta-pop-inp{width:90px;border:1.5px solid #D1D5DB;border-radius:8px;padding:8px 10px;font-size:.95rem;font-weight:700;text-align:center;outline:none;}
+.meta-pop-inp:focus{border-color:#2D6A4F;}
+.meta-pop-und{font-size:.82rem;color:#6B7280;}
 .prod-tabela td.col-dia{min-width:58px;text-align:center;padding:6px 4px;vertical-align:middle;cursor:pointer;}
 .dia-hoje{background:#EAF4EF!important;}
 .prod-tabela th.dia-hoje{background:#2D6A4F!important;font-weight:800;}
@@ -423,6 +442,8 @@ body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif
 .cel-planejado{background:#DBEAFE;color:#1E40AF;font-weight:600;border-radius:6px;padding:3px 6px;font-size:.78rem;display:inline-block;}
 .cel-sugerido{color:#374151;font-size:.78rem;}
 .cel-bloqueado{color:#D1D5DB;font-size:.75rem;}
+.cel-vazio{color:#9CA3AF;font-size:.9rem;font-weight:500;}
+.prod-num{display:inline-block;min-width:18px;font-size:.68rem;font-weight:700;color:#9CA3AF;margin-right:3px;}
 .prod-grupo-header td{background:#F0F7F4!important;font-weight:800;color:#1B4332;font-size:.78rem;padding:6px 10px!important;border-top:2px solid #2D6A4F;}
 </style>
 </head>
@@ -599,13 +620,34 @@ body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif
   </div>
 </div>
 
-<!-- MODAL PLANEJAR DIA -->
+<!-- MODAL META — SELETOR DE DIAS -->
+<div class="meta-pop-ov" id="metaPopOv" onclick="if(event.target===this)_fecharMetaPop()">
+  <div class="meta-pop-box">
+    <div class="meta-pop-ttl">📊 Meta de Produção</div>
+    <div class="meta-pop-prod" id="mpProdNm"></div>
+    <div class="meta-pop-lbl">Dias de produção:</div>
+    <div class="mp-dias-row" id="mpDiasRow"></div>
+    <div class="meta-pop-lbl">Meta semanal:</div>
+    <div class="meta-pop-row">
+      <input class="meta-pop-inp" type="number" min="0" inputmode="numeric" id="mpMetaInp"
+        placeholder="0"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();_salvarMetaPop()}">
+      <span class="meta-pop-und" id="mpUndLbl">kg</span>
+    </div>
+    <div class="emb-modal-btns">
+      <button class="conf-cn" onclick="_fecharMetaPop()">Cancelar</button>
+      <button class="conf-ok" onclick="_salvarMetaPop()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PLANEJAR / REGISTRAR DIA -->
 <div class="plan-ov" id="planOv">
   <div class="plan-box">
     <div class="plan-ttl" id="planTtl">📝 Planejar produção</div>
     <div class="plan-sub" id="planSub"></div>
     <div class="emb-modal-fg">
-      <label class="emb-modal-lbl">Quantidade planejada *</label>
+      <label class="emb-modal-lbl" id="planQtdLbl">Quantidade planejada *</label>
       <input class="emb-modal-inp" type="number" id="planVal" inputmode="decimal" min="0" step="0.5" placeholder="Ex: 20">
     </div>
     <div class="emb-modal-btns">
@@ -753,10 +795,9 @@ async function _upsertMinimosPadrao() {
   });
   if (!upserts.length) return;
   try {
-    const r = await fetch(`${SUPA_URL}/rest/v1/checklist_config`, {
+    const r = await fetch(`${SUPA_URL}/rest/v1/checklist_config?on_conflict=produto_id`, {
       method: 'POST',
-      headers: {...SH, 'Prefer': 'resolution=merge-duplicates,return=representation',
-                'on_conflict': 'produto_id'},
+      headers: {...SH, 'Prefer': 'resolution=merge-duplicates,return=representation'},
       body: JSON.stringify(upserts)
     });
     if (r.ok) {
@@ -2046,10 +2087,9 @@ async function salvarCfgMin() {
   };
 
   try {
-    const r = await fetch(`${SUPA_URL}/rest/v1/checklist_config`, {
+    const r = await fetch(`${SUPA_URL}/rest/v1/checklist_config?on_conflict=produto_id`, {
       method: 'POST',
-      headers: {...SH, 'Prefer': 'resolution=merge-duplicates,return=representation',
-                'on_conflict': 'produto_id'},
+      headers: {...SH, 'Prefer': 'resolution=merge-duplicates,return=representation'},
       body: JSON.stringify(payload)
     });
     if (!r.ok) throw new Error(await r.text());
@@ -2278,22 +2318,53 @@ async function _carregarProdItens(segISO) {
   PROD_ITENS = {};
   PROD_SEM_ID = null;
   try {
-    // 1. Obter/criar semana
-    const r = await fetch(`${SUPA_URL}/rest/v1/producao_semanas`, {
-      method:'POST',
-      headers:{...SH,'Prefer':'resolution=merge-duplicates,return=representation','on_conflict':'setor,semana_inicio'},
-      body:JSON.stringify({setor:SETOR, semana_inicio:segISO})
-    });
-    if (!r.ok) throw new Error(await r.text());
-    const rows = await r.json();
-    PROD_SEM_ID = (Array.isArray(rows)?rows[0]:rows)?.id || null;
+    // 1a. Tenta upsert (GET-or-CREATE) via POST com on_conflict
+    //     Se a tabela não tiver UNIQUE constraint, o POST retorna 400 — tratamos abaixo
+    try {
+      const r = await fetch(
+        `${SUPA_URL}/rest/v1/producao_semanas?on_conflict=setor,semana_inicio`, {
+        method:'POST',
+        headers:{...SH,'Prefer':'resolution=merge-duplicates,return=representation'},
+        body:JSON.stringify({setor:SETOR, semana_inicio:segISO})
+      });
+      if (r.ok) {
+        const rows = await r.json();
+        PROD_SEM_ID = (Array.isArray(rows)?rows[0]:rows)?.id || null;
+      }
+      // Se !r.ok (ex: 42P10 — sem constraint), cai no GET abaixo
+    } catch(_) { /* ignora — tenta GET + INSERT manual abaixo */ }
+
+    // 1b. Se ainda sem id: busca existente via GET
+    if (!PROD_SEM_ID) {
+      const existing = await sbSelect('producao_semanas',
+        `setor=eq.${encodeURIComponent(SETOR)}&semana_inicio=eq.${segISO}&limit=1`);
+      PROD_SEM_ID = (existing||[])[0]?.id || null;
+    }
+
+    // 1c. Se não existe: cria via INSERT simples (sem on_conflict)
+    if (!PROD_SEM_ID) {
+      const r2 = await fetch(`${SUPA_URL}/rest/v1/producao_semanas`, {
+        method:'POST',
+        headers:{...SH,'Prefer':'return=representation'},
+        body:JSON.stringify({setor:SETOR, semana_inicio:segISO})
+      });
+      if (r2.ok) {
+        const rows2 = await r2.json();
+        PROD_SEM_ID = (Array.isArray(rows2)?rows2[0]:rows2)?.id || null;
+      }
+    }
+
     if (!PROD_SEM_ID) return;
 
-    // 2. Carregar itens
+    // 2. Carregar itens da semana
     const itens = await sbSelect('producao_itens',
       `semana_id=eq.${PROD_SEM_ID}&limit=2000`);
     (itens||[]).forEach(it => {
-      PROD_ITENS[`${it.produto_id}_${it.data_dia}`] = it;
+      // produto_id no banco é UUID (incompatível com ids inteiros do app).
+      // Usamos produto_nome para mapear de volta ao id do app.
+      const prod = TODOS_PRODS.find(p => p.nome === it.produto_nome);
+      const key  = prod ? `${prod.id}_${it.data_dia}` : `${it.produto_nome}_${it.data_dia}`;
+      PROD_ITENS[key] = it;
     });
   } catch(e) {
     if (_isTabelaFaltando(e)) {
@@ -2309,42 +2380,57 @@ async function _carregarProdItens(segISO) {
 //   fields = { qtd_planejada?, qtd_produzida?, status }
 //   qtd_sugerida é calculada internamente APENAS no INSERT.
 //   Nunca sobrescreve qtd_sugerida em rows existentes.
+//
+// Schema real de producao_itens (verificado 28/04/2026):
+//   id, semana_id, produto_id(UUID-null), produto_nome, categoria,
+//   setor, unidade, dia, data_dia, qtd_sugerida, qtd_planejada,
+//   qtd_produzida, status, obs, atualizado_em
+//   (SEM responsavel_nome, SEM editado_por)
 // ──────────────────────────────────────────────────
+const _DIA_ABREV = ['dom','seg','ter','qua','qui','sex','sab'];
+
 async function _upsertProdItem(prodId, dateISO, fields) {
-  if (!PROD_SEM_ID) return;
+  if (!PROD_SEM_ID) {
+    toast('⚠️ Semana não carregada — recarregue a aba Produção', 'wa');
+    return false;
+  }
   const prod    = TODOS_PRODS.find(p => p.id === prodId);
   const key     = `${prodId}_${dateISO}`;
-  const existing = PROD_ITENS[key];
   const agora   = new Date().toISOString();
   const unidade = (prod?.unidade || 'KG').toUpperCase();
+  const diaAbr  = _DIA_ABREV[_diaSemNum(dateISO)] || 'seg';
 
-  // Campos de auditoria comuns a INSERT e PATCH
-  const auditoria = {
-    responsavel_nome: GF_USER.nome,
-    editado_por:      GF_USER.nome,
-    atualizado_em:    agora,
-  };
+  // Se não está em memória, tenta buscar no banco por semana+nome+data
+  let existing = PROD_ITENS[key];
+  if (!existing && prod) {
+    try {
+      const rows = await sbSelect('producao_itens',
+        `semana_id=eq.${PROD_SEM_ID}&produto_nome=eq.${encodeURIComponent(prod.nome)}&data_dia=eq.${dateISO}&limit=1`);
+      if (rows?.[0]) {
+        existing = rows[0];
+        PROD_ITENS[key] = existing; // adiciona à memória
+      }
+    } catch(_) {}
+  }
 
   try {
     let row;
 
     if (!existing) {
-      // ── INSERT: cria a linha com qtd_sugerida (valor original do sistema) ──
+      // ── INSERT: cria a linha com qtd_sugerida original ──
       const lote = getLoteProduto(prod?.nome || '', SETOR, _diaSemNum(dateISO), dateISO);
       const payload = {
         semana_id:    PROD_SEM_ID,
-        produto_id:   prodId,
         produto_nome: prod?.nome || '',
         setor:        SETOR,
         unidade,
-        data_dia:      dateISO,
-        qtd_sugerida:  lote.qtd,    // ← gravado UMA vez, nunca mais alterado
-        ...auditoria,
-        ...fields,                  // qtd_planejada / qtd_produzida / status
+        dia:          diaAbr,
+        data_dia:     dateISO,
+        qtd_sugerida: lote.qtd,
+        atualizado_em: agora,
+        ...fields,
       };
-      // Se fields por algum motivo trouxer qtd_sugerida, removemos para garantir
-      // que o valor vem exclusivamente de lote.qtd
-      payload.qtd_sugerida = lote.qtd;
+      payload.qtd_sugerida = lote.qtd; // garante que lote.qtd prevalece
 
       const r = await fetch(`${SUPA_URL}/rest/v1/producao_itens`, {
         method: 'POST',
@@ -2357,44 +2443,33 @@ async function _upsertProdItem(prodId, dateISO, fields) {
 
     } else {
       // ── PATCH: atualiza sem tocar em qtd_sugerida ──
-      const update = { ...auditoria, ...fields };
-      // PROTEÇÃO: remover campos que NÃO devem ser sobrescritos
+      const update = { atualizado_em: agora, unidade, data_dia: dateISO, dia: diaAbr, ...fields };
+      // Nunca sobrescreve campos de identidade
       delete update.qtd_sugerida;
       delete update.semana_id;
-      delete update.produto_id;
       delete update.produto_nome;
-      // Garantir unidade e data_dia caso ainda não existam
-      update.unidade  = unidade;
-      update.data_dia = dateISO;
 
-      const r = await fetch(
-        `${SUPA_URL}/rest/v1/producao_itens?id=eq.${existing.id}`,
-        {
-          method: 'PATCH',
-          headers: { ...SH, 'Prefer': 'return=representation' },
-          body: JSON.stringify(update),
-        }
-      );
+      const r = await fetch(`${SUPA_URL}/rest/v1/producao_itens?id=eq.${existing.id}`, {
+        method: 'PATCH',
+        headers: { ...SH, 'Prefer': 'return=representation' },
+        body: JSON.stringify(update),
+      });
       if (!r.ok) throw new Error(await r.text());
       const saved = await r.json();
-      // Mescla os campos atualizados preservando qtd_sugerida original
       row = { ...existing, ...(Array.isArray(saved) ? saved[0] : saved) };
     }
 
     if (row) PROD_ITENS[key] = row;
 
-    // Indicador discreto na topbar
     const txt = document.getElementById('syncTxt');
     if (txt) { txt.textContent = '✅ sync'; setTimeout(() => setSyncUI('ok'), 2000); }
 
+    return true; // ← sucesso confirmado
+
   } catch(e) {
     console.error('Erro ao salvar prod item:', e.message);
-    if (e.message && e.message.includes('PGRST204')) {
-      toast('❌ Erro de coluna inválida no banco (PGRST204) — veja console (F12)', 'er');
-      console.error('PGRST204 — campos inválidos enviados ao Supabase:', e);
-    } else {
-      toast('❌ Erro ao salvar: ' + e.message.slice(0, 50), 'er');
-    }
+    toast('❌ Erro ao salvar: ' + (e.message||'').slice(0, 80), 'er');
+    return false; // ← falha comunicada ao caller
   }
 }
 
@@ -2539,11 +2614,12 @@ function _popularBodyTabela(dias, hoje) {
   });
 
   let html = '';
+  let _num = 1;
   PROD_GRUPOS_DEF.forEach(gDef => {
     const lista = grupos[gDef.nome];
     if (!lista || !lista.length) return;
     html += `<tr class="prod-grupo-header"><td colspan="9">${gDef.ico} ${gDef.nome}</td></tr>`;
-    lista.forEach(p => { html += _buildTabelaRow(p, dias, hoje); });
+    lista.forEach(p => { html += _buildTabelaRow(p, dias, hoje, _num++); });
   });
 
   if (!html) {
@@ -2555,15 +2631,13 @@ function _popularBodyTabela(dias, hoje) {
   body.innerHTML = html;
 }
 
-function _buildTabelaRow(p, dias, hoje) {
+function _buildTabelaRow(p, dias, hoje, num) {
   const sk   = _sortKeyProd(p);
   const urgE = _urgEmoji(sk);
   const priE = CK_CFG[p.id]?.prioritario ? '⭐' : '';
   const und  = (p.unidade || 'KG').toUpperCase();
   const meta = _metaSem(p, PROD_SEM_ISO);
-  const metaFmt = meta > 0
-    ? (Number.isInteger(meta) ? String(meta) : meta.toFixed(1))
-    : '—';
+  const metaVal = meta > 0 ? (Number.isInteger(meta) ? meta : parseFloat(meta.toFixed(1))) : '';
 
   let cells = '';
   dias.forEach(dateISO => {
@@ -2578,7 +2652,6 @@ function _buildTabelaRow(p, dias, hoje) {
     const ehProd = lote.qtd > 0;
 
     const diaCls  = isHoje ? ' dia-hoje' : '';
-    const onclk   = `onclick="aoClicarCelula('${p.id}','${dateISO}','${escHtml(p.nome)}',${lote.qtd},'${und}')"`;
 
     let inner;
     if (isBloq) {
@@ -2596,22 +2669,35 @@ function _buildTabelaRow(p, dias, hoje) {
       } else if (ehProd) {
         inner = `<span class="cel-sugerido">[${qty}]</span>`;
       } else {
-        // Sem sugestão mas editável (hoje/futuro) ou vazio (passado)
-        inner = (isHoje || isFut)
-          ? `<span class="cel-bloqueado" style="color:#9CA3AF;font-size:.7rem;">+</span>`
-          : `<span class="cel-bloqueado">—</span>`;
+        // Sem sugestão — clicável para registrar em qualquer dia
+        inner = `<span class="cel-vazio">+</span>`;
       }
     }
 
-    // Passado: só clicável se tem dado registrado
-    // Hoje/Futuro: sempre clicável (exceto bloqueado)
-    const clicavel = !isBloq && (isHoje || isFut || isPas || item != null);
-    cells += `<td class="col-dia${diaCls}"${clicavel ? ' ' + onclk : ''}>${inner}</td>`;
+    // Todas as células não bloqueadas são clicáveis (passado = registrar produção retroativa)
+    // Usamos data-* para evitar quebra por apóstrofos no nome do produto
+    const clicavel = !isBloq;
+    if (clicavel) {
+      cells += `<td class="col-dia${diaCls}" onclick="_celClick(this)"
+        data-pid="${p.id}" data-date="${dateISO}"
+        data-nome="${escHtml(p.nome)}" data-sug="${lote.qtd}" data-und="${und}">${inner}</td>`;
+    } else {
+      cells += `<td class="col-dia${diaCls}">${inner}</td>`;
+    }
   });
 
+  const metaCell = IS_ADMIN
+    ? `<td class="col-meta" title="Configurar dias e meta" style="cursor:pointer;"
+         onclick="_metaPopClick(this)" data-pid="${p.id}" data-nome="${escHtml(p.nome)}">
+         <span class="col-meta-val" id="mp_meta_${p.id}">${metaVal || '—'}</span>
+       </td>`
+    : `<td class="col-meta">
+         <span class="col-meta-val" id="mp_meta_${p.id}">${metaVal || '—'}</span>
+       </td>`;
+
   return `<tr>
-    <td class="col-produto" title="${escHtml(p.nome)}">${urgE}${priE} ${escHtml(p.nome)}</td>
-    <td class="col-meta">${metaFmt}</td>
+    <td class="col-produto" title="${escHtml(p.nome)}"><span class="prod-num">${num}</span>${urgE}${priE} ${escHtml(p.nome)}</td>
+    ${metaCell}
     ${cells}
   </tr>`;
 }
@@ -2634,6 +2720,132 @@ function _atualizarResumoSemana(dias) {
     `✅ ${confirmados} confirmados | 📝 ${planejados} planejados | ⏳ ${pendentes} pendentes`;
 }
 
+// ══════════════════════════════════════════════════
+// POPUP META — SELETOR DE DIAS
+// ══════════════════════════════════════════════════
+let _mpProdId   = null;
+let _mpProdNome = null;
+let _mpDiasSel  = [];
+const _MP_DIAS     = ['seg','ter','qua','qui','sex','sab','dom'];
+const _MP_DIAS_LBL = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+
+function _metaPopClick(td) {
+  _abrirMetaPop(td.dataset.pid, td.dataset.nome);
+}
+
+function _abrirMetaPop(prodId, prodNome) {
+  _mpProdId   = prodId;
+  _mpProdNome = prodNome;
+  const prod     = TODOS_PRODS.find(p => p.id === prodId);
+  const existing = PROJ_BASE[prodId];
+
+  // Pré-selecionar dias com valor > 0 no PROJ_BASE (ou Seg-Sáb como padrão)
+  _mpDiasSel = existing
+    ? _MP_DIAS.filter(d => Number(existing[d] || 0) > 0)
+    : ['seg','ter','qua','qui','sex','sab'];
+  if (_mpDiasSel.length === 0) _mpDiasSel = ['seg','ter','qua','qui','sex','sab'];
+
+  const currentMeta = existing ? Number(existing.meta_semanal || 0) : 0;
+
+  document.getElementById('mpProdNm').textContent = prodNome;
+  document.getElementById('mpUndLbl').textContent = (prod?.unidade || 'kg').toLowerCase();
+  document.getElementById('mpMetaInp').value = currentMeta > 0 ? currentMeta : '';
+
+  // Renderiza botões de dias
+  document.getElementById('mpDiasRow').innerHTML = _MP_DIAS.map((d, i) =>
+    `<button class="mp-dia-btn${_mpDiasSel.includes(d) ? ' on' : ''}"
+      id="mpDiaBtn_${d}" onclick="_mpToggleDia('${d}')">${_MP_DIAS_LBL[i]}</button>`
+  ).join('');
+
+  document.getElementById('metaPopOv').classList.add('on');
+  setTimeout(() => document.getElementById('mpMetaInp').focus(), 100);
+}
+
+function _mpToggleDia(d) {
+  if (_mpDiasSel.includes(d)) {
+    if (_mpDiasSel.length > 1) _mpDiasSel = _mpDiasSel.filter(x => x !== d);
+    // (não deixa desmarcar o último dia)
+  } else {
+    _mpDiasSel.push(d);
+  }
+  const btn = document.getElementById('mpDiaBtn_' + d);
+  if (btn) btn.classList.toggle('on', _mpDiasSel.includes(d));
+}
+
+function _fecharMetaPop() {
+  document.getElementById('metaPopOv').classList.remove('on');
+  _mpProdId = null;
+}
+
+async function _salvarMetaPop() {
+  if (!_mpProdId) return;
+  const novoTotal = parseFloat(document.getElementById('mpMetaInp').value) || 0;
+  const prod = TODOS_PRODS.find(p => p.id === _mpProdId);
+  if (!prod) return;
+
+  // Distribuir a meta pelos dias selecionados (igual entre eles)
+  const diasVals = { seg:0, ter:0, qua:0, qui:0, sex:0, sab:0, dom:0 };
+  if (novoTotal > 0 && _mpDiasSel.length > 0) {
+    const n = _mpDiasSel.length;
+    let restante = novoTotal;
+    _mpDiasSel.forEach((d, i) => {
+      if (i === n - 1) {
+        diasVals[d] = restante;
+      } else {
+        const v = Math.floor(novoTotal / n);
+        diasVals[d] = v;
+        restante -= v;
+      }
+    });
+  }
+
+  const payload = {
+    produto_id:   _mpProdId,
+    produto_nome: _mpProdNome,
+    setor:        SETOR,
+    unidade:      (prod.unidade || 'kg').toLowerCase(),
+    categoria:    (prod.categoria || 'OUTROS').toUpperCase(),
+    ...diasVals,
+    meta_semanal: novoTotal,
+    atualizado_em: new Date().toISOString()
+  };
+
+  try {
+    const r = await fetch(SUPA_URL + '/rest/v1/projecao_base?on_conflict=produto_id,setor', {
+      method: 'POST',
+      headers: { ...SH, 'Prefer': 'resolution=merge-duplicates,return=representation' },
+      body: JSON.stringify(payload)
+    });
+    if (r.ok) {
+      const rows = await r.json();
+      const saved = Array.isArray(rows) ? rows[0] : rows;
+      if (saved && saved.produto_id) PROJ_BASE[saved.produto_id] = saved;
+      // Atualiza display na tabela
+      const el = document.getElementById('mp_meta_' + _mpProdId);
+      if (el) el.textContent = novoTotal > 0 ? novoTotal : '—';
+      toast('📊 Meta e dias salvos', 'ok');
+      _fecharMetaPop();
+      // Recarrega a tabela para refletir os novos dias sugeridos
+      _popularBodyTabela(_diasSemana(PROD_SEM_ISO), _today());
+    } else {
+      toast('⚠️ Erro: ' + r.status, 'er');
+    }
+  } catch(e) {
+    toast('⚠️ Erro ao salvar', 'er');
+  }
+}
+
+// ── Helper: lê data-* para evitar quebra por apóstrofos no nome ──
+function _celClick(td) {
+  aoClicarCelula(
+    td.dataset.pid,
+    td.dataset.date,
+    td.dataset.nome,
+    Number(td.dataset.sug),
+    td.dataset.und
+  );
+}
+
 // ── Click numa célula da tabela ──
 function aoClicarCelula(prodId, dateISO, prodNome, qtdSug, und) {
   const hoje = _today();
@@ -2641,59 +2853,60 @@ function aoClicarCelula(prodId, dateISO, prodNome, qtdSug, und) {
     abrirConfirmarHoje();
     return;
   }
-  if (dateISO > hoje) {
-    abrirPlanModal(prodId, dateISO, prodNome, qtdSug, und);
-    return;
-  }
-  // Passado: admin pode registrar, operador só vê
-  if (IS_ADMIN) {
-    abrirPlanModal(prodId, dateISO, prodNome, qtdSug, und);
-  } else {
-    tooltipPassado(prodId, dateISO);
-  }
+  // Futuro: planejar (qualquer usuário)
+  // Passado: registrar produção retroativa (qualquer usuário)
+  const isPas = dateISO < hoje;
+  abrirPlanModal(prodId, dateISO, prodNome, qtdSug, und, isPas);
 }
 
-// ── Tooltip para célula passada ──
-function tooltipPassado(prodId, dateISO) {
-  const it = PROD_ITENS[`${prodId}_${dateISO}`];
-  const prod = TODOS_PRODS.find(p=>p.id===prodId);
-  const lote = getLoteProduto(prod?.nome||'', SETOR, _diaSemNum(dateISO), dateISO);
-  const conf = it?.qtd_produzida ?? '—';
-  const sug  = lote.qtd || '—';
-  toast(`📅 ${fmtDataBR(dateISO)} · Produzido: ${conf} · Sugerido: ${sug}`,'');
-}
-
-// ── Modal planejar dia futuro ──
-function abrirPlanModal(prodId, dateISO, prodNome, qtdSug, und) {
+// ── Modal planejar / registrar dia ──
+let _planIsPas = false;
+function abrirPlanModal(prodId, dateISO, prodNome, qtdSug, und, isPas = false) {
   _planProdId  = prodId;
   _planDateISO = dateISO;
-  document.getElementById('planTtl').textContent = '📝 Planejar ' + prodNome;
+  _planIsPas   = isPas;
+
+  const existing = PROD_ITENS[`${prodId}_${dateISO}`];
+  const prefill  = isPas
+    ? (existing?.qtd_produzida ?? (qtdSug > 0 ? qtdSug : ''))
+    : (existing?.qtd_planejada ?? (qtdSug > 0 ? qtdSug : ''));
+
+  document.getElementById('planTtl').textContent =
+    isPas ? '📋 Registrar produção — ' + prodNome
+          : '📝 Planejar — ' + prodNome;
+  document.getElementById('planQtdLbl').textContent =
+    isPas ? 'Quantidade produzida *' : 'Quantidade planejada *';
+
   const subTxt = qtdSug > 0
     ? fmtDataBR(dateISO) + ' · Sugestão: ' + qtdSug + ' ' + und.toLowerCase()
-    : fmtDataBR(dateISO) + ' · Sem sugestão automática';
+    : fmtDataBR(dateISO);
   document.getElementById('planSub').textContent = subTxt;
+
   const inp = document.getElementById('planVal');
-  inp.value = qtdSug > 0 ? qtdSug : '';
-  inp.placeholder = qtdSug > 0 ? qtdSug : '0';
+  inp.value = prefill !== '' ? prefill : '';
+  inp.placeholder = qtdSug > 0 ? String(qtdSug) : '0';
   document.getElementById('planOv').classList.add('on');
-  setTimeout(()=>inp.focus(),200);
+  setTimeout(() => inp.focus(), 200);
 }
 function fecharPlanModal() {
   document.getElementById('planOv').classList.remove('on');
-  _planProdId = null; _planDateISO = null;
+  _planProdId = null; _planDateISO = null; _planIsPas = false;
+  _limparAddProdSel();
 }
 async function salvarPlanItem() {
   if (!_planProdId || !_planDateISO) return;
   const val = parseFloat(document.getElementById('planVal').value);
   if (isNaN(val) || val < 0) { toast('⚠️ Informe uma quantidade válida','wa'); return; }
-  const prod = TODOS_PRODS.find(p=>p.id===_planProdId);
-  const lote = getLoteProduto(prod?.nome||'', SETOR, _diaSemNum(_planDateISO), _planDateISO);
-  await _upsertProdItem(_planProdId, _planDateISO, {
-    qtd_planejada: val,
-    status: 'planejado',
-  });
+
+  const fields = _planIsPas
+    ? { qtd_produzida: val, status: 'confirmado' }
+    : { qtd_planejada: val, status: 'planejado'  };
+
+  const ok = await _upsertProdItem(_planProdId, _planDateISO, fields);
+  if (!ok) return; // erro já foi mostrado pelo _upsertProdItem
+
   fecharPlanModal();
-  toast('✅ Planejado','ok');
+  toast(_planIsPas ? '✅ Produção registrada' : '✅ Planejado', 'ok');
   _popularBodyTabela(_diasSemana(PROD_SEM_ISO), _today());
   _atualizarResumoSemana(_diasSemana(PROD_SEM_ISO));
 }
@@ -2716,6 +2929,17 @@ function _renderConfirmarHoje(vw) {
 
   // Mostrar TODOS os produtos — operador decide o que produzir
   let prodsHoje = TODOS_PRODS.filter(p => !isFechado);
+
+  // Ordenar: 1º com sugestão/confirmado (por urgência), 2º sem sugestão (alfabético)
+  prodsHoje.sort((a, b) => {
+    const lA = getLoteProduto(a.nome, SETOR, dsem, hoje);
+    const lB = getLoteProduto(b.nome, SETOR, dsem, hoje);
+    const sA = lA.qtd > 0 || !!(PROD_ITENS[`${a.id}_${hoje}`]);
+    const sB = lB.qtd > 0 || !!(PROD_ITENS[`${b.id}_${hoje}`]);
+    if (sA !== sB) return sA ? -1 : 1;
+    if (sA) return _sortKeyProd(a) - _sortKeyProd(b);
+    return a.nome.localeCompare(b.nome, 'pt-BR');
+  });
 
   // Contagem de confirmados
   const nConf  = prodsHoje.filter(p=>PROD_HOJE_VALS[p.id]?.done).length;
@@ -2813,7 +3037,7 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
   const priE = CK_CFG[p.id]?.prioritario ? '⭐' : '';
 
   return `<div class="phoje-card ${cardCls}" id="phoje-card-${p.id}" data-nome="${escHtml(p.nome)}">
-  <div class="phoje-card-nm">${urgE}${priE} ${escHtml(p.nome)}</div>
+  <div class="phoje-card-nm"><span class="prod-num">${idx + 1}</span>${urgE}${priE} ${escHtml(p.nome)}</div>
   <div class="phoje-sug">Sugestão: <strong>${lote.qtd}${und.toLowerCase()}</strong>${lote.sazonalidade!==1?' · sazon. ×'+lote.sazonalidade:''}</div>
   ${alertHtml}
   <div class="phoje-inp-row">
@@ -2971,10 +3195,98 @@ function voltarParaTabela() {
 }
 
 // ── Adicionar produto não listado ao Confirmar Hoje ──
-async function adicionarProdHoje() {
-  // Reutiliza confirmar() para pegar nome
-  // Simplificado: toast orientando
-  toast('🔍 Digite o nome do produto no campo de busca do Checklist para encontrá-lo','wa');
+// Mostra popup de busca para encontrar qualquer produto do setor não exibido na tela atual
+function adicionarProdHoje() {
+  const hoje = _today();
+  const dsem  = _diaSemNum(hoje);
+
+  // Produtos que JÁ estão visíveis na tela (com sugestão ou já confirmados)
+  const jaVisiveis = new Set(
+    TODOS_PRODS
+      .filter(p => {
+        const lote = getLoteProduto(p.nome, SETOR, dsem, hoje);
+        return lote.qtd > 0 || !!(PROD_ITENS[`${p.id}_${hoje}`]);
+      })
+      .map(p => p.id)
+  );
+
+  // Produtos "não listados" = todos do setor que NÃO têm sugestão E ainda não foram confirmados
+  const naoListados = TODOS_PRODS.filter(p => {
+    if (jaVisiveis.has(p.id)) return false;
+    if (PROD_HOJE_VALS[p.id]?.done) return false;
+    return true;
+  });
+
+  if (!naoListados.length) {
+    toast('✅ Todos os produtos do setor já estão listados', 'ok');
+    return;
+  }
+
+  // Monta um <select> em um mini modal usando o planOv existente
+  _planProdId  = null;
+  _planDateISO = hoje;
+  _planIsPas   = false;
+
+  document.getElementById('planTtl').textContent = '➕ Adicionar produto';
+  document.getElementById('planSub').textContent = 'Selecione o produto que produziu hoje:';
+  document.getElementById('planQtdLbl').textContent = 'Quantidade produzida *';
+
+  const sel = `<select id="addProdSel" style="width:100%;border:1.5px solid #D1D5DB;border-radius:8px;padding:8px;font-size:.9rem;margin-bottom:8px;">
+    <option value="">— escolha o produto —</option>
+    ${naoListados.map(p => `<option value="${p.id}">${escHtml(p.nome)}</option>`).join('')}
+  </select>`;
+
+  // Injeta o select antes do input de quantidade
+  const inp = document.getElementById('planVal');
+  inp.value = '';
+  inp.placeholder = '0';
+  inp.insertAdjacentHTML('beforebegin', sel);
+
+  // Quando o produto é selecionado, preenche o _planProdId
+  const selEl = document.getElementById('addProdSel');
+  selEl.onchange = () => { _planProdId = selEl.value || null; };
+
+  // Sobrescreve salvarPlanItem temporariamente para tratar como "confirmado hoje"
+  document._addProdOrigSave = window._planIsPas;
+  _planIsPas = false; // vai salvar como planejado, mas vamos forçar confirmado
+
+  document.getElementById('planOv').classList.add('on');
+
+  // Override do botão salvar para usar status confirmado
+  const btnSalvar = document.querySelector('#planOv .conf-ok');
+  if (btnSalvar) {
+    btnSalvar.onclick = async () => {
+      if (!_planProdId) { toast('⚠️ Selecione um produto','wa'); return; }
+      const val = parseFloat(document.getElementById('planVal').value);
+      if (isNaN(val) || val < 0) { toast('⚠️ Informe a quantidade','wa'); return; }
+
+      const ok = await _upsertProdItem(_planProdId, hoje, {
+        qtd_produzida: val, status: 'confirmado'
+      });
+      if (!ok) return;
+
+      // Marca como done no rascunho local
+      if (!PROD_HOJE_VALS[_planProdId]) PROD_HOJE_VALS[_planProdId] = {};
+      PROD_HOJE_VALS[_planProdId].val  = val;
+      PROD_HOJE_VALS[_planProdId].done = true;
+
+      fecharPlanModal();
+      // Restaura botão original
+      btnSalvar.onclick = salvarPlanItem;
+      toast('✅ Produção registrada', 'ok');
+
+      // Recarrega tela
+      const vw = document.getElementById('v-producao');
+      if (vw) _renderConfirmarHoje(vw);
+    };
+  }
+}
+
+function _limparAddProdSel() {
+  const sel = document.getElementById('addProdSel');
+  if (sel) sel.remove();
+  const btnSalvar = document.querySelector('#planOv .conf-ok');
+  if (btnSalvar) btnSalvar.onclick = salvarPlanItem;
 }
 
 // ══════════════════════════════════════════════════
@@ -3906,7 +4218,7 @@ function getLoteProduto(produtoNome, setor, diaSemana, dataISO) {
   const _diasIdx = ['dom','seg','ter','qua','qui','sex','sab'];
   const pbMatch = Object.values(PROJ_BASE).find(r =>
     _normProdNome(r.produto_nome || '') === _normProdNome(produtoNome));
-  if (pbMatch) {
+  if (pbMatch && Number(pbMatch.meta_semanal) > 0) {
     const dKey = _diasIdx[diaSemana] || 'seg';
     const qtd  = Number(pbMatch[dKey]) || 0;
     return {
