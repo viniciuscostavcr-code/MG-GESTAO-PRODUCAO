@@ -519,12 +519,33 @@ body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif
 
 /* ── Tabela calendário de produção ── */
 .prod-tabela-wrap{max-height:calc(100vh - 200px);overflow:auto;-webkit-overflow-scrolling:touch;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);}
-/* ── Banner "gire o celular" ── */
-.rotate-hint{display:none;background:linear-gradient(135deg,#1B4332 0%,#2D6A4F 100%);color:#fff;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:600;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.1);animation:rotateHintPulse 2s ease-in-out infinite;}
-.rotate-hint-ico{display:inline-block;margin-right:6px;animation:rotateHintIco 2s ease-in-out infinite;}
-@keyframes rotateHintPulse{0%,100%{opacity:1;}50%{opacity:.85;}}
-@keyframes rotateHintIco{0%,100%{transform:rotate(0deg);}50%{transform:rotate(90deg);}}
-@media (orientation:portrait) and (max-width:900px){.rotate-hint.on{display:block;}}
+/* ── Modo foco — paisagem na aba Produção ── */
+body.modo-foco .gf-topbar,
+body.modo-foco .setor-bar,
+body.modo-foco .tabs,
+body.modo-foco #resumoSemana,
+body.modo-foco .legenda-cores,
+body.modo-foco #prodSearchWrap,
+body.modo-foco #prodNavBar{display:none!important;}
+.foco-bar{display:none;background:#1B4332;color:#fff;padding:6px 10px;align-items:center;gap:8px;position:sticky;top:0;z-index:10;}
+body.modo-foco .foco-bar{display:flex;}
+.foco-bar button{background:rgba(255,255,255,0.15);border:none;color:#fff;padding:6px 10px;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;min-height:36px;font-family:inherit;}
+.foco-bar button.sair{background:#C0392B;}
+.foco-bar .foco-semana{flex:1;text-align:center;font-weight:700;font-size:13px;}
+.foco-bar input{background:rgba(255,255,255,0.95);border:none;border-radius:6px;padding:6px 10px;font-size:14px;width:140px;color:#1B4332;font-family:inherit;}
+body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:0!important;}
+/* Detecção automática: paisagem em telas baixas */
+@media (orientation:landscape) and (max-height:600px){
+  body.auto-foco .gf-topbar,
+  body.auto-foco .setor-bar,
+  body.auto-foco .tabs,
+  body.auto-foco #resumoSemana,
+  body.auto-foco .legenda-cores,
+  body.auto-foco #prodSearchWrap,
+  body.auto-foco #prodNavBar{display:none!important;}
+  body.auto-foco .foco-bar{display:flex;}
+  body.auto-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:0!important;}
+}
 .prod-tabela{border-collapse:collapse;min-width:700px;width:100%;font-size:.82rem;}
 .prod-tabela th{background:#1B4332;color:#fff;padding:10px 8px;text-align:center;white-space:nowrap;}
 /* Cabeçalho sticky (fixo ao rolar verticalmente) */
@@ -626,8 +647,19 @@ body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif
 
   <div class="vw" id="v-producao">
 
+    <!-- Barra fina do modo foco (só visível via CSS .modo-foco/.auto-foco) -->
+    <div class="foco-bar">
+      <button onclick="semanaAnterior();_atualizarFocoSemanaLbl();">←</button>
+      <span class="foco-semana" id="focoSemanaLbl">—</span>
+      <button onclick="semanaProxima();_atualizarFocoSemanaLbl();">→</button>
+      <input type="text" id="focoBuscaInp" placeholder="🔍 Buscar..."
+        oninput="BUSCA_PROD=this.value;var bi=document.getElementById('buscaProdInp');if(bi)bi.value=this.value;_popularBodyTabela(_diasSemana(PROD_SEM_ISO),_today())">
+      <button onclick="confirmarHoje()">Hoje</button>
+      <button class="sair" onclick="sairModoFoco()">✕</button>
+    </div>
+
     <!-- Cabeçalho semana -->
-    <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;">
+    <div id="prodNavBar" style="display:flex;align-items:center;gap:8px;padding:12px 16px;">
       <button onclick="semanaAnterior()"
         style="background:#EAF4EF;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:1rem;">←</button>
       <span id="lblSemana" style="font-weight:700;font-size:.9rem;color:#1B4332;flex:1;text-align:center;">
@@ -1079,7 +1111,57 @@ function goTab(t) {
   });
   if (t === 'producao')  renderProducao();
   if (t === 'historico') renderHistorico();
+  // Reavaliar modo foco — só ativa em paisagem dentro da aba Produção
+  setTimeout(_detectarOrientacao, 100);
 }
+
+// ══════════════════════════════════════════════════
+// MODO FOCO — paisagem na aba Produção
+// ══════════════════════════════════════════════════
+function entrarModoFoco() {
+  document.body.classList.add('modo-foco');
+  var inp = document.getElementById('focoBuscaInp');
+  if (inp) inp.value = BUSCA_PROD || '';
+  _atualizarFocoSemanaLbl();
+}
+
+function sairModoFoco() {
+  document.body.classList.remove('modo-foco');
+  document.body.classList.remove('auto-foco');
+}
+
+function _atualizarFocoSemanaLbl() {
+  var el = document.getElementById('focoSemanaLbl');
+  if (!el || !PROD_SEM_ISO) return;
+  try {
+    var dias = _diasSemana(PROD_SEM_ISO);
+    var ini  = dias[0];
+    var fim  = dias[6];
+    el.textContent = fmtDataBR(ini).slice(0,5) + ' – ' + fmtDataBR(fim).slice(0,5);
+  } catch(_) {}
+}
+
+function _detectarOrientacao() {
+  // Só ativa auto-foco se estiver na aba Produção
+  var vw = document.getElementById('v-producao');
+  if (!vw || !vw.classList.contains('on')) {
+    document.body.classList.remove('auto-foco');
+    return;
+  }
+  var isLandscape = window.matchMedia('(orientation: landscape)').matches;
+  var isSmall     = window.matchMedia('(max-height: 600px)').matches;
+  if (isLandscape && isSmall) {
+    document.body.classList.add('auto-foco');
+    _atualizarFocoSemanaLbl();
+  } else {
+    document.body.classList.remove('auto-foco');
+  }
+}
+
+window.addEventListener('orientationchange', function() {
+  setTimeout(_detectarOrientacao, 200);
+});
+window.addEventListener('resize', _detectarOrientacao);
 
 // ══════════════════════════════════════════════════
 // SETOR
@@ -2851,6 +2933,7 @@ function confirmarHoje()  { abrirConfirmarHoje(); }
 function navSemana(dir) {
   PROD_OFFSET += dir;
   renderTabelaSemanal();
+  // _atualizarFocoSemanaLbl é chamado dentro de renderTabelaSemanal após PROD_SEM_ISO ser atualizado
 }
 
 // ══════════════════════════════════════════════════
@@ -2859,43 +2942,49 @@ function navSemana(dir) {
 
 // Esqueleto HTML restaurado quando ConfirmarHoje apaga o conteúdo da view
 function _buildTabelaEsqueleto() {
-  return `
-  <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;">
-    <button onclick="semanaAnterior()" style="background:#EAF4EF;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:1rem;">←</button>
-    <span id="lblSemana" style="font-weight:700;font-size:.9rem;color:#1B4332;flex:1;text-align:center;">...</span>
-    <button onclick="semanaProxima()" style="background:#EAF4EF;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:1rem;">→</button>
-    <button onclick="confirmarHoje()" style="background:#2D6A4F;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:.82rem;font-weight:700;">✅ Hoje</button>
-  </div>
-  <div id="resumoSemana" style="padding:6px 16px;font-size:.75rem;color:#6B7280;">⏳ Carregando...</div>
-  <div class="rotate-hint on" id="rotateHint" style="margin:8px 12px 4px;">
-    <span class="rotate-hint-ico">📱</span>
-    Gire o celular para ver a semana inteira
-  </div>
-  <div class="ck-search" style="margin:8px 12px;">
-    <span>🔍</span>
-    <input type="text" id="buscaProdInp" placeholder="Buscar produto..." autocomplete="off"
-      style="font-size:16px;"
-      oninput="BUSCA_PROD=this.value;_popularBodyTabela(_diasSemana(PROD_SEM_ISO),_today())">
-  </div>
-  <div style="display:flex;gap:10px;padding:4px 8px;font-size:.6rem;color:#6B7280;flex-wrap:wrap;border-bottom:1px solid #EAF4EF;">
-    <span>🔴 Zerado/Crítico</span>
-    <span>🟠 Abaixo do mínimo</span>
-    <span>🟡 Próximo do mínimo</span>
-    <span>✅ Estoque OK</span>
-    <span style="color:#aaa;">&middot; Cores baseadas no checklist do dia</span>
-  </div>
-  <div class="prod-tabela-wrap" style="margin:0 12px 80px;">
-    <table class="prod-tabela" id="tabelaSemanal">
-      <thead><tr id="headerSemana">
-        <th class="col-produto">Produto</th>
-        <th class="col-meta">Meta<br>/sem</th>
-        <th>Seg</th><th>Ter</th><th>Qua</th><th>Qui</th><th>Sex</th><th>Sáb</th><th>Dom</th>
-      </tr></thead>
-      <tbody id="bodyTabela">
-        <tr><td colspan="9" style="text-align:center;padding:24px;color:#6B7280;"><div class="spin" style="margin:0 auto;"></div></td></tr>
-      </tbody>
-    </table>
-  </div>`;
+  // Barra fina do modo foco — só visível via CSS quando .modo-foco/.auto-foco
+  var focoBar = '<div class="foco-bar">'
+    + '<button onclick="semanaAnterior();_atualizarFocoSemanaLbl();">←</button>'
+    + '<span class="foco-semana" id="focoSemanaLbl">—</span>'
+    + '<button onclick="semanaProxima();_atualizarFocoSemanaLbl();">→</button>'
+    + '<input type="text" id="focoBuscaInp" placeholder="🔍 Buscar..."'
+    + ' oninput="BUSCA_PROD=this.value;var bi=document.getElementById(\'buscaProdInp\');if(bi)bi.value=this.value;_popularBodyTabela(_diasSemana(PROD_SEM_ISO),_today())">'
+    + '<button onclick="confirmarHoje()">Hoje</button>'
+    + '<button class="sair" onclick="sairModoFoco()">✕</button>'
+    + '</div>';
+  var navBar = '<div id="prodNavBar" style="display:flex;align-items:center;gap:8px;padding:12px 16px;">'
+    + '<button onclick="semanaAnterior()" style="background:#EAF4EF;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:1rem;">←</button>'
+    + '<span id="lblSemana" style="font-weight:700;font-size:.9rem;color:#1B4332;flex:1;text-align:center;">...</span>'
+    + '<button onclick="semanaProxima()" style="background:#EAF4EF;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:1rem;">→</button>'
+    + '<button onclick="confirmarHoje()" style="background:#2D6A4F;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:.82rem;font-weight:700;">✅ Hoje</button>'
+    + '</div>';
+  var resumo = '<div id="resumoSemana" style="padding:6px 16px;font-size:.75rem;color:#6B7280;">⏳ Carregando...</div>';
+  var search = '<div id="prodSearchWrap" class="ck-search" style="margin:8px 12px;">'
+    + '<span>🔍</span>'
+    + '<input type="text" id="buscaProdInp" placeholder="Buscar produto..." autocomplete="off"'
+    + ' style="font-size:16px;"'
+    + ' oninput="BUSCA_PROD=this.value;var fi=document.getElementById(\'focoBuscaInp\');if(fi)fi.value=this.value;_popularBodyTabela(_diasSemana(PROD_SEM_ISO),_today())">'
+    + '</div>';
+  var legenda = '<div class="legenda-cores" style="display:flex;gap:10px;padding:4px 8px;font-size:.6rem;color:#6B7280;flex-wrap:wrap;border-bottom:1px solid #EAF4EF;">'
+    + '<span>🔴 Zerado/Crítico</span>'
+    + '<span>🟠 Abaixo do mínimo</span>'
+    + '<span>🟡 Próximo do mínimo</span>'
+    + '<span>✅ Estoque OK</span>'
+    + '<span style="color:#aaa;">&middot; Cores baseadas no checklist do dia</span>'
+    + '</div>';
+  var tabela = '<div class="prod-tabela-wrap" style="margin:0 12px 80px;">'
+    + '<table class="prod-tabela" id="tabelaSemanal">'
+    + '<thead><tr id="headerSemana">'
+    + '<th class="col-produto">Produto</th>'
+    + '<th class="col-meta">Meta<br>/sem</th>'
+    + '<th>Seg</th><th>Ter</th><th>Qua</th><th>Qui</th><th>Sex</th><th>Sáb</th><th>Dom</th>'
+    + '</tr></thead>'
+    + '<tbody id="bodyTabela">'
+    + '<tr><td colspan="9" style="text-align:center;padding:24px;color:#6B7280;"><div class="spin" style="margin:0 auto;"></div></td></tr>'
+    + '</tbody>'
+    + '</table>'
+    + '</div>';
+  return focoBar + navBar + resumo + search + legenda + tabela;
 }
 
 const _DIAS_TH = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
@@ -2919,6 +3008,8 @@ async function renderTabelaSemanal() {
   // Atualizar label de semana
   var lbl = document.getElementById('lblSemana');
   if (lbl) lbl.textContent = _semStr(PROD_SEM_ISO);
+  // Atualizar label da foco-bar
+  _atualizarFocoSemanaLbl();
 
   // Atualizar cabeçalho com datas reais
   _atualizarHeaderTabela(dias, hoje);
