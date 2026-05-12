@@ -65,6 +65,26 @@ input:focus,select:focus{border-color:var(--grn);background:#fff;}
 .btn-full{width:100%;margin-top:10px;}
 .btn-sm{padding:6px 10px;font-size:.72rem;}
 
+/* TABELA METAS (aba de edição em massa) */
+.metas-setor-bar{display:flex;gap:6px;margin-bottom:14px;}
+.metas-setor-btn{padding:7px 18px;border-radius:10px;border:1.5px solid var(--border);background:#fff;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;color:var(--brown2);transition:.15s;}
+.metas-setor-btn.on{background:var(--grn);color:#fff;border-color:var(--grn);}
+.metas-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px;border:1.5px solid var(--border);}
+.metas-tbl{border-collapse:collapse;width:100%;min-width:620px;font-size:.8rem;}
+.metas-tbl thead th{background:var(--grn2);color:#fff;padding:8px 6px;text-align:center;white-space:nowrap;font-size:.65rem;font-weight:700;letter-spacing:.3px;}
+.metas-tbl thead th.col-nm{text-align:left;padding-left:10px;min-width:150px;position:sticky;left:0;z-index:3;background:var(--grn2);}
+.metas-tbl tbody td{padding:4px 3px;text-align:center;border-bottom:1px solid #F0F0EE;vertical-align:middle;}
+.metas-tbl tbody td.col-nm{position:sticky;left:0;background:#fff;z-index:2;text-align:left;padding:5px 8px;font-weight:600;font-size:.76rem;border-right:2px solid var(--grn-l);white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis;}
+.metas-tbl tbody tr:hover td.col-nm{background:#FAFFF8;}
+.metas-tbl tbody tr:hover td:not(.col-nm){background:#FAFFF8;}
+.metas-tbl .cat-row td{background:#F0F7F4;color:var(--grn2);font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;padding:5px 10px;border-top:2px solid var(--grn-l);}
+.metas-tbl .cat-row td.col-nm{background:#F0F7F4;}
+.mi{width:46px;border:1px solid #E5E7EB;border-radius:6px;padding:4px 2px;text-align:center;font-size:.78rem;background:#F9FAFB;font-family:inherit;color:var(--brown);}
+.mi:focus{border-color:var(--grn);background:#fff;outline:none;}
+.mi.mi-sem{width:52px;border-color:var(--grn);background:var(--grn-l);font-weight:700;color:var(--grn2);}
+.mi.mi-sem:focus{background:#fff;}
+.metas-loading{text-align:center;padding:40px 20px;color:var(--gray);font-size:.82rem;}
+
 /* META PRODUÇÃO (seção no modal de produto) */
 .meta-dias-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px;}
 .meta-dia-item{display:flex;flex-direction:column;align-items:center;gap:3px;}
@@ -201,6 +221,7 @@ input:focus,select:focus{border-color:var(--grn);background:#fff;}
   <div class="tab" onclick="go('resps')">👤 Resp.</div>
   <div class="tab" onclick="go('usuarios')">🔐 Usuários</div>
   <div class="tab" onclick="go('sync')">☁️ Sync</div>
+  <div class="tab" onclick="go('metas')">📊 Metas</div>
 </div>
 
 <div class="scr">
@@ -262,6 +283,19 @@ input:focus,select:focus{border-color:var(--grn);background:#fff;}
   </div>
 </div>
 
+<!-- ═══ ABA METAS ═══ -->
+<div class="vw" id="v-metas">
+  <div class="card">
+    <div class="card-title">📊 Metas de Produção</div>
+    <div class="card-sub">Quantidade sugerida por dia da semana. Salvo automaticamente ao sair do campo.</div>
+    <div class="metas-setor-bar">
+      <button class="metas-setor-btn on" id="metasBtnPad" onclick="setMetasSetor('PADARIA')">🍞 Padaria</button>
+      <button class="metas-setor-btn"    id="metasBtnConf" onclick="setMetasSetor('CONFEITARIA')">🎂 Confeitaria</button>
+    </div>
+    <div id="metasTabelaWrap"><div class="metas-loading">⏳ Selecione a aba Metas para carregar</div></div>
+  </div>
+</div>
+
 <!-- ═══ ABA SYNC ═══ -->
 <div class="vw" id="v-sync">
   <div class="card">
@@ -270,6 +304,7 @@ input:focus,select:focus{border-color:var(--grn);background:#fff;}
     <div id="syncStatus" style="margin-bottom:12px;font-size:.78rem;color:var(--gray);">Verificando...</div>
     <button class="btn btn-grn btn-full" onclick="recarregarProdutos()">🔄 Recarregar produtos do banco</button>
     <p style="font-size:.65rem;color:var(--gray);margin-top:6px;text-align:center;">Use apenas na primeira vez ou para restaurar os dados base.</p>
+  </div>
   <div class="card">
     <div class="card-title">📊 Estatísticas</div>
     <div id="statsBox" style="font-size:.78rem;color:var(--gray);">Carregando...</div>
@@ -325,13 +360,15 @@ input:focus,select:focus{border-color:var(--grn);background:#fff;}
       <div class="ck-sec-divider"></div>
       <div class="ck-sec-ttl">⚙️ Configurações do Checklist</div>
 
-      <!-- Toggle prioritário -->
-      <div class="tgl-wrap">
-        <span class="tgl-lbl">⭐ Prioritário</span>
-        <label class="tgl">
-          <input type="checkbox" id="ckPrior">
-          <span class="tgl-slider"></span>
-        </label>
+      <!-- Classe ABC (substitui toggle prioritário) -->
+      <div class="fg" style="margin-bottom:4px;">
+        <label>Classificação ABC</label>
+        <select id="ckClasse" style="background:#fff;min-height:44px;font-size:16px;">
+          <option value="A">🔴 Classe A — Crítico</option>
+          <option value="B">🟡 Classe B — Importante</option>
+          <option value="C">⚪ Classe C — Secundário</option>
+        </select>
+        <div style="font-size:.62rem;color:var(--gray);margin-top:3px;">A = prioridade máxima no checklist</div>
       </div>
 
       <!-- Mínimo gôndola -->
@@ -453,6 +490,11 @@ input:focus,select:focus{border-color:var(--grn);background:#fff;}
   if(!s||Date.now()-s.loggedAt>max){localStorage.removeItem(k);window.location.replace('LOGIN.html');return;}
   if(s.role!=='admin'){window.location.replace('GESTFOOD_INDEX.html');}
 })();
+// CONFIG.html só é acessível por admin (sessão verifica acima)
+// IMPORTANTE: window.IS_ADMIN garante disponibilidade em onclick inline (Safari/iOS)
+window.IS_ADMIN = true;
+var IS_ADMIN = window.IS_ADMIN;
+var GF_USER  = JSON.parse(localStorage.getItem('gf_session')||'{}');
 
 const SUPA_URL='https://rjkseydseuotdkavskss.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqa3NleWRzZXVvdGRrYXZza3NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTE4OTAsImV4cCI6MjA4Nzc4Nzg5MH0.wEzZ9sZhXJhu0jjNx2OeW7RacGi8djUj-9r9u1-8KYY';
@@ -546,13 +588,14 @@ function _confResp(ok){
 
 // ── Tabs ──
 function go(t){
-  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('on',['produtos','setores','resps','usuarios','sync'][i]===t));
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('on',['produtos','setores','resps','usuarios','sync','metas'][i]===t));
   document.querySelectorAll('.vw').forEach(v=>v.classList.remove('on'));
   document.getElementById('v-'+t).classList.add('on');
-  if(t==='setores')renderSetores();
-  if(t==='resps')renderResps();
+  if(t==='setores') renderSetores();
+  if(t==='resps')   renderResps();
   if(t==='usuarios')renderUsuarios();
-  if(t==='sync')renderSyncStats();
+  if(t==='sync')    renderSyncStats();
+  if(t==='metas')   renderMetasTabela();
 }
 
 // ── USUÁRIOS ──
@@ -736,7 +779,10 @@ function renderProds(){
   document.getElementById('prodList').innerHTML=list.map(p=>{
     const cfg = CK_CFGS[p.id];
     const badges = [];
-    if (cfg && cfg.prioritario) badges.push('<span class="prod-badge prior">⭐ prioritário</span>');
+    const cls = cfg ? (cfg.classe || (cfg.prioritario ? 'A' : 'B')) : 'C';
+    const clsCor = {A:'#C0392B',B:'#D97706',C:'#6B7280'};
+    const clsBg  = {A:'#FDECEA',B:'#FEF3C7',C:'#F4F4F2'};
+    badges.push('<span class="prod-badge" style="background:'+clsBg[cls]+';color:'+clsCor[cls]+';">'+cls+'</span>');
     if (cfg && cfg.tem_freezer) badges.push('<span class="prod-badge frz">🧊 freezer</span>');
     if (!cfg || (Number(cfg.qtd_minima_gondola)||0) === 0) badges.push('<span class="prod-badge cfg">⚙️ sem mínimo</span>');
     return `
@@ -839,11 +885,13 @@ async function salvarProd(){
     // Upsert checklist_config — sempre, para qualquer produto (novo ou editado)
     // produtoId: _editId para edição, ou o id gerado para produto novo
     const ckProdId = _editId || id;
+    const ckClasse = document.getElementById('ckClasse').value || 'B';
     const ckPayload = {
       produto_id: ckProdId,
       produto_nome: nome,
       setor: setor,
-      prioritario: document.getElementById('ckPrior').checked,
+      classe: ckClasse,
+      prioritario: ckClasse === 'A',   // sincroniza legado
       qtd_minima_gondola: parseFloat(document.getElementById('ckMinGon').value) || 0,
       tem_freezer: document.getElementById('ckFreezer').checked,
       qtd_minima_freezer: parseFloat(document.getElementById('ckMinFrz').value) || 0,
@@ -852,8 +900,9 @@ async function salvarProd(){
     };
     try {
       // on_conflict como query param (padrão PostgREST) + Prefer header para merge
+      // IMPORTANTE: constraint UNIQUE no banco é só em produto_id
       const r = await fetch(
-        `${SUPA_URL}/rest/v1/checklist_config?on_conflict=produto_id,setor`, {
+        `${SUPA_URL}/rest/v1/checklist_config?on_conflict=produto_id`, {
         method: 'POST',
         headers: {...H, 'Prefer': 'resolution=merge-duplicates,return=representation'},
         body: JSON.stringify(ckPayload)
@@ -872,7 +921,7 @@ async function salvarProd(){
 
     // Upsert projecao_base — só admin
     if(IS_ADMIN){
-      await _salvarMetaProd(id, nome, setor);
+      await _salvarMetaProd(id, nome, setor, und, abc);
     }
 
     fecharModalProd();renderProds();
@@ -885,7 +934,10 @@ async function salvarProd(){
 // ══════════════════════════════════════════════════
 function _preencherCkSection(prodId) {
   const cfg = (prodId && CK_CFGS[prodId]) || {};
-  document.getElementById('ckPrior').checked = !!cfg.prioritario;
+  // Classe ABC: ler campo `classe` ou inferir do prioritario legado
+  let cls = cfg.classe || '';
+  if (cls !== 'A' && cls !== 'B' && cls !== 'C') cls = cfg.prioritario ? 'A' : 'B';
+  document.getElementById('ckClasse').value = cls;
   document.getElementById('ckMinGon').value = cfg.qtd_minima_gondola != null ? Number(cfg.qtd_minima_gondola) : '';
   const temFrz = !!cfg.tem_freezer;
   document.getElementById('ckFreezer').checked = temFrz;
@@ -1131,39 +1183,40 @@ function _calcMetaSem() {
 }
 
 // Upsert projecao_base (chamado pelo salvarProd)
-async function _salvarMetaProd(prodId, prodNome, setor) {
-  // Verificar se há algum valor > 0
+async function _salvarMetaProd(prodId, prodNome, setor, unidade, categoria) {
   const vals = {};
-  let temValor = false;
   _META_DIAS.forEach((d, i) => {
     const el = document.getElementById(_META_IDS[i]);
-    const v = parseFloat((el && el.value) || '') || 0;
-    vals[d] = v;
-    if (v > 0) temValor = true;
+    vals[d] = parseFloat((el && el.value) || '') || 0;
   });
-  if (!temValor) return; // nada a salvar
   const metaSemanal = Object.values(vals).reduce((a, v) => a + v, 0);
   const payload = {
-    produto_id: prodId,
+    produto_id:   prodId,
     produto_nome: prodNome,
-    setor: setor,
+    setor:        setor,
+    categoria:    (categoria || 'OUTROS').toUpperCase(),
+    unidade:      (unidade || 'kg').toLowerCase(),
     ...vals,
     meta_semanal: metaSemanal,
     atualizado_em: new Date().toISOString()
   };
   try {
     const r = await fetch(
-      SUPA_URL + '/rest/v1/projecao_base?on_conflict=produto_id', {
+      SUPA_URL + '/rest/v1/projecao_base?on_conflict=produto_id,setor', {
       method: 'POST',
       headers: {...H, 'Prefer': 'resolution=merge-duplicates,return=representation'},
       body: JSON.stringify(payload)
     });
-    if (!r.ok) {
+    if (r.ok) {
+      toast('📊 Meta salva', 'ok');
+    } else {
       const err = await r.text();
-      console.warn('_salvarMetaProd erro:', err);
+      console.warn('_salvarMetaProd erro HTTP', r.status, err);
+      toast('⚠️ Meta não salva: ' + r.status, 'er');
     }
   } catch(e) {
     console.warn('_salvarMetaProd excecao:', e.message);
+    toast('⚠️ Meta não salva', 'er');
   }
 }
 
@@ -1178,6 +1231,212 @@ async function recarregarProdutos(){
     toast('✅ '+PRODS.length+' produtos carregados!','ok');
     setSyncUI('ok');
   }catch(e){toast('❌ Erro: '+e.message.slice(0,40),'er');}
+}
+
+// ══════════════════════════════════════════════════
+// ABA METAS — edição em massa de projecao_base
+// ══════════════════════════════════════════════════
+
+let _metasSetor = 'PADARIA';
+let _metasCache = {}; // produto_id → row do banco
+
+const _DIAS_KEYS  = ['seg','ter','qua','qui','sex','sab','dom'];
+const _DIAS_LABEL = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+
+function setMetasSetor(s) {
+  _metasSetor = s;
+  document.getElementById('metasBtnPad') .classList.toggle('on', s === 'PADARIA');
+  document.getElementById('metasBtnConf').classList.toggle('on', s === 'CONFEITARIA');
+  renderMetasTabela();
+}
+
+async function renderMetasTabela() {
+  const wrap = document.getElementById('metasTabelaWrap');
+  if (!wrap) return;
+  wrap.innerHTML = '<div class="metas-loading">⏳ Carregando...</div>';
+
+  try {
+    // Buscar produtos e metas do setor em paralelo
+    const [prods, rows] = await Promise.all([
+      sbSelect('produtos',
+        'ativo=eq.true&setor=eq.' + encodeURIComponent(_metasSetor) +
+        '&order=nome.asc&limit=2000'),
+      sbSelect('projecao_base',
+        'setor=eq.' + encodeURIComponent(_metasSetor) + '&limit=500')
+        .catch(() => [])
+    ]);
+
+    if (!prods || !prods.length) {
+      wrap.innerHTML = '<div class="metas-loading">Nenhum produto ativo para ' + _metasSetor + '.</div>';
+      return;
+    }
+
+    // Indexar metas pelo produto_id
+    _metasCache = {};
+    (rows || []).forEach(r => { _metasCache[r.produto_id] = r; });
+
+    // Agrupar por categoria
+    const grupos = {};
+    prods.forEach(p => {
+      const cat = (p.categoria || 'OUTROS').toUpperCase();
+      if (!grupos[cat]) grupos[cat] = [];
+      grupos[cat].push(p);
+    });
+
+    // Montar HTML da tabela
+    let tbody = '';
+    Object.keys(grupos).sort().forEach(cat => {
+      tbody += `<tr class="cat-row"><td class="col-nm" colspan="9">${cat}</td></tr>`;
+      grupos[cat].forEach(p => {
+        const row  = _metasCache[p.id];
+        const cfg  = CK_CFGS[p.id];
+        const star = cfg && cfg.prioritario ? '⭐ ' : '';
+        // valores dos dias: banco > 0 (nunca null)
+        const dVals = _DIAS_KEYS.map(d => row ? (Number(row[d]) || 0) : 0);
+        const sem   = dVals.reduce((a, v) => a + v, 0);
+
+        const cells = _DIAS_KEYS.map((d, i) => {
+          const v = dVals[i];
+          return `<td><input class="mi" type="number" min="0" inputmode="numeric"
+            id="mti_${p.id}_${d}" value="${v > 0 ? v : ''}" placeholder=""
+            oninput="_mtCalcSem('${p.id}')"
+            onblur="_mtSalvar('${p.id}','${escHtml(p.nome)}','${p.unidade||'kg'}')"></td>`;
+        }).join('');
+
+        tbody += `<tr>
+          <td class="col-nm" title="${escHtml(p.nome)}">${star}${escHtml(p.nome)}</td>
+          <td><input class="mi mi-sem" type="number" min="0" inputmode="numeric"
+            id="mti_${p.id}_sem" value="${sem > 0 ? sem : ''}" placeholder=""
+            onkeydown="if(event.key==='Enter'){event.preventDefault();_mtDistribuir('${p.id}')}"
+            onblur="_mtSalvar('${p.id}','${escHtml(p.nome)}','${p.unidade||'kg'}')"></td>
+          ${cells}
+        </tr>`;
+      });
+    });
+
+    wrap.innerHTML = `
+      <div class="metas-wrap">
+        <table class="metas-tbl">
+          <thead><tr>
+            <th class="col-nm">Produto</th>
+            <th>Meta<br>/sem</th>
+            ${_DIAS_LABEL.map(d => `<th>${d}</th>`).join('')}
+          </tr></thead>
+          <tbody>${tbody}</tbody>
+        </table>
+      </div>`;
+
+  } catch(e) {
+    wrap.innerHTML = '<div class="metas-loading" style="color:var(--red);">❌ Erro: ' + e.message.slice(0, 60) + '</div>';
+    console.error('renderMetasTabela:', e);
+  }
+}
+
+// Recalcula meta/sem ao editar um dia
+function _mtCalcSem(prodId) {
+  const total = _DIAS_KEYS.reduce((acc, d) => {
+    const el = document.getElementById('mti_' + prodId + '_' + d);
+    return acc + (el ? (parseFloat(el.value) || 0) : 0);
+  }, 0);
+  const sem = document.getElementById('mti_' + prodId + '_sem');
+  if (sem) sem.value = total > 0 ? total : '';
+}
+
+// Distribui meta/sem pelos dias ativos ao pressionar Enter no campo total
+function _mtDistribuir(prodId) {
+  const semEl = document.getElementById('mti_' + prodId + '_sem');
+  const novaMeta = parseFloat(semEl ? semEl.value : '') || 0;
+  if (novaMeta <= 0) return;
+
+  // Captura valores atuais de cada dia ANTES de qualquer alteração
+  const currentVals = {};
+  _DIAS_KEYS.forEach(d => {
+    const el = document.getElementById('mti_' + prodId + '_' + d);
+    currentVals[d] = el ? (parseFloat(el.value) || 0) : 0;
+  });
+
+  // Dias com valor > 0 = "dias ativos"; se nenhum, usa Seg-Sáb (dias úteis)
+  const activeDays = _DIAS_KEYS.filter(d => currentVals[d] > 0);
+  const targetDays = activeDays.length > 0
+    ? activeDays
+    : ['seg','ter','qua','qui','sex','sab'];
+
+  const n = targetDays.length;
+  const totalAtivo = targetDays.reduce((a, d) => a + currentVals[d], 0);
+
+  // Zera dias fora dos dias target
+  _DIAS_KEYS.forEach(d => {
+    if (!targetDays.includes(d)) {
+      const el = document.getElementById('mti_' + prodId + '_' + d);
+      if (el) el.value = '';
+    }
+  });
+
+  // Distribui: proporcional se havia valores, igual caso contrário
+  let restante = novaMeta;
+  targetDays.forEach((d, i) => {
+    const el = document.getElementById('mti_' + prodId + '_' + d);
+    if (!el) return;
+    if (i === n - 1) {
+      // último dia absorve o arredondamento
+      el.value = restante > 0 ? restante : '';
+    } else {
+      const v = totalAtivo > 0
+        ? Math.round((currentVals[d] / totalAtivo) * novaMeta)
+        : Math.floor(novaMeta / n);
+      restante -= v;
+      el.value = v > 0 ? v : '';
+    }
+  });
+}
+
+// Salva um produto no Supabase (chamado onblur)
+async function _mtSalvar(prodId, prodNome, unidade) {
+  const diasVals = {};
+  let meta = 0;
+  _DIAS_KEYS.forEach(d => {
+    const el = document.getElementById('mti_' + prodId + '_' + d);
+    const v  = parseFloat((el && el.value) || '') || 0;
+    diasVals[d] = v;
+    meta += v;
+  });
+
+  const prodObj  = PRODS.find(p => p.id === prodId);
+  const payload = {
+    produto_id:   prodId,
+    produto_nome: prodNome,
+    setor:        _metasSetor,
+    unidade:      (unidade || prodObj?.unidade || 'kg').toLowerCase(),
+    categoria:    ((prodObj?.categoria) || 'OUTROS').toUpperCase(),
+    ...diasVals,
+    meta_semanal: meta,
+    atualizado_em: new Date().toISOString()
+  };
+
+  try {
+    const r = await fetch(
+      SUPA_URL + '/rest/v1/projecao_base?on_conflict=produto_id,setor', {
+      method:  'POST',
+      headers: {...H, 'Prefer': 'resolution=merge-duplicates,return=representation'},
+      body:    JSON.stringify(payload)
+    });
+    if (r.ok) {
+      const rows = await r.json();
+      if (rows && rows[0]) _metasCache[prodId] = rows[0];
+      toast('✅ Meta salva', 'ok');
+    } else {
+      const err = await r.text();
+      console.warn('_mtSalvar erro', r.status, err);
+      toast('⚠️ Erro ao salvar meta (' + r.status + ')', 'er');
+    }
+  } catch(e) {
+    console.warn('_mtSalvar excecao:', e.message);
+    toast('⚠️ Meta não salva', 'er');
+  }
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 </script>
 </body>
