@@ -881,7 +881,8 @@ const GF_USER = (function() {
   } catch(e) { window.location.replace('LOGIN.html'); return null; }
 })();
 if (!GF_USER) { throw new Error('sem sessão'); }
-const IS_ADMIN = GF_USER.role === 'admin';
+window.IS_ADMIN = GF_USER.role === 'admin';
+var IS_ADMIN = window.IS_ADMIN;
 
 // ══════════════════════════════════════════════════
 // SQL DE CRIAÇÃO — checklist_embalagens
@@ -2001,36 +2002,21 @@ async function _salvarRegistro(prodId) {
   const st = _getStatus(prodId);
   const stLabel = {cr:'critico',at:'alerta',ok:'ok',sc:'sem_controle',sem:'sem_controle'}[st]||'sem_controle';
 
-  // Montar detalhe de embalagens (se houver)
-  const embs = CK_EMBS[prodId] || [];
-  let embDetalhe = null;
-  if (embs.length > 0) {
-    const det = [];
-    embs.forEach(e => {
-      const qGon = (reg.embs_gon && reg.embs_gon[e.id]) || 0;
-      const qFrz = (reg.embs_frz && reg.embs_frz[e.id]) || 0;
-      if (qGon > 0) det.push({emb_id: e.id, nome: e.nome_embalagem, campo:'gondola', qtd:qGon, kg:+(qGon * e.gramatura_g / 1000).toFixed(3)});
-      if (qFrz > 0) det.push({emb_id: e.id, nome: e.nome_embalagem, campo:'freezer', qtd:qFrz, kg:+(qFrz * e.gramatura_g / 1000).toFixed(3)});
-    });
-    if (det.length > 0) embDetalhe = JSON.stringify(det);
-  }
-
+  // Schema real de checklist_registros (NÃO tem categoria nem embalagens_detalhe).
   const payload = {
     sessao_id: SESSAO.id,
     produto_id: prodId,
     produto_nome: prod.nome,
-    categoria: prod.categoria,
     setor: SETOR,
     unidade: prod.unidade,
     qtd_gondola: reg.qtd_gondola,
     qtd_freezer: reg.qtd_freezer != null ? reg.qtd_freezer : null,
-    qtd_total: (reg.qtd_gondola||0) + (reg.qtd_freezer||0),
+    qtd_total: (Number(reg.qtd_gondola)||0) + (Number(reg.qtd_freezer)||0),
     qtd_minima_gondola: cfg.qtd_minima_gondola||0,
     qtd_minima_freezer: cfg.qtd_minima_freezer||0,
     tem_freezer: cfg.tem_freezer||false,
     prioritario: cfg.prioritario||false,
     status: stLabel,
-    embalagens_detalhe: embDetalhe,
     salvo_em: new Date().toISOString()
   };
 
@@ -2044,7 +2030,9 @@ async function _salvarRegistro(prodId) {
     }
     REGISTROS[prodId].salvo = true;
   } catch(e) {
-    // silencioso — rascunho no localStorage garante dados
+    console.error('[_salvarRegistro] erro:', e.message, 'prodId:', prodId);
+    toast('❌ Erro ao salvar ' + (prod.nome||prodId) + ': ' + (e.message||'').slice(0,80), 'er');
+    setSyncUI('off');
   }
 }
 
@@ -2057,11 +2045,16 @@ async function finalizarChecklist() {
     const r = REGISTROS[p.id]; return r && r.qtd_gondola != null;
   }).length;
 
-  // Melhoria 2: campo em branco = 0 (garantia antes de salvar)
+  // Melhoria 2: campo em branco = 0 (garantia antes de salvar).
+  // Marca _intencionalmenteZerado quando o operador finaliza com o campo vazio —
+  // sinal explícito de "produto não tem estoque", a ser salvo no banco.
   TODOS_PRODS.forEach(function(p) {
     const r = REGISTROS[p.id];
     if (!r) return;
-    if (r.qtd_gondola == null) r.qtd_gondola = 0;
+    if (r.qtd_gondola == null) {
+      r.qtd_gondola = 0;
+      r._intencionalmenteZerado = true;
+    }
     if (r.qtd_freezer == null) r.qtd_freezer = 0;
   });
 
@@ -2091,12 +2084,24 @@ async function finalizarChecklist() {
 
   setSyncUI('wait');
   try {
-    // Salvar todos os não salvos
-    await Promise.all(
-      TODOS_PRODS
-        .filter(p => { const r = REGISTROS[p.id]; return r && !r.salvo; })
-        .map(p => _salvarRegistro(p.id))
-    );
+    // Salvar APENAS produtos que foram realmente preenchidos
+    // (qualquer campo tocado OU _intencionalmenteZerado pela finalização)
+    var aSalvar = TODOS_PRODS.filter(function(p) {
+      var r = REGISTROS[p.id];
+      if (!r || r.salvo) return false;
+      var tocouGondola = r.qtd_gondola != null && r.qtd_gondola !== 0;
+      var tocouFreezer = r.qtd_freezer != null && r.qtd_freezer !== 0;
+      return tocouGondola || tocouFreezer || r._intencionalmenteZerado;
+    });
+
+    console.log('[finalizar] Salvando', aSalvar.length, 'de', TODOS_PRODS.length, 'produtos');
+
+    // Salvar em batches de 10 para não sobrecarregar o Supabase
+    var BATCH = 10;
+    for (var i = 0; i < aSalvar.length; i += BATCH) {
+      var grupo = aSalvar.slice(i, i + BATCH);
+      await Promise.all(grupo.map(function(p){ return _salvarRegistro(p.id); }));
+    }
 
     if (SESSAO) {
       await sbPatch('checklist_sessoes', SESSAO.id, {
@@ -2131,9 +2136,16 @@ function _buildSugestaoProducao() {
     const toler = TOLER[cls] || 0.70;
     if (estoque >= minG * toler) return; // estoque ok para essa classe
 
-    // Calcular sugestão: usa meta_diaria da projecao_base se existir, senão usa mínimo
+    // Calcular sugestão: usa meta do dia da semana de projecao_base se >0, senão mínimo
     const proj = PROJ_BASE[p.id];
-    const meta = proj ? (parseFloat(proj.meta_diaria)||0) : minG;
+    let meta = minG; // fallback
+    if (proj) {
+      const diasMap = ['dom','seg','ter','qua','qui','sex','sab'];
+      const hoje = new Date();
+      const diaCol = diasMap[hoje.getDay()];
+      const metaDia = parseFloat(proj[diaCol]) || 0;
+      if (metaDia > 0) meta = metaDia;
+    }
     const sug = Math.max(0, meta - estoque);
     const und = (cfg.unidade_checklist||'kg').toLowerCase();
 
@@ -2262,10 +2274,6 @@ async function salvarEmbalagem(prodId, prodNome, nomeEmb, gramaturaG, ordem) {
   try {
     if (_isTabelaFaltando && _isTabelaFaltando({message:''})) return null; // guard
     const existentes = (CK_EMBS[prodId] || []).filter(e => e.ativo !== false);
-    if (existentes.length >= 2) {
-      toast('⚠️ Máximo 2 embalagens por produto', 'wa');
-      return null;
-    }
     const data = {
       produto_id: prodId,
       produto_nome: prodNome,
@@ -2585,19 +2593,54 @@ function _sortKeyProd(p) {
   if (u === 'at') return 6;
   return 7 + cOrd;
 }
+// Mantida só para compatibilidade — ignora o sortKey (que mistura classe)
 function _urgEmoji(sortKey) {
-  if (sortKey <= 2) return '🔴'; // zerado
-  if (sortKey <= 5) return '🟠'; // crítico / abaixo mínimo
-  if (sortKey === 6) return '🟡'; // próximo do mínimo
-  return '';                      // ok — sem emoji
+  return '';
+}
+
+// Cor de urgência calculada DIRETAMENTE do estoque vs mínimo
+// (classe ajusta só a tolerância, NÃO o resultado base)
+function _urgEmojiProd(prodId) {
+  var cfg = CK_CFG[prodId];
+  if (!cfg) return '';
+  var minTotal = (Number(cfg.qtd_minima_gondola) || 0)
+               + (Number(cfg.qtd_minima_freezer) || 0);
+  if (minTotal === 0) return '';
+  var estoque = _estoqueValProd(prodId);
+  if (estoque === null) return '';
+
+  var classe = _getClasse(prodId);
+  // Classe A tem tolerância maior — alertas acendem mais cedo
+  var limAt = classe === 'A' ? 1.3 : classe === 'B' ? 1.1 : 1.0;
+  var limCr = classe === 'A' ? 1.0 : classe === 'B' ? 0.8 : 0.7;
+  var pct   = estoque / minTotal;
+
+  if (estoque === 0) return '🔴'; // zerado
+  if (pct < limCr)   return '🟠'; // abaixo do mínimo
+  if (pct < limAt)   return '🟡'; // próximo do mínimo
+  return '✅';                    // ok
 }
 
 // ── Semáforo de estoque vs mínimo configurado ──
 // Usa REGISTROS (checklist ativo) ou ULTIMO_CK_VALS (último concluído) como fallback
 function _estoqueValProd(prodId) {
-  if (REGISTROS[prodId] !== undefined) return Number(REGISTROS[prodId].qtd_total) || 0;
+  var reg = REGISTROS[prodId];
+  if (reg !== undefined) {
+    // Calcula qtd_total a partir das partes (gondola + freezer) — em memória qtd_total
+    // ainda não foi gravado. Se nada foi preenchido E não foi salvo, cai para o último CK.
+    var gond = Number(reg.qtd_gondola);
+    var frz  = Number(reg.qtd_freezer);
+    if ((gond === 0 || isNaN(gond) || reg.qtd_gondola === null)
+     && (frz  === 0 || isNaN(frz)  || reg.qtd_freezer  === null)
+     && reg.salvo !== true) {
+      // Sem dados em memória, usa último checklist concluído
+      if (ULTIMO_CK_VALS[prodId] !== undefined) return ULTIMO_CK_VALS[prodId];
+      return null;
+    }
+    return (Number(reg.qtd_gondola)||0) + (Number(reg.qtd_freezer)||0);
+  }
   if (ULTIMO_CK_VALS[prodId] !== undefined) return ULTIMO_CK_VALS[prodId];
-  return null; // sem dados de checklist
+  return null; // sem dados nenhum
 }
 function _corLinhaProd(prodId) {
   // Sinalização visual só pelos ícones do produto (🔴🟠🟡✅).
@@ -2966,11 +3009,11 @@ function _buildTabelaEsqueleto() {
     + ' oninput="BUSCA_PROD=this.value;var fi=document.getElementById(\'focoBuscaInp\');if(fi)fi.value=this.value;_popularBodyTabela(_diasSemana(PROD_SEM_ISO),_today())">'
     + '</div>';
   var legenda = '<div class="legenda-cores" style="display:flex;gap:10px;padding:4px 8px;font-size:.6rem;color:#6B7280;flex-wrap:wrap;border-bottom:1px solid #EAF4EF;">'
-    + '<span>🔴 Zerado/Crítico</span>'
+    + '<span>🔴 Zerado</span>'
     + '<span>🟠 Abaixo do mínimo</span>'
-    + '<span>🟡 Próximo do mínimo</span>'
-    + '<span>✅ Estoque OK</span>'
-    + '<span style="color:#aaa;">&middot; Cores baseadas no checklist do dia</span>'
+    + '<span>🟡 Próximo</span>'
+    + '<span>✅ OK</span>'
+    + '<span style="color:#aaa;">&middot; Classe A acende alertas 30% mais cedo que C</span>'
     + '</div>';
   var tabela = '<div class="prod-tabela-wrap" style="margin:0 12px 80px;">'
     + '<table class="prod-tabela" id="tabelaSemanal">'
@@ -3107,9 +3150,8 @@ function _popularBodyTabela(dias, hoje) {
 
 function _buildTabelaRow(p, dias, hoje, num) {
   const sk      = _sortKeyProd(p);
-  const urgE    = _urgEmoji(sk);
+  const urgE    = _urgEmojiProd(p.id);
   const corLinha= _corLinhaProd(p.id);
-  const priE = CK_CFG[p.id]?.prioritario ? '⭐' : '';
   const und  = (p.unidade || 'KG').toUpperCase();
   const meta = _metaSem(p, PROD_SEM_ISO);
   const metaVal = meta > 0 ? (Number.isInteger(meta) ? meta : parseFloat(meta.toFixed(1))) : '';
@@ -3173,7 +3215,7 @@ function _buildTabelaRow(p, dias, hoje, num) {
   return '<tr style="' + corLinha + '">'
     + '<td class="col-produto" style="cursor:pointer;' + corLinha + '" title="Toque para ver detalhes"'
     + ' onclick="event.stopPropagation();abrirDetalheProduto(\'' + p.id + '\')">'
-    + '<span class="prod-num">' + num + '</span>' + urgE + priE + ' ' + escHtml(p.nome)
+    + '<span class="prod-num">' + num + '</span>' + urgE + ' ' + escHtml(p.nome)
     + '</td>'
     + metaCell
     + cells
@@ -3683,11 +3725,10 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
   }
 
   const cardCls = isDone ? 'done' : urg==='cr'?'cr':urg==='at'?'at':'';
-  const urgE = _urgEmoji(sk);
-  const priE = CK_CFG[p.id]?.prioritario ? '⭐' : '';
+  const urgE = _urgEmojiProd(p.id);
 
   return `<div class="phoje-card ${cardCls}" id="phoje-card-${p.id}" data-nome="${escHtml(p.nome)}">
-  <div class="phoje-card-nm"><span class="prod-num">${idx + 1}</span>${urgE}${priE} ${escHtml(p.nome)}</div>
+  <div class="phoje-card-nm"><span class="prod-num">${idx + 1}</span>${urgE} ${escHtml(p.nome)}</div>
   <div class="phoje-sug">Sugestão: <strong>${lote.qtd}${und.toLowerCase()}</strong>${lote.sazonalidade!==1?' · sazon. ×'+lote.sazonalidade:''}</div>
   ${alertHtml}
   <div class="phoje-inp-row">
