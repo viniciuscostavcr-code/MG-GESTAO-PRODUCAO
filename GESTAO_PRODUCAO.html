@@ -2041,9 +2041,28 @@ async function _salvarRegistro(prodId) {
 // ══════════════════════════════════════════════════
 async function finalizarChecklist() {
   const total = TODOS_PRODS.length;
-  const conf = TODOS_PRODS.filter(p => {
-    const r = REGISTROS[p.id]; return r && r.qtd_gondola != null;
-  }).length;
+
+  // Contar produtos não conferidos (qtd_gondola === null E qtd_freezer === null)
+  const naoConferidos = TODOS_PRODS.filter(function(p) {
+    const r = REGISTROS[p.id];
+    if (!r) return true; // sem registro = não conferido
+    return r.qtd_gondola == null && r.qtd_freezer == null;
+  });
+
+  if (naoConferidos.length > 0) {
+    const conf = total - naoConferidos.length;
+    const ok = await confirmar(
+      'Você conferiu ' + conf + ' de ' + total + ' produtos.\n\n' +
+      naoConferidos.length + ' produtos não foram conferidos e serão ' +
+      'considerados ZERADOS — entrarão na sugestão de produção.\n\n' +
+      'Continuar?',
+      'Produtos não conferidos',
+      '📋',
+      'Continuar e zerar',
+      false
+    );
+    if (!ok) return; // volta a conferir
+  }
 
   // Melhoria 2: campo em branco = 0 (garantia antes de salvar).
   // Marca _intencionalmenteZerado quando o operador finaliza com o campo vazio —
@@ -2072,14 +2091,6 @@ async function finalizarChecklist() {
       'Produtos A Zerados', '⚠️', 'Finalizar mesmo assim', false
     );
     if (!prosseguir) return;
-  }
-
-  if (conf < total) {
-    const ok = await confirmar(
-      'Apenas '+conf+' de '+total+' produtos foram conferidos. Finalizar mesmo assim?',
-      'Finalizar checklist', '⚠️', 'Finalizar', false
-    );
-    if (!ok) return;
   }
 
   setSyncUI('wait');
@@ -5686,18 +5697,33 @@ function getLoteProduto(produtoNome, setor, diaSemana, dataISO) {
   const pbMatch = Object.values(PROJ_BASE).find(r =>
     _normProdNome(r.produto_nome || '') === _normProdNome(produtoNome));
   if (pbMatch && Number(pbMatch.meta_semanal) > 0) {
-    const dKey = _diasIdx[diaSemana] || 'seg';
-    const qtd  = Number(pbMatch[dKey]) || 0;
+    const dKey      = _diasIdx[diaSemana] || 'seg';
+    const metaCheia = Number(pbMatch[dKey]) || 0;
+
+    // Desconta estoque atual via _estoqueValProd — sugestão = max(0, meta − estoque)
+    let estoqueAtual = 0;
+    if (typeof _estoqueValProd === 'function') {
+      const prodAtual = TODOS_PRODS.find(function(pp) {
+        return _normProdNome(pp.nome) === _normProdNome(produtoNome);
+      });
+      if (prodAtual) {
+        const v = _estoqueValProd(prodAtual.id);
+        if (v != null) estoqueAtual = v;
+      }
+    }
+
+    const qtd = Math.max(0, metaCheia - estoqueAtual);
+
     return {
       qtd,
-      mediaDia:     qtd,
+      mediaDia:     metaCheia,
       sazonalidade: 1,
-      loteBase:     qtd,
+      loteBase:     metaCheia,
       cap:          0,
       regra:        null,
       categoria:    (pbMatch.categoria || '—').toUpperCase(),
-      observacao:   'Meta do Supabase (projecao_base)',
-      diasProducao: _diasIdx.map((d, i) => Number(pbMatch[d]) > 0 ? i : -1).filter(i => i >= 0)
+      observacao:   'Meta ' + metaCheia + ' − estoque ' + estoqueAtual + ' = ' + qtd,
+      diasProducao: _diasIdx.map(function(d, i) { return Number(pbMatch[d]) > 0 ? i : -1; }).filter(function(i) { return i >= 0; })
     };
   }
 
