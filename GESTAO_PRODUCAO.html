@@ -1286,13 +1286,14 @@ async function _carregarDados() {
       console.warn('Erro ao carregar último CK:', eUlt.message);
     }
 
-    // Inicializar REGISTROS com qtd_gondola=0 para produtos ainda sem entrada
-    // (campo vazio = zero: operador só preenche se tiver produto)
+    // Inicializar REGISTROS com qtd_gondola=null para produtos ainda sem entrada.
+    // null = "não conferido" (não toquei) → fallback para ULTIMO_CK_VALS
+    // 0 = "conferido e zerado" (toquei explicitamente, ou foi finalizado)
     TODOS_PRODS.forEach(p => {
       if (!REGISTROS[p.id]) {
         REGISTROS[p.id] = {
-          qtd_gondola: 0,
-          qtd_freezer: 0,
+          qtd_gondola: null,
+          qtd_freezer: null,
           embs_gon: {},
           embs_frz: {},
           salvo: false
@@ -2043,26 +2044,15 @@ async function finalizarChecklist() {
   const total = TODOS_PRODS.length;
 
   // Contar produtos não conferidos (qtd_gondola === null E qtd_freezer === null)
+  // Em branco = zerado (regra automática, sem modal).
   const naoConferidos = TODOS_PRODS.filter(function(p) {
     const r = REGISTROS[p.id];
-    if (!r) return true; // sem registro = não conferido
+    if (!r) return true;
     return r.qtd_gondola == null && r.qtd_freezer == null;
   });
 
-  if (naoConferidos.length > 0) {
-    const conf = total - naoConferidos.length;
-    const ok = await confirmar(
-      'Você conferiu ' + conf + ' de ' + total + ' produtos.\n\n' +
-      naoConferidos.length + ' produtos não foram conferidos e serão ' +
-      'considerados ZERADOS — entrarão na sugestão de produção.\n\n' +
-      'Continuar?',
-      'Produtos não conferidos',
-      '📋',
-      'Continuar e zerar',
-      false
-    );
-    if (!ok) return; // volta a conferir
-  }
+  // conf precisa estar no escopo da função (usado em _renderResumo no final)
+  const conf = total - naoConferidos.length;
 
   // Melhoria 2: campo em branco = 0 (garantia antes de salvar).
   // Marca _intencionalmenteZerado quando o operador finaliza com o campo vazio —
@@ -2120,6 +2110,16 @@ async function finalizarChecklist() {
         finalizado_em: new Date().toISOString()
       });
     }
+
+    // SINCRONIZAR ULTIMO_CK_VALS em memória com o que foi salvo agora.
+    // Isso garante que a Projeção use os valores atuais sem precisar recarregar.
+    TODOS_PRODS.forEach(function(p) {
+      const r = REGISTROS[p.id];
+      if (!r) return;
+      const total = (Number(r.qtd_gondola)||0) + (Number(r.qtd_freezer)||0);
+      ULTIMO_CK_VALS[p.id] = total;
+    });
+    console.log('[Finalizar] ULTIMO_CK_VALS atualizado em memória:', Object.keys(ULTIMO_CK_VALS).length, 'produtos');
 
     localStorage.removeItem('gf_checklist_rascunho');
     setSyncUI('ok');
@@ -5725,6 +5725,41 @@ function getLoteProduto(produtoNome, setor, diaSemana, dataISO) {
       observacao:   'Meta ' + metaCheia + ' − estoque ' + estoqueAtual + ' = ' + qtd,
       diasProducao: _diasIdx.map(function(d, i) { return Number(pbMatch[d]) > 0 ? i : -1; }).filter(function(i) { return i >= 0; })
     };
+  }
+
+  // FALLBACK: produto SEM meta no projecao_base, mas com checklist mostrando estoque baixo
+  // → sugere produzir o suficiente para atingir o mínimo configurado.
+  // Permite que produtos zerados/abaixo do mínimo apareçam na lista de produção
+  // mesmo sem meta cadastrada.
+  if (typeof _estoqueValProd === 'function' && typeof CK_CFG !== 'undefined') {
+    const prodAtual = TODOS_PRODS.find(function(pp) {
+      return _normProdNome(pp.nome) === _normProdNome(produtoNome);
+    });
+    if (prodAtual) {
+      const cfg = CK_CFG[prodAtual.id];
+      if (cfg) {
+        const minTotal = (Number(cfg.qtd_minima_gondola)||0)
+                       + (Number(cfg.qtd_minima_freezer)||0);
+        if (minTotal > 0) {
+          const v = _estoqueValProd(prodAtual.id);
+          const estoque = (v != null) ? v : 0;
+          if (estoque < minTotal) {
+            const qtdFallback = Math.max(0, minTotal - estoque);
+            return {
+              qtd: qtdFallback,
+              mediaDia: minTotal,
+              sazonalidade: 1,
+              loteBase: minTotal,
+              cap: 0,
+              regra: null,
+              categoria: '—',
+              observacao: 'Sem meta — Mínimo ' + minTotal + ' − estoque ' + estoque + ' = ' + qtdFallback,
+              diasProducao: []
+            };
+          }
+        }
+      }
+    }
   }
 
   const norm       = _normProdNome(produtoNome);
