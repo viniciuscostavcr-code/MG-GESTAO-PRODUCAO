@@ -2049,8 +2049,10 @@ async function finalizarChecklist() {
     return r.qtd_gondola == null && r.qtd_freezer == null;
   });
 
+  // conf precisa estar no escopo da função (usado em _renderResumo no final)
+  const conf = total - naoConferidos.length;
+
   if (naoConferidos.length > 0) {
-    const conf = total - naoConferidos.length;
     const ok = await confirmar(
       'Você conferiu ' + conf + ' de ' + total + ' produtos.\n\n' +
       naoConferidos.length + ' produtos não foram conferidos e serão ' +
@@ -5725,6 +5727,42 @@ function getLoteProduto(produtoNome, setor, diaSemana, dataISO) {
       observacao:   'Meta ' + metaCheia + ' − estoque ' + estoqueAtual + ' = ' + qtd,
       diasProducao: _diasIdx.map(function(d, i) { return Number(pbMatch[d]) > 0 ? i : -1; }).filter(function(i) { return i >= 0; })
     };
+  }
+
+  // FALLBACK: produto SEM meta no projecao_base, mas com checklist mostrando estoque baixo
+  // → sugere produzir o suficiente para atingir o mínimo configurado.
+  // Permite que produtos zerados/abaixo do mínimo apareçam na lista de produção
+  // mesmo sem meta cadastrada.
+  if (typeof _estoqueValProd === 'function' && typeof CK_CFG !== 'undefined') {
+    const prodAtual = TODOS_PRODS.find(function(pp) {
+      return _normProdNome(pp.nome) === _normProdNome(produtoNome);
+    });
+    if (prodAtual) {
+      const cfg = CK_CFG[prodAtual.id];
+      if (cfg) {
+        const minTotal = (Number(cfg.qtd_minima_gondola)||0)
+                       + (Number(cfg.qtd_minima_freezer)||0);
+        if (minTotal > 0) {
+          const v = _estoqueValProd(prodAtual.id);
+          const estoque = (v != null) ? v : 0;
+          // Só sugere se estoque está abaixo do mínimo
+          if (estoque < minTotal) {
+            const qtdFallback = Math.max(0, minTotal - estoque);
+            return {
+              qtd: qtdFallback,
+              mediaDia: minTotal,
+              sazonalidade: 1,
+              loteBase: minTotal,
+              cap: 0,
+              regra: null,
+              categoria: '—',
+              observacao: 'Sem meta — Mínimo ' + minTotal + ' − estoque ' + estoque + ' = ' + qtdFallback,
+              diasProducao: []
+            };
+          }
+        }
+      }
+    }
   }
 
   const norm       = _normProdNome(produtoNome);
