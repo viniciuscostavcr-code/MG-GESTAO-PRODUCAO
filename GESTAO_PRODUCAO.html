@@ -586,8 +586,9 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
 .prod-tabela th.dia-hoje{background:#2D6A4F!important;font-weight:800;}
 .prod-tabela tr:hover td:not(.col-produto){background:#F0F7F4;}
 .cel-confirmado{background:#D1FAE5;color:#065F46;font-weight:700;border-radius:6px;padding:3px 6px;font-size:.78rem;display:inline-block;}
+.cel-confirmado.ajustado{background:#FEF3C7;color:#92400E;}
 .cel-planejado{background:#DBEAFE;color:#1E40AF;font-weight:600;border-radius:6px;padding:3px 6px;font-size:.78rem;display:inline-block;}
-.cel-sugerido{color:#374151;font-size:.78rem;}
+.cel-sugerido{background:#EFF6FF;color:#1E40AF;font-weight:600;border:1px dashed #3B82F6;border-radius:6px;padding:3px 6px;font-size:.78rem;display:inline-block;}
 .cel-bloqueado{color:#D1D5DB;font-size:.75rem;}
 .cel-vazio{color:#9CA3AF;font-size:.9rem;font-weight:500;}
 .prod-num{display:inline-block;min-width:18px;font-size:.68rem;font-weight:700;color:#9CA3AF;margin-right:3px;}
@@ -3191,14 +3192,23 @@ function _buildTabelaRow(p, dias, hoje, num) {
                 : lote.qtd;
       const qty = (raw !== null && raw !== undefined) ? raw : '—';
       if (st === 'confirmado') {
-        inner = `<span class="cel-confirmado">✅ ${qty}</span>`;
+        // Conforme = produziu igual ou mais que sugestão. Ajustado = produziu menos.
+        const sugOrig = Number(item.qtd_sugerida) || Number(lote.qtd) || 0;
+        const prodReal = Number(item.qtd_produzida) || 0;
+        if (sugOrig > 0 && prodReal < sugOrig) {
+          // Ajustado — produziu menos que a sugestão
+          inner = '<span class="cel-confirmado ajustado" title="Sugerido ' + sugOrig + ' · Produzido ' + prodReal + '">⚠️ ' + qty + '</span>';
+        } else {
+          // Conforme — produziu igual ou mais
+          inner = '<span class="cel-confirmado">✅ ' + qty + '</span>';
+        }
       } else if (st === 'planejado') {
-        inner = `<span class="cel-planejado">📝 ${qty}</span>`;
+        inner = '<span class="cel-planejado">📝 ' + qty + '</span>';
       } else if (ehProd) {
-        inner = `<span class="cel-sugerido">[${qty}]</span>`;
+        inner = '<span class="cel-sugerido">[' + qty + ']</span>';
       } else {
         // Sem sugestão — clicável para registrar em qualquer dia
-        inner = `<span class="cel-vazio">+</span>`;
+        inner = '<span class="cel-vazio">+</span>';
       }
     }
 
