@@ -324,6 +324,10 @@ body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif
 .phoje-card.at{border-color:#FCD34D;}
 .phoje-card.done{border-color:#86EFAC;background:#F0FDF4;}
 .phoje-card-nm{font-size:.88rem;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:5px;}
+.phoje-abc{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;font-size:10px;font-weight:700;border-radius:4px;padding:0 4px;flex-shrink:0;}
+.phoje-abc.abc-a{background:#FCEBEB;color:#A32D2D;}
+.phoje-abc.abc-b{background:#FAEEDA;color:#633806;}
+.phoje-abc.abc-c{background:#F1EFE8;color:#444441;}
 .phoje-sug{font-size:.74rem;color:var(--gray);margin-bottom:3px;}
 .phoje-alert{font-size:.72rem;color:var(--red);font-weight:600;margin-bottom:8px;}
 .phoje-inp-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
@@ -3747,9 +3751,11 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
 
   const cardCls = isDone ? 'done' : urg==='cr'?'cr':urg==='at'?'at':'';
   const urgE = _urgEmojiProd(p.id);
+  const classe = _getClasse(p.id);
+  const abcBadge = '<span class="phoje-abc abc-' + classe.toLowerCase() + '">' + classe + '</span>';
 
   return `<div class="phoje-card ${cardCls}" id="phoje-card-${p.id}" data-nome="${escHtml(p.nome)}">
-  <div class="phoje-card-nm"><span class="prod-num">${idx + 1}</span>${urgE} ${escHtml(p.nome)}</div>
+  <div class="phoje-card-nm"><span class="prod-num">${idx + 1}</span>${urgE} ${abcBadge} ${escHtml(p.nome)}</div>
   <div class="phoje-sug">Sugestão: <strong>${lote.qtd}${und.toLowerCase()}</strong>${lote.sazonalidade!==1?' · sazon. ×'+lote.sazonalidade:''}</div>
   ${alertHtml}
   <div class="phoje-inp-row">
@@ -5702,13 +5708,15 @@ function getSazonalidade(dataISO) {
  * }}
  */
 function getLoteProduto(produtoNome, setor, diaSemana, dataISO) {
-  // 1ª prioridade: metas configuradas no Supabase (projecao_base)
+  // 1ª prioridade: metas configuradas no Supabase (projecao_base) PARA O DIA específico
   const _diasIdx = ['dom','seg','ter','qua','qui','sex','sab'];
   const pbMatch = Object.values(PROJ_BASE).find(r =>
     _normProdNome(r.produto_nome || '') === _normProdNome(produtoNome));
-  if (pbMatch && Number(pbMatch.meta_semanal) > 0) {
-    const dKey      = _diasIdx[diaSemana] || 'seg';
-    const metaCheia = Number(pbMatch[dKey]) || 0;
+  // Calcula meta do DIA da semana (não meta_semanal). Se for 0 nesse dia,
+  // tratamos como "sem meta para este dia" e caímos no fallback do mínimo.
+  const dKey      = _diasIdx[diaSemana] || 'seg';
+  const metaCheia = pbMatch ? (Number(pbMatch[dKey]) || 0) : 0;
+  if (pbMatch && metaCheia > 0) {
 
     // Desconta estoque atual via _estoqueValProd — sugestão = max(0, meta − estoque)
     let estoqueAtual = 0;
