@@ -5715,10 +5715,14 @@ function getLoteProduto(produtoNome, setor, diaSemana, dataISO) {
   const _diasIdx = ['dom','seg','ter','qua','qui','sex','sab'];
   const pbMatch = Object.values(PROJ_BASE).find(r =>
     _normProdNome(r.produto_nome || '') === _normProdNome(produtoNome));
-  // Calcula meta do DIA da semana (não meta_semanal). Se for 0 nesse dia,
-  // tratamos como "sem meta para este dia" e caímos no fallback do mínimo.
+  // Calcula meta do DIA da semana
   const dKey      = _diasIdx[diaSemana] || 'seg';
   const metaCheia = pbMatch ? (Number(pbMatch[dKey]) || 0) : 0;
+
+  // Função utilitária: arredonda para 1 casa decimal (evita 0.6000000000000001)
+  const _arred = function(n) { return Math.round((Number(n)||0) * 10) / 10; };
+
+  // CASO 1: produto TEM meta cadastrada e ESTE DIA tem meta > 0
   if (pbMatch && metaCheia > 0) {
 
     // ═══ REDISTRIBUIÇÃO AUTOMÁTICA DA META SEMANAL ═══
@@ -5807,7 +5811,7 @@ function getLoteProduto(produtoNome, setor, diaSemana, dataISO) {
     if (diasRestantes > 0) {
       const restante = Math.max(0, metaSemanal - produzidoSemana);
       qtd = restante / diasRestantes;
-      qtd = Math.round(qtd * 100) / 100;
+      qtd = _arred(qtd);  // arredonda para 1 casa decimal (evita 0.6000000000000001)
       observacao = 'Meta sem ' + metaSemanal + ' − produzido ' + produzidoSemana
                  + ' = ' + restante + ' ÷ ' + diasRestantes + ' dias = ' + qtd;
     } else {
@@ -5824,6 +5828,22 @@ function getLoteProduto(produtoNome, setor, diaSemana, dataISO) {
       regra:        null,
       categoria:    (pbMatch.categoria || '—').toUpperCase(),
       observacao:   observacao,
+      diasProducao: _diasIdx.map(function(d, i) { return Number(pbMatch[d]) > 0 ? i : -1; }).filter(function(i) { return i >= 0; })
+    };
+  }
+
+  // CASO 2: produto TEM meta cadastrada mas NÃO neste dia específico
+  // → célula vazia (não dia de produção). NÃO cair no fallback do mínimo.
+  if (pbMatch && metaCheia === 0) {
+    return {
+      qtd: 0,
+      mediaDia: 0,
+      sazonalidade: 1,
+      loteBase: 0,
+      cap: 0,
+      regra: null,
+      categoria: (pbMatch.categoria || '—').toUpperCase(),
+      observacao: 'Não é dia de produção',
       diasProducao: _diasIdx.map(function(d, i) { return Number(pbMatch[d]) > 0 ? i : -1; }).filter(function(i) { return i >= 0; })
     };
   }
