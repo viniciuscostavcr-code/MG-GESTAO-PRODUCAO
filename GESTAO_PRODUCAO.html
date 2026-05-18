@@ -585,14 +585,17 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
 .meta-pop-inp{width:90px;border:1.5px solid #D1D5DB;border-radius:8px;padding:8px 10px;font-size:.95rem;font-weight:700;text-align:center;outline:none;}
 .meta-pop-inp:focus{border-color:#2D6A4F;}
 .meta-pop-und{font-size:.82rem;color:#6B7280;}
-.prod-tabela td.col-dia{min-width:58px;text-align:center;padding:6px 4px;vertical-align:middle;cursor:pointer;}
-.dia-hoje{background:#EAF4EF!important;}
-.prod-tabela th.dia-hoje{background:#2D6A4F!important;font-weight:800;}
+.prod-tabela td.col-dia{min-width:58px;text-align:center;padding:8px 4px;vertical-align:middle;cursor:pointer;}
+.dia-hoje{background:#F0F9F4!important;}
+.prod-tabela th.dia-hoje{background:#1B4332!important;font-weight:800;}
 .prod-tabela tr:hover td:not(.col-produto){background:#F0F7F4;}
-.cel-confirmado{background:#D1FAE5;color:#065F46;font-weight:700;border-radius:6px;padding:3px 6px;font-size:.78rem;display:inline-block;}
-.cel-confirmado.ajustado{background:#FEF3C7;color:#92400E;}
-.cel-planejado{background:#DBEAFE;color:#1E40AF;font-weight:600;border-radius:6px;padding:3px 6px;font-size:.78rem;display:inline-block;}
-.cel-sugerido{background:#EFF6FF;color:#1E40AF;font-weight:600;border:1px dashed #3B82F6;border-radius:6px;padding:3px 6px;font-size:.78rem;display:inline-block;}
+.prod-tabela tbody tr:nth-child(even) td:not(.col-produto):not(.dia-hoje){background:#FAFBFA;}
+.cel-confirmado{color:#065F46;font-weight:700;font-size:.95rem;display:inline-block;}
+.cel-confirmado.ajustado{color:#A16207;}
+.cel-planejado{color:#1E40AF;font-weight:600;font-size:.95rem;display:inline-block;}
+.cel-sugerido{color:#3B82F6;font-weight:500;font-size:.9rem;display:inline-block;opacity:0.75;}
+.col-dia.dia-hoje .cel-sugerido{opacity:1;font-weight:600;font-size:.95rem;}
+.col-dia.dia-hoje .cel-confirmado{font-size:1rem;}
 .cel-bloqueado{color:#D1D5DB;font-size:.75rem;}
 .cel-vazio{color:#9CA3AF;font-size:.9rem;font-weight:500;}
 .prod-num{display:inline-block;min-width:18px;font-size:.68rem;font-weight:700;color:#9CA3AF;margin-right:3px;}
@@ -3201,15 +3204,15 @@ function _buildTabelaRow(p, dias, hoje, num) {
         const prodReal = Number(item.qtd_produzida) || 0;
         if (sugOrig > 0 && prodReal < sugOrig) {
           // Ajustado — produziu menos que a sugestão
-          inner = '<span class="cel-confirmado ajustado" title="Sugerido ' + sugOrig + ' · Produzido ' + prodReal + '">⚠️ ' + qty + '</span>';
+          inner = '<span class="cel-confirmado ajustado" title="Sugerido ' + sugOrig + ' · Produzido ' + prodReal + '">' + qty + '</span>';
         } else {
           // Conforme — produziu igual ou mais
-          inner = '<span class="cel-confirmado">✅ ' + qty + '</span>';
+          inner = '<span class="cel-confirmado">' + qty + '</span>';
         }
       } else if (st === 'planejado') {
-        inner = '<span class="cel-planejado">📝 ' + qty + '</span>';
+        inner = '<span class="cel-planejado">' + qty + '</span>';
       } else if (ehProd) {
-        inner = '<span class="cel-sugerido">[' + qty + ']</span>';
+        inner = '<span class="cel-sugerido">' + qty + '</span>';
       } else {
         // Sem sugestão — clicável para registrar em qualquer dia
         inner = '<span class="cel-vazio">+</span>';
@@ -5718,19 +5721,72 @@ function getLoteProduto(produtoNome, setor, diaSemana, dataISO) {
   const metaCheia = pbMatch ? (Number(pbMatch[dKey]) || 0) : 0;
   if (pbMatch && metaCheia > 0) {
 
-    // Desconta estoque atual via _estoqueValProd — sugestão = max(0, meta − estoque)
-    let estoqueAtual = 0;
-    if (typeof _estoqueValProd === 'function') {
-      const prodAtual = TODOS_PRODS.find(function(pp) {
-        return _normProdNome(pp.nome) === _normProdNome(produtoNome);
-      });
-      if (prodAtual) {
-        const v = _estoqueValProd(prodAtual.id);
-        if (v != null) estoqueAtual = v;
+    // ═══ REDISTRIBUIÇÃO AUTOMÁTICA DA META SEMANAL ═══
+    // Sugestão = (meta_semanal_total − produzido_acumulado_na_semana)
+    //           ÷ dias_restantes_de_producao (inclui hoje)
+    //
+    // Se padeiro produziu menos num dia, diferença redistribui nos próximos.
+    // Se produziu mais, próximos dias reduzem proporcionalmente.
+
+    // 1. Meta semanal total: soma dos 7 dias
+    const metaSemanal = _diasIdx.reduce(function(acc, d) {
+      return acc + (Number(pbMatch[d]) || 0);
+    }, 0);
+
+    // 2. Identificar produto e calcular semana de referência
+    const prodAtual = TODOS_PRODS.find(function(pp) {
+      return _normProdNome(pp.nome) === _normProdNome(produtoNome);
+    });
+    const prodId = prodAtual ? prodAtual.id : null;
+
+    // 3. Calcular início e fim da semana (segunda a domingo)
+    const dt = new Date(dataISO + 'T12:00:00');
+    const dow = dt.getDay(); // 0=dom, 1=seg, ... 6=sab
+    const diasParaSeg = dow === 0 ? -6 : (1 - dow);
+    const segDt = new Date(dt);
+    segDt.setDate(dt.getDate() + diasParaSeg);
+    const _toISO = function(d) { return d.toISOString().slice(0,10); };
+
+    // 4. Somar produção real de toda a semana (até hoje, exclusive)
+    let produzidoSemana = 0;
+    if (prodId && typeof PROD_ITENS !== 'undefined') {
+      for (let i = 0; i < 7; i++) {
+        const checkDt = new Date(segDt);
+        checkDt.setDate(segDt.getDate() + i);
+        const checkISO = _toISO(checkDt);
+        if (checkISO === dataISO) continue; // pula o dia atual (ele é o que vamos sugerir)
+        const key = prodId + '_' + checkISO;
+        const item = PROD_ITENS[key];
+        if (item && item.status === 'confirmado') {
+          produzidoSemana += Number(item.qtd_produzida) || 0;
+        }
       }
     }
 
-    const qtd = Math.max(0, metaCheia - estoqueAtual);
+    // 5. Contar dias restantes de produção (incluindo hoje)
+    let diasRestantes = 0;
+    const hojeIdx = dow === 0 ? 6 : (dow - 1); // 0=seg, 6=dom
+    for (let i = hojeIdx; i < 7; i++) {
+      // mapear i (0=seg) para chave do projecao_base
+      const idxToDow = (i + 1) % 7; // 1=seg → 1, ..., 6=sab → 6, 7%7=0=dom
+      const dayKey = _diasIdx[idxToDow];
+      if (Number(pbMatch[dayKey]) > 0) diasRestantes++;
+    }
+
+    // 6. Fórmula final: sugestão = restante ÷ dias_restantes
+    let qtd;
+    let observacao;
+    if (diasRestantes > 0) {
+      const restante = Math.max(0, metaSemanal - produzidoSemana);
+      qtd = restante / diasRestantes;
+      // Arredondar para 2 casas (kg) ou inteiro (un)
+      qtd = Math.round(qtd * 100) / 100;
+      observacao = 'Meta sem ' + metaSemanal + ' − produzido ' + produzidoSemana
+                 + ' = ' + restante + ' ÷ ' + diasRestantes + ' dias = ' + qtd;
+    } else {
+      qtd = metaCheia; // fallback se algo deu errado no cálculo
+      observacao = 'Meta do dia (cálculo de redistribuição não aplicável)';
+    }
 
     return {
       qtd,
@@ -5740,7 +5796,7 @@ function getLoteProduto(produtoNome, setor, diaSemana, dataISO) {
       cap:          0,
       regra:        null,
       categoria:    (pbMatch.categoria || '—').toUpperCase(),
-      observacao:   'Meta ' + metaCheia + ' − estoque ' + estoqueAtual + ' = ' + qtd,
+      observacao:   observacao,
       diasProducao: _diasIdx.map(function(d, i) { return Number(pbMatch[d]) > 0 ? i : -1; }).filter(function(i) { return i >= 0; })
     };
   }
