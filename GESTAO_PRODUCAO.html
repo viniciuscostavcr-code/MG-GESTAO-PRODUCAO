@@ -5722,24 +5722,51 @@ function getLoteProduto(produtoNome, setor, diaSemana, dataISO) {
   if (pbMatch && metaCheia > 0) {
 
     // ═══ REDISTRIBUIÇÃO AUTOMÁTICA DA META SEMANAL ═══
-    // Sugestão = (meta_semanal_total − produzido_acumulado_na_semana)
-    //           ÷ dias_restantes_de_producao (inclui hoje)
+    // A redistribuição se aplica APENAS quando estamos calculando o DIA ATUAL.
+    // Para dias passados/futuros, mostramos o valor cadastrado (pbMatch[dKey]).
     //
-    // Se padeiro produziu menos num dia, diferença redistribui nos próximos.
-    // Se produziu mais, próximos dias reduzem proporcionalmente.
+    // Fórmula só vale para hoje:
+    //   sugestão_hoje = (meta_semanal − produzido_acumulado) ÷ dias_restantes
+    //
+    // Para outros dias, retorna o valor cadastrado direto.
 
+    // Verificar se dataISO é HOJE no fuso local
+    const _hojeISO = (function() {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return y + '-' + m + '-' + dd;
+    })();
+
+    // Se NÃO é hoje, retorna o valor cadastrado (sem redistribuição)
+    if (dataISO !== _hojeISO) {
+      return {
+        qtd: metaCheia,
+        mediaDia: metaCheia,
+        sazonalidade: 1,
+        loteBase: metaCheia,
+        cap: 0,
+        regra: null,
+        categoria: (pbMatch.categoria || '—').toUpperCase(),
+        observacao: 'Meta cadastrada para ' + dKey,
+        diasProducao: _diasIdx.map(function(d, i) { return Number(pbMatch[d]) > 0 ? i : -1; }).filter(function(i) { return i >= 0; })
+      };
+    }
+
+    // É HOJE — aplica redistribuição
     // 1. Meta semanal total: soma dos 7 dias
     const metaSemanal = _diasIdx.reduce(function(acc, d) {
       return acc + (Number(pbMatch[d]) || 0);
     }, 0);
 
-    // 2. Identificar produto e calcular semana de referência
+    // 2. Identificar produto
     const prodAtual = TODOS_PRODS.find(function(pp) {
       return _normProdNome(pp.nome) === _normProdNome(produtoNome);
     });
     const prodId = prodAtual ? prodAtual.id : null;
 
-    // 3. Calcular início e fim da semana (segunda a domingo)
+    // 3. Calcular início da semana (segunda)
     const dt = new Date(dataISO + 'T12:00:00');
     const dow = dt.getDay(); // 0=dom, 1=seg, ... 6=sab
     const diasParaSeg = dow === 0 ? -6 : (1 - dow);
@@ -5747,14 +5774,15 @@ function getLoteProduto(produtoNome, setor, diaSemana, dataISO) {
     segDt.setDate(dt.getDate() + diasParaSeg);
     const _toISO = function(d) { return d.toISOString().slice(0,10); };
 
-    // 4. Somar produção real de toda a semana (até hoje, exclusive)
+    // 4. Somar produção real ANTERIOR ao dia de hoje (segunda até ontem)
     let produzidoSemana = 0;
     if (prodId && typeof PROD_ITENS !== 'undefined') {
       for (let i = 0; i < 7; i++) {
         const checkDt = new Date(segDt);
         checkDt.setDate(segDt.getDate() + i);
         const checkISO = _toISO(checkDt);
-        if (checkISO === dataISO) continue; // pula o dia atual (ele é o que vamos sugerir)
+        if (checkISO === dataISO) continue; // pula o dia atual
+        if (checkISO > dataISO) continue;   // pula dias futuros
         const key = prodId + '_' + checkISO;
         const item = PROD_ITENS[key];
         if (item && item.status === 'confirmado') {
@@ -5763,12 +5791,12 @@ function getLoteProduto(produtoNome, setor, diaSemana, dataISO) {
       }
     }
 
-    // 5. Contar dias restantes de produção (incluindo hoje)
+    // 5. Contar dias de produção restantes (incluindo hoje, descontando os já passados)
     let diasRestantes = 0;
     const hojeIdx = dow === 0 ? 6 : (dow - 1); // 0=seg, 6=dom
     for (let i = hojeIdx; i < 7; i++) {
       // mapear i (0=seg) para chave do projecao_base
-      const idxToDow = (i + 1) % 7; // 1=seg → 1, ..., 6=sab → 6, 7%7=0=dom
+      const idxToDow = (i + 1) % 7;
       const dayKey = _diasIdx[idxToDow];
       if (Number(pbMatch[dayKey]) > 0) diasRestantes++;
     }
@@ -5779,12 +5807,11 @@ function getLoteProduto(produtoNome, setor, diaSemana, dataISO) {
     if (diasRestantes > 0) {
       const restante = Math.max(0, metaSemanal - produzidoSemana);
       qtd = restante / diasRestantes;
-      // Arredondar para 2 casas (kg) ou inteiro (un)
       qtd = Math.round(qtd * 100) / 100;
       observacao = 'Meta sem ' + metaSemanal + ' − produzido ' + produzidoSemana
                  + ' = ' + restante + ' ÷ ' + diasRestantes + ' dias = ' + qtd;
     } else {
-      qtd = metaCheia; // fallback se algo deu errado no cálculo
+      qtd = metaCheia;
       observacao = 'Meta do dia (cálculo de redistribuição não aplicável)';
     }
 
