@@ -2765,6 +2765,14 @@ const _META_CONF_NORM = Object.fromEntries(
 // Para Confeitaria: usa META_SEMANAL_CONF se houver entrada; senão calcula via getLoteProduto
 // Para outros setores: calcula sempre via getLoteProduto
 function _metaSem(prod, segISO) {
+  // 1ª prioridade: meta_semanal cadastrada em projecao_base (valor fixo do banco)
+  if (typeof PROJ_BASE !== 'undefined' && prod && prod.id) {
+    const pb = PROJ_BASE[prod.id];
+    if (pb && Number(pb.meta_semanal) > 0) {
+      return Number(pb.meta_semanal);
+    }
+  }
+
   if (SETOR === 'CONFEITARIA') {
     const norm = normalizar(prod.nome);
     // Busca exata
