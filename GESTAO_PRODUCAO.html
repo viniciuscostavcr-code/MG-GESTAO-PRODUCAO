@@ -600,9 +600,30 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
 .cel-vazio{color:#9CA3AF;font-size:.9rem;font-weight:500;}
 .prod-num{display:inline-block;min-width:18px;font-size:.68rem;font-weight:700;color:#9CA3AF;margin-right:3px;}
 .prod-grupo-header td{background:#F0F7F4!important;font-weight:800;color:#1B4332;font-size:.78rem;padding:6px 10px!important;border-top:2px solid #2D6A4F;}
+/* ── Modal interno de impressão (Safari iOS-safe) ── */
+.print-modal{position:fixed;inset:0;background:#fff;z-index:9999;overflow-y:auto;display:flex;flex-direction:column;}
+.print-modal-header{position:sticky;top:0;background:#1B4332;color:#fff;padding:12px 16px;display:flex;gap:8px;justify-content:space-between;z-index:10;}
+.print-modal-header button{padding:10px 16px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;min-height:44px;font-family:inherit;}
+.print-modal-close{background:#fff;color:#1B4332;}
+.print-modal-print{background:#2D6A4F;color:#fff;}
+.print-modal-content{flex:1;padding:20px;}
+@media print{
+  body > *:not(.print-modal){display:none!important;}
+  .print-modal-header{display:none!important;}
+  .print-modal{position:static;overflow:visible;}
+}
 </style>
 </head>
 <body>
+
+<!-- Modal de impressão (PDF) — sobreposto ao app, Safari iOS-safe -->
+<div id="printModal" class="print-modal" style="display:none;">
+  <div class="print-modal-header">
+    <button class="print-modal-close" onclick="fecharPrintModal()">← Voltar ao app</button>
+    <button class="print-modal-print" onclick="executarPrint()">🖨️ Imprimir / Salvar PDF</button>
+  </div>
+  <div id="printModalContent" class="print-modal-content"></div>
+</div>
 
 <!-- SPLASH -->
 <div id="splash">
@@ -1105,6 +1126,29 @@ function _hideSplash() {
 }
 
 init();
+
+// ══════════════════════════════════════════════════
+// MODAL DE IMPRESSÃO (PDF) — Safari iOS-safe
+// ══════════════════════════════════════════════════
+function abrirPrintModal(html) {
+  var c = document.getElementById('printModalContent');
+  var m = document.getElementById('printModal');
+  if (!c || !m) return;
+  c.innerHTML = html;
+  m.style.display = 'flex';
+  window.scrollTo(0, 0);
+}
+
+function fecharPrintModal() {
+  var c = document.getElementById('printModalContent');
+  var m = document.getElementById('printModal');
+  if (m) m.style.display = 'none';
+  if (c) c.innerHTML = '';
+}
+
+function executarPrint() {
+  window.print();
+}
 
 // ══════════════════════════════════════════════════
 // TABS
@@ -4160,7 +4204,7 @@ function _buildHistLayoutNovo() {
   var footerBlock = (HIST_VIEW === 'producao')
     ? '<div class="hist-footer">'
       + '<button class="hist-footer-btn excel" onclick="exportarExcel()">📥 Excel</button>'
-      + '<button class="hist-footer-btn pdf"   onclick="imprimirHistorico()">🖨️ PDF</button>'
+      + '<button class="hist-footer-btn pdf"   onclick="HIST_VIEW_MODE===\'consolidado\'?imprimirHistoricoConsolidado():imprimirHistorico()">🖨️ PDF</button>'
       + '</div>'
     : '';
 
@@ -4810,11 +4854,14 @@ function imprimirCk(sessaoId) {
     + '<scr' + 'ipt>window.onload=function(){window.print();}<\/scr' + 'ipt>'
     + '</body></html>';
 
-  var w = window.open('', '_blank');
-  if (!w) { toast('❌ Pop-up bloqueado. Permita pop-ups para este site.', 'er'); return; }
-  w.document.write(html);
-  w.document.close();
-  w.onload = function(){ w.print(); };
+  // Extrai CSS do <head> para preservar o design no modal
+  var styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+  var styleTag = styleMatch ? '<style>' + styleMatch[1] + '</style>' : '';
+  // Extrai miolo do <body> e remove o script de auto-print do HTML gerado
+  var match = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  var bodyContent = match ? match[1] : html;
+  bodyContent = bodyContent.replace(/<scr[^>]*>[\s\S]*?<\/scr[^>]*>/gi, '');
+  abrirPrintModal(styleTag + bodyContent);
 }
 
 // ══════════════════════════════════════════════════
@@ -5334,12 +5381,218 @@ function imprimirHistorico() {
     + '<scr' + 'ipt>window.onload=function(){window.print();}<\/scr' + 'ipt>'
     + '</body></html>';
 
-  var w = window.open('', '_blank');
-  if (!w) { toast('❌ Pop-up bloqueado. Permita pop-ups para este site.', 'er'); return; }
-  w.document.write(html);
-  w.document.close();
-  w.onload = function(){ w.print(); };
+  // Extrai CSS do <head> para preservar o design no modal
+  var styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+  var styleTag = styleMatch ? '<style>' + styleMatch[1] + '</style>' : '';
+  // Extrai miolo do <body> e remove o script de auto-print do HTML gerado
+  var match = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  var bodyContent = match ? match[1] : html;
+  bodyContent = bodyContent.replace(/<scr[^>]*>[\s\S]*?<\/scr[^>]*>/gi, '');
+  abrirPrintModal(styleTag + bodyContent);
 }
+// ══════════════════════════════════════════════════
+// PDF — VISÃO CONSOLIDADA
+// ══════════════════════════════════════════════════
+function imprimirHistoricoConsolidado() {
+  if (!HIST_DADOS || !HIST_DADOS.length) { toast('⚠️ Nenhum dado para imprimir', 'wa'); return; }
+
+  var labelPeriodo = fmtDataBR(HIST_FILTRO_DE) + ' a ' + fmtDataBR(HIST_FILTRO_ATE);
+  var agora = new Date().toLocaleString('pt-BR');
+
+  // ── Agregar por produto (mesma lógica do _renderHistConsolidado) ──
+  var agg = {};
+  HIST_DADOS.forEach(function(it) {
+    var key = it.produto_id || it.produto_nome || '?';
+    if (!agg[key]) {
+      var pObj = _prodLookupByIt(it);
+      agg[key] = {
+        nome:      it.produto_nome || '—',
+        und:       _histUnidade(it),
+        cat:       _histCategoria(it),
+        cod:       pObj ? (pObj.cod || '') : '',
+        produzido: 0,
+        sugerido:  0,
+        dias:      0
+      };
+    }
+    agg[key].produzido += Number(it.qtd_produzida) || 0;
+    agg[key].sugerido  += Number(it.qtd_sugerida)  || 0;
+    agg[key].dias++;
+  });
+
+  var items = Object.values(agg);
+
+  // ── Agrupar por grupo (ordem do PROD_GRUPOS_DEF) ──
+  var porGrupo = {};
+  items.forEach(function(it) {
+    var g = _grupoParaCategoria(it.cat) || 'OUTROS';
+    if (!porGrupo[g]) porGrupo[g] = [];
+    porGrupo[g].push(it);
+  });
+  PROD_GRUPOS_DEF.forEach(function(gDef) {
+    if (porGrupo[gDef.nome]) {
+      porGrupo[gDef.nome].sort(function(a, b) {
+        return (a.nome || '').localeCompare(b.nome || '', 'pt-BR');
+      });
+    }
+  });
+
+  var grpOrder = PROD_GRUPOS_DEF.map(function(g) { return g.nome; });
+  Object.keys(porGrupo).forEach(function(g) {
+    if (grpOrder.indexOf(g) < 0) grpOrder.push(g);
+  });
+
+  // ── Montar linhas da tabela ──
+  var tbodyHtml = '';
+  var grandKg = 0, grandUnd = 0, grandSugKg = 0, grandSugUnd = 0, grandDias = 0;
+  var totalProdutos = items.length;
+
+  grpOrder.forEach(function(gNome) {
+    var lista = porGrupo[gNome];
+    if (!lista || !lista.length) return;
+    var gDef = PROD_GRUPOS_DEF.find(function(x) { return x.nome === gNome; });
+    var ico  = gDef ? (gDef.ico || '') : '';
+
+    // Linha de cabeçalho de grupo
+    tbodyHtml += '<tr class="grp-row">'
+      + '<td colspan="8">' + (ico ? ico + ' ' : '') + escHtml(gNome) + '</td>'
+      + '</tr>';
+
+    var subKg = 0, subUnd = 0;
+    lista.forEach(function(it) {
+      var dif = it.produzido - it.sugerido;
+      var pct = it.sugerido > 0 ? Math.round((it.produzido / it.sugerido) * 100) : null;
+      var difStr = dif === 0 ? '—' : (dif > 0 ? '+' : '') + fmtPtBR(Math.abs(dif), 1);
+      var difCls = dif > 0 ? 'pos' : (dif < 0 ? 'neg' : '');
+      var undCls = it.und === 'KG' ? 'und-kg' : 'und-und';
+      if (it.und === 'KG') { subKg += it.produzido; grandSugKg  += it.sugerido; }
+      else                 { subUnd += it.produzido; grandSugUnd += it.sugerido; }
+      tbodyHtml += '<tr>'
+        + '<td class="cod">'   + escHtml(it.cod) + '</td>'
+        + '<td class="prod">'  + escHtml(it.nome) + '</td>'
+        + '<td class="und ' + undCls + '">' + it.und + '</td>'
+        + '<td class="num">'   + fmtPtBR(it.produzido, 1) + '</td>'
+        + '<td class="num">'   + (it.sugerido > 0 ? fmtPtBR(it.sugerido, 1) : '—') + '</td>'
+        + '<td class="num ' + difCls + '">' + difStr + '</td>'
+        + '<td class="num">'   + (pct !== null ? pct + '%' : '—') + '</td>'
+        + '<td class="num">'   + it.dias + '</td>'
+        + '</tr>';
+    });
+
+    var subStr = '';
+    if (subKg  > 0) subStr += fmtPtBR(subKg,  1) + ' kg';
+    if (subUnd > 0) subStr += (subStr ? ' | ' : '') + fmtPtBR(subUnd, 0) + ' un';
+    tbodyHtml += '<tr class="sub-row">'
+      + '<td colspan="3">Subtotal ' + escHtml(gNome) + '</td>'
+      + '<td colspan="5" class="num">' + escHtml(subStr) + '</td>'
+      + '</tr>';
+
+    grandKg  += subKg;
+    grandUnd += subUnd;
+    grandDias += lista.reduce(function(s, it) { return s + it.dias; }, 0);
+  });
+
+  // Linha de total geral
+  var grandStr = '';
+  if (grandKg  > 0) grandStr += fmtPtBR(grandKg,  1) + ' kg';
+  if (grandUnd > 0) grandStr += (grandStr ? ' | ' : '') + fmtPtBR(grandUnd, 0) + ' un';
+  var totalSugStr = '';
+  if (grandSugKg  > 0) totalSugStr += fmtPtBR(grandSugKg,  1) + ' kg';
+  if (grandSugUnd > 0) totalSugStr += (totalSugStr ? ' | ' : '') + fmtPtBR(grandSugUnd, 0) + ' un';
+
+  // Aderência geral
+  var aderRes = _calcAderenciaHist(HIST_DADOS);
+  var ader = aderRes.ader;
+
+  // Número de dias únicos com produção
+  var diasUnicos = new Set(HIST_DADOS.map(function(it) {
+    return (it.data_dia || it.data_producao || '').slice(0, 10);
+  })).size;
+
+  // ── CSS ──
+  var css = 'body{font-family:\'Courier New\',monospace;font-size:9pt;margin:1cm;color:#000;}'
+    + '.cab{text-align:center;margin-bottom:10pt;}'
+    + 'h2{font-size:13pt;margin:0;}'
+    + 'h3{font-size:11pt;margin:3pt 0;}'
+    + '.sub{font-size:8pt;color:#555;}'
+    + '.resumo{font-size:9pt;margin:6pt 0;padding:5pt 8pt;background:#f5f5f5;border:1px solid #ccc;}'
+    + 'table{width:100%;border-collapse:collapse;margin-top:8pt;font-size:8pt;}'
+    + 'th{background:#1B4332;color:#fff;padding:3pt 5pt;text-align:left;}'
+    + 'td{padding:2pt 5pt;border-bottom:1px solid #ddd;}'
+    + '.grp-row td{background:#2D6A4F;color:#fff;font-weight:700;padding:3pt 5pt;}'
+    + '.sub-row td{background:#f0f0f0;font-weight:600;font-size:8pt;color:#444;}'
+    + '.num{text-align:right;}'
+    + '.cod{color:#888;font-size:7.5pt;}'
+    + '.prod{font-weight:600;}'
+    + '.und{font-weight:700;}'
+    + '.und-kg{color:#C0392B;}'
+    + '.und-und{color:#E67E22;}'
+    + '.pos{color:#1a7a3c;}'
+    + '.neg{color:#C0392B;}'
+    + '.totais{margin-top:8pt;padding:5pt 8pt;border-top:2pt solid #000;font-weight:bold;font-size:9pt;background:#f5f5f5;}'
+    + '.tot-row{display:flex;justify-content:space-between;margin-bottom:2pt;}'
+    + '.assin{margin-top:24pt;font-size:9pt;}'
+    + '.arow{margin-bottom:18pt;}'
+    + '.acampo{display:inline-block;width:65%;border-bottom:1px solid #000;}'
+    + '@media print{button{display:none!important;}}';
+
+  // ── HTML completo ──
+  var html = '<!DOCTYPE html><html><head>'
+    + '<meta charset="UTF-8">'
+    + '<title>Consolidado ' + labelPeriodo + '</title>'
+    + '<style>' + css + '</style>'
+    + '</head><body>'
+    + '<div class="cab">'
+    + '<h2>SUPERMERCADO MG</h2>'
+    + '<h3>RELATÓRIO CONSOLIDADO DE PRODUÇÃO</h3>'
+    + '<h3>' + escHtml(HIST_SETOR) + ' — ' + escHtml(labelPeriodo) + '</h3>'
+    + '<div class="sub">Gerado em: ' + agora + '</div>'
+    + '</div>'
+    + '<div class="resumo">'
+    + 'Total Produzido: ' + grandStr
+    + ' &nbsp;|&nbsp; Meta Total: ' + (totalSugStr || '—')
+    + ' &nbsp;|&nbsp; Aderência: ' + ader + '%'
+    + ' &nbsp;|&nbsp; Produtos únicos: ' + totalProdutos
+    + ' &nbsp;|&nbsp; Dias c/ produção: ' + diasUnicos
+    + '</div>'
+    + '<table>'
+    + '<thead><tr>'
+    + '<th style="width:40px;">COD</th>'
+    + '<th>PRODUTO</th>'
+    + '<th style="width:36px;">UND</th>'
+    + '<th style="text-align:right;">PRODUZIDO</th>'
+    + '<th style="text-align:right;">META (sug.)</th>'
+    + '<th style="text-align:right;">DIF</th>'
+    + '<th style="text-align:right;">ADER%</th>'
+    + '<th style="text-align:right;">DIAS</th>'
+    + '</tr></thead>'
+    + '<tbody>' + tbodyHtml + '</tbody>'
+    + '</table>'
+    + '<div class="totais">'
+    + '<div class="tot-row"><span>TOTAL PRODUZIDO</span><span>' + grandStr + '</span></div>'
+    + '<div class="tot-row"><span>META TOTAL</span><span>'      + (totalSugStr || '—') + '</span></div>'
+    + '<div class="tot-row"><span>ADERÊNCIA GERAL</span><span>' + ader + '%</span></div>'
+    + '<div class="tot-row"><span>PRODUTOS ÚNICOS</span><span>' + totalProdutos + '</span></div>'
+    + '<div class="tot-row"><span>DIAS COM PRODUÇÃO</span><span>' + diasUnicos + '</span></div>'
+    + '</div>'
+    + '<div class="assin">'
+    + '<div class="arow">Responsável: <span class="acampo">&nbsp;</span></div>'
+    + '<div class="arow">Assinatura: <span class="acampo">&nbsp;</span></div>'
+    + '<div class="arow">Data/Hora: <span class="acampo">&nbsp;</span></div>'
+    + '</div>'
+    + '<scr' + 'ipt>window.onload=function(){window.print();}<\/scr' + 'ipt>'
+    + '</body></html>';
+
+  // Extrai CSS do <head> para preservar o design no modal
+  var styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+  var styleTag = styleMatch ? '<style>' + styleMatch[1] + '</style>' : '';
+  // Extrai miolo do <body> e remove o script de auto-print
+  var bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  var bodyContent = bodyMatch ? bodyMatch[1] : html;
+  bodyContent = bodyContent.replace(/<scr[^>]*>[\s\S]*?<\/scr[^>]*>/gi, '');
+  abrirPrintModal(styleTag + bodyContent);
+}
+
 // ══════════════════════════════════════════════════
 // SUGESTÕES DE PRODUÇÃO — FUNÇÕES DE CÁLCULO
 // ══════════════════════════════════════════════════
