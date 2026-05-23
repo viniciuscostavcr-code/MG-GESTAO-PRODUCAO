@@ -612,15 +612,18 @@ function toggleSidebar(){
 }
 
 async function carregarStats(){
+  // Marcar online assim que conseguir resposta do Supabase (independente de erro de tabela)
+  function setOnline(){
+    document.getElementById('hubDot').className='dot';
+    document.getElementById('hubSync').textContent='online';
+  }
   try{
     const[nDesp,nProd]=await Promise.all([
       fetch(`${SUPA_URL}/rest/v1/desperdicios?select=id`,{headers:{...H,'Prefer':'count=exact','Range-Unit':'items','Range':'0-0'}})
-        .then(r=>{const cr=r.headers.get('content-range');return cr?cr.split('/')[1]:'?';}),
+        .then(r=>{setOnline();const cr=r.headers.get('content-range');return cr?cr.split('/')[1]:'?';}),
       fetch(`${SUPA_URL}/rest/v1/producao?select=id`,{headers:{...H,'Prefer':'count=exact','Range-Unit':'items','Range':'0-0'}})
-        .then(r=>{const cr=r.headers.get('content-range');return cr?cr.split('/')[1]:'?';}),
+        .then(r=>{setOnline();const cr=r.headers.get('content-range');return cr?cr.split('/')[1]:'?';}),
     ]);
-    document.getElementById('hubDot').className='dot';
-    document.getElementById('hubSync').textContent='online';
     document.getElementById('statDesp').textContent=nDesp+' registros';
     document.getElementById('statProd').textContent=nProd+' registros';
     document.getElementById('statDespVal').textContent=nDesp;
@@ -628,8 +631,14 @@ async function carregarStats(){
     document.getElementById('navDesp').textContent=nDesp;
     document.getElementById('navProd').textContent=nProd;
   }catch(e){
-    document.getElementById('hubDot').className='dot off';
-    document.getElementById('hubSync').textContent='offline';
+    console.error('Erro carregarStats:', e);
+    // Tentar um ping simples para verificar conectividade com o Supabase
+    fetch(`${SUPA_URL}/rest/v1/`,{headers:H})
+      .then(()=>setOnline())
+      .catch(()=>{
+        document.getElementById('hubDot').className='dot off';
+        document.getElementById('hubSync').textContent='offline';
+      });
   }
 }
 carregarStats();

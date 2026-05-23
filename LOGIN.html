@@ -306,6 +306,7 @@ async function entrar(){
       id:selUser.id,
       nome:selUser.nome,
       role:selUser.role,
+      setor:(selUser.setor||'').toUpperCase().trim(),
       cor:avCor(selIdx),
       loggedAt:Date.now()
     }));

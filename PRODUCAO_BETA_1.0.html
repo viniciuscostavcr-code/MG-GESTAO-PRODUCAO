@@ -561,11 +561,12 @@ function renderSpills(){
 function setG(g){GF=g;renderSpills();render();}
 function scrollSpills(dir){const el=document.getElementById('spills');if(el)el.scrollBy({left:dir*140,behavior:'smooth'});}
 
+function normalizar(str){return(str||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();}
 function render(){
-  const q=document.getElementById('iSrc').value.toLowerCase().trim();
+  const q=normalizar(document.getElementById('iSrc').value);
   let list=allProds();
   if(GF!=='TODOS') list=list.filter(p=>p.g===GF);
-  if(q) list=list.filter(p=>p.n.toLowerCase().includes(q)||p.c.includes(q));
+  if(q) list=list.filter(p=>normalizar(p.n).includes(q)||p.c.includes(q));
   document.getElementById('lLbl').textContent=GF==='TODOS'?'Todos os produtos':GF;
   document.getElementById('lCnt').textContent=list.length+' produto'+(list.length!==1?'s':'');
   if(!list.length){document.getElementById('pList').innerHTML=`<div class="emp"><div class="big">🔍</div><p>Produto não encontrado.</p></div>`;return;}

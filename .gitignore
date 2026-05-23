@@ -1,0 +1,23 @@
+# Claude Code / IDE
+.claude/
+.claude.zip
+.vscode/
+.idea/
+
+# OS / OneDrive
+Thumbs.db
+desktop.ini
+.DS_Store
+*.swp
+*.tmp
+*~
+
+# OneDrive duplicados (arquivos com sufixo " 1.ext", " 2.ext", etc.)
+* [0-9].html
+* [0-9].png
+* [0-9].jpg
+* [0-9].ico
+
+# Logs / Node
+*.log
+node_modules/

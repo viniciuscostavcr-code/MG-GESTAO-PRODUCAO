@@ -1,0 +1,2124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2D6A4F">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-gestfood-192.png">
+<title>🏭 Produção — GestFood</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F7F5;--white:#FFF;--brown:#1C1C1A;--brown2:#4A4A46;
+  --grn:#2D6A4F;--grn2:#1B4332;--grn-l:#EAF4EF;--grn-ll:#F0FAF4;
+  --border:#E2EDE8;--cream:#F7F7F5;
+  --red:#C0392B;--red2:#A93226;--red-l:#FDECEA;--red-ll:#FFF5F5;
+  --blue:#1D4ED8;--blue-l:#EEF2FF;
+  --orange:#E67E22;--orange-l:#FEF3EC;
+  --amber:#B45309;--amber-l:#FFFBEB;
+  --gray:#6B7280;--gray-l:#F4F4F2;--gray-ll:#FAFAF8;
+  --sh:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.07);--r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--brown);display:flex;flex-direction:column;}
+
+/* ══ SPLASH ══ */
+#splash{position:fixed;inset:0;background:linear-gradient(135deg,#2D6A4F 0%,#1B4332 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .4s;animation:splashAuto .5s 3s forwards;}
+@keyframes splashAuto{to{opacity:0;visibility:hidden;}}
+#splash.hide{opacity:0;visibility:hidden;pointer-events:none;animation:none;}
+.sp-logo{width:72px;height:72px;background:rgba(255,255,255,.15);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:2.4rem;margin-bottom:16px;}
+.sp-ttl{font-size:1.4rem;font-weight:800;color:#fff;letter-spacing:-.3px;}
+.sp-sub{font-size:.82rem;color:rgba(255,255,255,.6);margin-top:6px;}
+.sp-dots{display:flex;gap:6px;margin-top:28px;}
+.sp-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.35);animation:spd 1.2s infinite;}
+.sp-dot:nth-child(2){animation-delay:.2s;}
+.sp-dot:nth-child(3){animation-delay:.4s;}
+@keyframes spd{0%,80%,100%{opacity:.35;transform:scale(1)}40%{opacity:1;transform:scale(1.2)}}
+
+/* ══ TOPBAR ══ */
+.gf-topbar{background:#fff;border-bottom:3px solid var(--grn);height:52px;flex-shrink:0;display:flex;align-items:center;padding:0 14px;gap:10px;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.gf-back{display:flex;align-items:center;gap:6px;background:#F4F4F2;border:1px solid #E8E8E4;border-radius:8px;padding:5px 10px;font-size:.72rem;font-weight:600;color:#4A4A46;text-decoration:none;cursor:pointer;white-space:nowrap;font-family:inherit;}
+.gf-back:active{background:#E8E8E4;}
+.gf-mark{width:26px;height:26px;background:var(--grn);border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.72rem;font-weight:800;flex-shrink:0;}
+.gf-name{font-size:.82rem;font-weight:700;color:var(--brown);}
+.gf-name span{color:var(--grn);font-weight:400;}
+.gf-modulo{font-size:.7rem;font-weight:600;color:var(--gray);background:var(--gray-l);border-radius:6px;padding:3px 8px;}
+.gf-spacer{flex:1;}
+.sync-pill{display:flex;align-items:center;gap:5px;background:#F4F4F2;border:1px solid #E8E8E4;border-radius:20px;padding:3px 9px;font-size:.62rem;color:var(--gray);font-weight:500;}
+.dot{width:7px;height:7px;border-radius:50%;background:#22C55E;flex-shrink:0;display:inline-block;}
+.dot.off{background:#EF4444;}.dot.wait{background:#F59E0B;animation:pulse 1.2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.user-pill{display:flex;align-items:center;gap:6px;background:var(--grn-l);border:1px solid #C6E6D4;border-radius:20px;padding:4px 10px 4px 4px;font-size:.68rem;font-weight:600;color:var(--grn2);}
+.user-av{width:22px;height:22px;border-radius:50%;background:var(--grn);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.6rem;font-weight:700;flex-shrink:0;}
+
+/* ══ TABS ══ */
+.tabs{display:flex;background:#F4F4F2;flex-shrink:0;padding:6px 10px;gap:4px;overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{flex-shrink:0;text-align:center;padding:7px 12px;font-size:.67rem;font-weight:600;color:var(--gray);cursor:pointer;border-radius:8px;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:2px;white-space:nowrap;}
+.tab.on{color:#fff;background:var(--grn);}
+.tab-ico{font-size:.9rem;}
+
+/* ══ SCROLL ══ */
+.scr{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 13px 80px;}
+.vw{display:none;}.vw.on{display:block;}
+#v-hist.on{display:flex;flex-direction:column;}
+
+/* ══ CARDS ══ */
+.card{background:var(--white);border-radius:var(--r);padding:14px;box-shadow:var(--sh);margin-bottom:12px;}
+.card-hdr{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--gray);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+
+/* ══ SETOR SELECTOR ══ */
+.setor-pill-wrap{display:flex;gap:7px;margin-bottom:14px;}
+.setor-pill{padding:8px 18px;border-radius:10px;font-size:.8rem;font-weight:700;border:2px solid var(--border);background:var(--white);color:var(--gray);cursor:pointer;transition:.15s;}
+.setor-pill.on.padaria{background:var(--blue);border-color:var(--blue);color:#fff;}
+.setor-pill.on.conf{background:var(--red2);border-color:var(--red2);color:#fff;}
+
+/* ══ HOME ══ */
+.home-greeting{background:linear-gradient(135deg,var(--grn) 0%,var(--grn2) 100%);border-radius:var(--r);padding:18px 16px 16px;margin-bottom:12px;color:#fff;}
+.home-ola{font-size:1.1rem;font-weight:800;margin-bottom:2px;}
+.home-setor{font-size:.72rem;font-weight:600;opacity:.75;margin-bottom:10px;}
+.home-setor-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.18);border-radius:20px;padding:4px 12px;font-size:.78rem;font-weight:700;}
+
+.status-card{background:var(--white);border-radius:var(--r);padding:14px;box-shadow:var(--sh);margin-bottom:12px;border-left:5px solid var(--border);}
+.status-card.ok{border-left-color:var(--grn);}
+.status-card.warn{border-left-color:var(--amber);}
+.status-card.danger{border-left-color:var(--red);}
+.status-card-ttl{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--gray);margin-bottom:8px;}
+.status-nums{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;}
+.sn-item{text-align:center;background:var(--gray-l);border-radius:10px;padding:10px 8px;}
+.sn-val{font-size:1.3rem;font-weight:800;line-height:1;display:block;}
+.sn-lbl{font-size:.56rem;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--gray);display:block;margin-top:3px;}
+.status-alert{display:flex;align-items:center;gap:8px;background:var(--amber-l);border-radius:9px;padding:9px 11px;font-size:.74rem;font-weight:600;color:var(--amber);margin-top:6px;}
+
+.big-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.big-btn{border:none;border-radius:14px;padding:18px 10px;font-size:.88rem;font-weight:800;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;transition:.15s;min-height:80px;justify-content:center;}
+.big-btn:active{transform:scale(.97);}
+.big-btn-ico{font-size:1.6rem;}
+.big-btn.grn{background:var(--grn);color:#fff;box-shadow:0 4px 16px rgba(45,106,79,.3);}
+.big-btn.blue{background:var(--blue);color:#fff;box-shadow:0 4px 16px rgba(29,78,216,.25);}
+.btn-dash{width:100%;background:var(--grn-l);color:var(--grn2);border:1.5px solid #C6E6D4;border-radius:11px;padding:12px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:10px;}
+.btn-dash:active{opacity:.8;}
+
+/* ══ SEMANA ══ */
+.semana-hdr{background:var(--grn-ll);border:1.5px solid #C6E6D4;border-radius:12px;padding:11px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+.semana-range{font-size:.82rem;font-weight:700;color:var(--grn2);}
+.semana-status-badge{font-size:.62rem;font-weight:700;padding:3px 9px;border-radius:20px;}
+.semana-status-badge.em{background:var(--amber-l);color:var(--amber);}
+.semana-status-badge.fin{background:var(--grn-l);color:var(--grn2);}
+
+.dia-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin-bottom:12px;-webkit-overflow-scrolling:touch;}
+.dia-chips::-webkit-scrollbar{display:none;}
+.dia-chip{flex-shrink:0;padding:7px 13px;border-radius:9px;font-size:.72rem;font-weight:700;border:2px solid var(--border);background:var(--white);color:var(--gray);cursor:pointer;transition:.15s;text-align:center;min-width:52px;}
+.dia-chip.on{background:var(--grn);border-color:var(--grn);color:#fff;}
+.dia-chip.confirmado{border-color:var(--grn);color:var(--grn);}
+.dia-chip.confirmado.on{background:var(--grn)!important;color:#fff!important;}
+.dia-chip .dia-dot{width:5px;height:5px;border-radius:50%;margin:2px auto 0;background:transparent;}
+.dia-chip.confirmado .dia-dot{background:var(--grn);}
+.dia-chip.on .dia-dot{background:#fff;}
+
+.prod-item{background:var(--white);border-radius:12px;padding:12px;box-shadow:var(--sh);margin-bottom:8px;border-left:4px solid var(--border);display:flex;align-items:center;gap:12px;}
+.prod-item.has-plan{border-left-color:var(--blue);}
+.prod-item.confirmado{border-left-color:var(--grn)!important;background:var(--grn-ll);}
+.prod-item.nao-prod{border-left-color:var(--red)!important;background:var(--red-ll);}
+.prod-info{flex:1;min-width:0;}
+.prod-nm{font-size:.85rem;font-weight:700;line-height:1.3;word-break:break-word;}
+.prod-meta{font-size:.62rem;color:var(--gray);margin-top:2px;}
+.prod-qty-wrap{display:flex;align-items:center;gap:5px;flex-shrink:0;}
+.qty-btn{width:34px;height:34px;border-radius:9px;border:2px solid var(--border);background:var(--gray-l);font-size:1.1rem;font-weight:700;color:var(--brown2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.12s;flex-shrink:0;}
+.qty-btn:active{background:var(--border);transform:scale(.9);}
+.qty-inp{width:62px;height:56px;text-align:center;border:2px solid var(--border);border-radius:9px;font-size:1rem;font-weight:700;color:var(--brown);background:var(--cream);outline:none;font-family:inherit;}
+.qty-inp:focus{border-color:var(--grn);background:#fff;}
+.qty-und{font-size:.62rem;font-weight:700;color:var(--gray);text-align:center;margin-top:1px;}
+
+.semana-empty{text-align:center;padding:36px 20px;color:var(--gray);}
+.semana-empty .big{font-size:2rem;margin-bottom:8px;}
+
+.salvar-dia-btn{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:2px solid var(--grn-l);padding:10px 14px;z-index:100;box-shadow:0 -4px 20px rgba(26,77,46,.10);}
+.salvar-dia-btn button{width:100%;background:var(--grn);color:#fff;border:none;border-radius:11px;padding:14px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.salvar-dia-btn button:active{opacity:.85;}
+.salvar-dia-btn button:disabled{background:var(--gray-l);color:var(--gray);cursor:not-allowed;}
+
+/* ══ HOJE ══ */
+.hoje-hdr{background:linear-gradient(135deg,var(--grn) 0%,var(--grn2) 100%);border-radius:var(--r);padding:14px 16px;margin-bottom:12px;color:#fff;display:flex;align-items:center;justify-content:space-between;}
+.hoje-data{font-size:.88rem;font-weight:700;}
+.hoje-progresso{font-size:.72rem;opacity:.75;}
+.hoje-badge{background:rgba(255,255,255,.2);border-radius:20px;padding:4px 12px;font-size:.72rem;font-weight:700;}
+
+.hoje-item{background:var(--white);border-radius:13px;padding:13px 12px;box-shadow:var(--sh);margin-bottom:9px;border-left:4px solid var(--border);}
+.hoje-item.confirmado{border-left-color:var(--grn);background:var(--grn-ll);}
+.hoje-item.nao-prod{border-left-color:var(--red);background:var(--red-ll);}
+.hoje-item-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;}
+.hoje-item-info{flex:1;min-width:0;}
+.hoje-item-nm{font-size:.88rem;font-weight:700;line-height:1.3;}
+.hoje-item-meta{font-size:.62rem;color:var(--gray);margin-top:2px;}
+.hoje-sugestao{font-size:.68rem;color:var(--blue);font-weight:600;margin-top:2px;}
+.hoje-item-bottom{display:flex;align-items:center;gap:8px;}
+.hoje-qty-label{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--brown2);min-width:64px;}
+.hoje-qty-input{width:80px;height:56px;text-align:center;border:2px solid var(--border);border-radius:9px;font-size:1.05rem;font-weight:700;color:var(--brown);background:var(--cream);outline:none;font-family:inherit;}
+.hoje-qty-input:focus{border-color:var(--grn);background:#fff;}
+.status-btns{display:flex;gap:5px;flex:1;}
+.sbtn{flex:1;border:2px solid var(--border);border-radius:8px;padding:8px 4px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;background:var(--white);color:var(--gray);text-align:center;transition:.15s;}
+.sbtn.ok.on{background:var(--grn);border-color:var(--grn);color:#fff;}
+.sbtn.no.on{background:var(--red);border-color:var(--red);color:#fff;}
+.sbtn:active{opacity:.7;}
+
+.confirm-all-btn{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:2px solid var(--grn-l);padding:10px 14px;z-index:100;box-shadow:0 -4px 20px rgba(26,77,46,.10);}
+.confirm-all-btn button{width:100%;background:var(--grn);color:#fff;border:none;border-radius:11px;padding:14px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.confirm-all-btn button:disabled{background:var(--gray-l);color:var(--gray);cursor:not-allowed;}
+
+/* ══ DASHBOARD ══ */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px;}
+.kpi-card{background:var(--white);border-radius:12px;padding:13px 10px;box-shadow:var(--sh);text-align:center;border-top:3px solid var(--border);}
+.kpi-card.grn{border-top-color:var(--grn);}
+.kpi-card.blue{border-top-color:var(--blue);}
+.kpi-card.amber{border-top-color:var(--amber);}
+.kpi-card.red{border-top-color:var(--red);}
+.kpi-val{font-size:1.3rem;font-weight:800;display:block;line-height:1;margin-bottom:2px;}
+.kpi-lbl{font-size:.55rem;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;font-weight:600;line-height:1.3;}
+
+.semanas-hist{display:flex;flex-direction:column;gap:8px;}
+.semana-row{background:var(--white);border-radius:12px;padding:12px 14px;box-shadow:var(--sh);display:flex;align-items:center;gap:10px;}
+.semana-row-info{flex:1;}
+.semana-row-range{font-size:.82rem;font-weight:700;}
+.semana-row-sub{font-size:.65rem;color:var(--gray);margin-top:2px;}
+.semana-row-pct{font-size:1.1rem;font-weight:800;}
+.prog-bar-wrap{height:7px;background:var(--gray-l);border-radius:5px;margin-top:6px;overflow:hidden;}
+.prog-bar{height:100%;border-radius:5px;transition:width .5s ease;}
+
+/* ══ EMPTY / LOADING ══ */
+.emp{text-align:center;padding:40px 20px;color:var(--gray);}
+.emp .big{font-size:2.2rem;margin-bottom:8px;}
+.emp p{font-size:.82rem;line-height:1.6;}
+.loading-ring{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--grn);border-radius:50%;animation:spin .7s linear infinite;margin:30px auto;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ══ TOAST ══ */
+.tst{position:fixed;top:65px;left:50%;transform:translateX(-50%) translateY(-14px);background:var(--brown);color:#fff;padding:9px 20px;border-radius:24px;font-size:.82rem;font-weight:600;opacity:0;pointer-events:none;transition:.28s;z-index:999;white-space:nowrap;box-shadow:var(--sh);}
+.tst.on{opacity:1;transform:translateX(-50%) translateY(0);}
+.tst.ok{background:var(--grn);}
+.tst.er{background:var(--red2);}
+.tst.wa{background:var(--orange);}
+
+/* ══ MODAL CONFIRMAÇÃO ══ */
+.conf-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;align-items:center;justify-content:center;}
+.conf-ov.on{display:flex;}
+.conf-box{background:var(--white);border-radius:18px;width:88%;max-width:340px;padding:24px 20px 18px;box-shadow:0 8px 40px rgba(0,0,0,.25);animation:cUp .2s ease;text-align:center;}
+@keyframes cUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.conf-ico{font-size:2rem;margin-bottom:8px;}
+.conf-ttl{font-size:.95rem;font-weight:800;margin-bottom:6px;}
+.conf-msg{font-size:.78rem;color:var(--brown2);line-height:1.6;margin-bottom:18px;white-space:pre-line;}
+.conf-btns{display:flex;gap:8px;}
+.conf-ok{flex:1;background:var(--grn);color:#fff;border:none;border-radius:10px;padding:12px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.conf-ok.red{background:var(--red);}
+.conf-cn{flex:1;background:var(--gray-l);color:var(--brown);border:none;border-radius:10px;padding:12px;font-size:.88rem;cursor:pointer;font-family:inherit;}
+
+/* ══ SEMANA NAV ══ */
+.semana-nav{display:flex;align-items:center;justify-content:space-between;background:var(--white);border-radius:12px;padding:10px 12px;box-shadow:var(--sh);margin-bottom:10px;gap:8px;}
+.semana-nav-btn{background:var(--gray-l);border:none;border-radius:8px;width:34px;height:34px;font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:inherit;}
+.semana-nav-btn:active{background:var(--border);}
+.semana-nav-range{font-size:.82rem;font-weight:700;color:var(--brown);text-align:center;flex:1;}
+.semana-nav-sub{font-size:.6rem;color:var(--gray);text-align:center;margin-top:1px;}
+.semana-hoje-btn{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;flex-shrink:0;}
+
+/* ══ SEMANA KPIs ══ */
+.semana-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px;}
+.sk{background:var(--white);border-radius:10px;padding:10px 8px;box-shadow:var(--sh);text-align:center;border-top:3px solid var(--border);}
+.sk.grn{border-top-color:var(--grn);}
+.sk.blue{border-top-color:var(--blue);}
+.sk.red{border-top-color:var(--red);}
+.sk-val{font-size:1.2rem;font-weight:800;display:block;line-height:1;margin-bottom:2px;}
+.sk-lbl{font-size:.52rem;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;font-weight:600;line-height:1.3;}
+
+/* ══ TABELA SEMANAL ══ */
+.semana-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px;box-shadow:var(--sh);margin-bottom:10px;}
+.semana-table{border-collapse:collapse;min-width:560px;width:100%;background:var(--white);}
+.semana-table thead th{background:var(--grn2);color:#fff;padding:7px 5px;font-size:.58rem;font-weight:700;letter-spacing:.3px;text-align:center;white-space:nowrap;}
+.semana-table thead th.col-prod{text-align:left;min-width:120px;padding-left:10px;position:sticky;left:0;z-index:3;background:var(--grn2);}
+.semana-table thead th.col-meta{min-width:46px;background:#1a3d2a;}
+.semana-table thead th.col-dia{min-width:46px;}
+.semana-table thead th.col-hoje{background:var(--blue);animation:hojePulse 2s infinite;}
+@keyframes hojePulse{0%,100%{background:var(--blue)}50%{background:#2563EB}}
+.col-dia-date{font-size:.52rem;font-weight:400;opacity:.8;display:block;}
+
+.cat-hdr-row td{background:var(--gray-l);color:var(--brown2);font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;padding:6px 10px;border-bottom:1px solid var(--border);}
+
+.prod-row{border-bottom:1px solid #F0F0EE;}
+.prod-row:hover{background:#FAFFF8;}
+.prod-row td{padding:5px 5px;vertical-align:middle;}
+.col-prod-cell{position:sticky;left:0;background:var(--white);z-index:1;min-width:120px;max-width:130px;padding:6px 8px!important;}
+.prod-row:hover .col-prod-cell{background:#FAFFF8;}
+.prod-row-nm{font-size:.72rem;font-weight:600;line-height:1.2;display:block;word-break:break-word;}
+.prio-ico{font-size:.7rem;margin-right:2px;}
+.col-meta-cell{text-align:center;font-size:.68rem;font-weight:600;color:var(--gray);background:#FAFAF8;}
+
+/* ══ CÉLULAS ══ */
+.cell{text-align:center;cursor:pointer;border-left:1px solid #F0F0EE;padding:5px 3px;min-height:42px;vertical-align:middle;}
+.cell-val{font-size:.72rem;font-weight:700;display:block;line-height:1.2;}
+.cell-ico{font-size:.6rem;display:block;line-height:1;}
+.cell-lbl{font-size:.5rem;color:var(--blue);font-weight:600;display:block;}
+
+.cell-past-conf{background:#F0FAF4;}.cell-past-conf .cell-val{color:var(--grn2);}
+.cell-past-nconf{background:#FFF5F5;}.cell-past-nconf .cell-val{color:var(--red);}
+.cell-past-empty{background:#FAFAFA;}.cell-past-empty .cell-val{color:var(--gray);}
+.cell-today{background:#EEF2FF;border-left:2px solid var(--blue)!important;}
+.cell-today .cell-val{color:var(--blue);font-size:.8rem;}
+.cell-future{background:var(--white);}.cell-future:active{background:var(--grn-l);}
+.cell-future .cell-val{color:var(--brown2);}
+.cell-future .cell-val.empty{color:#D1D5DB;font-size:1rem;}
+.cell-blocked{background:#F4F4F2;cursor:default;}.cell-blocked .cell-val{color:#D1D5DB;}
+
+/* ══ MODAL CÉLULA ══ */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:flex-end;justify-content:center;}
+.modal-ov.on{display:flex;}
+.modal-box{background:var(--white);border-radius:20px 20px 0 0;width:100%;max-height:85vh;overflow-y:auto;padding:20px 16px 36px;animation:cUp .25s ease;}
+.modal-drag{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;}
+.modal-ttl{font-size:1rem;font-weight:800;margin-bottom:12px;}
+.modal-search{position:relative;margin-bottom:10px;}
+.modal-search input{width:100%;border:2px solid var(--border);border-radius:10px;padding:12px 12px 12px 38px;font-size:1rem;background:var(--white);outline:none;font-family:inherit;color:var(--brown);}
+.modal-search input:focus{border-color:var(--grn);}
+.modal-search-ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:1rem;opacity:.45;}
+.modal-prod-list{display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow-y:auto;}
+.modal-prod-item{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;border:2px solid var(--border);background:var(--white);cursor:pointer;transition:.12s;}
+.modal-prod-item:active{background:var(--grn-l);border-color:var(--grn);}
+.modal-prod-nm{font-size:.85rem;font-weight:600;flex:1;}
+.modal-prod-meta{font-size:.62rem;color:var(--gray);}
+
+/* ══ MODAL ADD PRODUTO ══ */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:flex-end;justify-content:center;}
+.modal-ov.on{display:flex;}
+.modal-box{background:var(--white);border-radius:20px 20px 0 0;width:100%;max-height:85vh;overflow-y:auto;padding:20px 16px 36px;animation:cUp .25s ease;}
+.modal-drag{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;}
+.modal-ttl{font-size:1rem;font-weight:800;margin-bottom:12px;}
+.modal-search{position:relative;margin-bottom:10px;}
+.modal-search input{width:100%;border:2px solid var(--border);border-radius:10px;padding:12px 12px 12px 38px;font-size:1rem;background:var(--white);outline:none;font-family:inherit;color:var(--brown);}
+.modal-search input:focus{border-color:var(--grn);}
+.modal-search-ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:1rem;opacity:.45;}
+.modal-prod-list{display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow-y:auto;}
+.modal-prod-item{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;border:2px solid var(--border);background:var(--white);cursor:pointer;transition:.12s;}
+.modal-prod-item:active{background:var(--grn-l);border-color:var(--grn);}
+.modal-prod-nm{font-size:.85rem;font-weight:600;flex:1;}
+.modal-prod-meta{font-size:.62rem;color:var(--gray);}
+
+/* ══ AVISO DOMINGO ══ */
+.dom-warn{display:flex;align-items:flex-start;gap:10px;background:var(--amber-l);border:1.5px solid #F59E0B;border-radius:11px;padding:11px 13px;margin-bottom:10px;font-size:.78rem;line-height:1.5;color:var(--amber);}
+.dom-warn strong{display:block;font-weight:700;margin-bottom:1px;}
+.dom-warn-ico{font-size:1.2rem;flex-shrink:0;margin-top:1px;}
+.dom-warn.dom-warn-closed{background:var(--gray-l);border-color:var(--border);color:var(--brown2);}
+
+@media(max-width:360px){
+  .big-btns{grid-template-columns:1fr;}
+  .status-nums{grid-template-columns:1fr 1fr 1fr;}
+}
+
+/* ══ HISTÓRICO ══ */
+.hist-btn{background:var(--grn-l);border:1.5px solid #C6E6D4;border-radius:8px;padding:5px 9px;font-size:.8rem;font-weight:700;cursor:pointer;color:var(--grn2);font-family:inherit;flex-shrink:0;white-space:nowrap;}
+.hist-btn:active{background:#C6E6D4;}
+
+.hist-ov{display:none;position:fixed;inset:0;background:var(--bg);z-index:600;flex-direction:column;overflow:hidden;}
+.hist-ov.on{display:flex;}
+.hist-topbar{background:#fff;border-bottom:3px solid var(--grn);height:52px;flex-shrink:0;display:flex;align-items:center;padding:0 14px;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.hist-back{display:flex;align-items:center;gap:5px;background:#F4F4F2;border:1px solid #E8E8E4;border-radius:8px;padding:5px 10px;font-size:.72rem;font-weight:600;color:#4A4A46;cursor:pointer;font-family:inherit;}
+.hist-back:active{background:#E8E8E4;}
+.hist-ttl{font-size:.88rem;font-weight:800;flex:1;}
+.btn-pdf{background:var(--grn);color:#fff;border:none;border-radius:8px;padding:6px 13px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.btn-pdf:active{opacity:.85;}
+
+.hist-filtros{background:#fff;border-bottom:1px solid var(--border);padding:9px 13px;display:flex;gap:7px;flex-wrap:wrap;align-items:center;flex-shrink:0;}
+.hist-sel{border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.78rem;font-family:inherit;background:#fff;color:var(--brown);outline:none;min-width:0;}
+.hist-sel:focus{border-color:var(--grn);}
+.hist-toggle-bar{display:flex;gap:4px;margin-left:auto;}
+.hist-toggle-btn{padding:6px 13px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;color:var(--gray);}
+.hist-toggle-btn.on{background:var(--grn);border-color:var(--grn);color:#fff;}
+
+.hist-scr{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 13px 80px;}
+
+.hist-res-card{background:#fff;border-radius:12px;box-shadow:var(--sh);padding:13px;margin-bottom:10px;}
+
+.hist-dia-card{background:#fff;border-radius:12px;box-shadow:var(--sh);margin-bottom:8px;overflow:hidden;border-left:4px solid var(--border);}
+.hist-dia-card.ok{border-left-color:var(--grn);}
+.hist-dia-card.warn{border-left-color:var(--amber);}
+.hist-dia-card.nok{border-left-color:var(--red);}
+.hist-dia-hdr{display:flex;align-items:center;gap:9px;padding:11px 13px;cursor:pointer;user-select:none;}
+.hist-dia-hdr:active{background:#fafaf8;}
+.hist-dia-data{font-size:.82rem;font-weight:700;min-width:68px;}
+.hist-dia-info{flex:1;min-width:0;}
+.hist-dia-total{font-size:.7rem;color:var(--brown2);margin-top:1px;}
+.hist-dia-pct{font-size:.85rem;font-weight:800;flex-shrink:0;}
+.hist-dia-chv{font-size:.7rem;color:var(--gray);flex-shrink:0;}
+.hist-dia-body{border-top:1px solid var(--border);padding:10px 13px;background:var(--gray-ll);}
+.hist-dia-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #F0F0EE;font-size:.76rem;}
+.hist-dia-row:last-child{border-bottom:none;}
+.hist-dia-nm{flex:1;color:var(--brown2);}
+.hist-dia-qty{font-weight:700;font-size:.8rem;}
+
+.hist-banner{background:var(--grn2);color:#fff;border-radius:12px 12px 0 0;padding:12px 14px;}
+.hist-banner-ttl{font-size:.85rem;font-weight:800;}
+.hist-banner-sub{font-size:.68rem;opacity:.75;margin-top:2px;}
+.hist-table-wrap{background:#fff;border-radius:0 0 12px 12px;box-shadow:var(--sh);overflow-x:auto;margin-bottom:12px;}
+.hist-table{width:100%;border-collapse:collapse;font-size:.76rem;}
+.hist-table thead th{background:var(--grn2);color:#fff;padding:8px 10px;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
+.hist-table thead th:not(:first-child){text-align:right;}
+.hist-table .htr-cat td{background:var(--gray-l);color:var(--brown2);font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;padding:5px 10px;}
+.hist-table .htr-prod td{padding:7px 10px;border-bottom:1px solid #F4F4F2;vertical-align:middle;}
+.hist-table .htr-prod:last-child td{border-bottom:none;}
+.hist-table .htr-prod td:not(:first-child){text-align:right;}
+.hist-table .htr-sub td{background:var(--grn-ll);font-weight:700;font-size:.72rem;padding:5px 10px;color:var(--grn2);}
+.hist-table .htr-sub td:not(:first-child){text-align:right;}
+.hist-table .htr-total td{background:var(--grn2);color:#fff;font-weight:800;font-size:.78rem;padding:9px 10px;}
+.hist-table .htr-total td:not(:first-child){text-align:right;}
+.hist-diff-pos{color:var(--grn);font-weight:700;}
+.hist-diff-neg{color:var(--red);font-weight:700;}
+
+.hist-cmp-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.btn-cmp{padding:6px 13px;border-radius:8px;border:1.5px solid var(--blue);background:var(--blue-l);color:var(--blue);font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.btn-cmp.on{background:var(--blue);color:#fff;}
+
+/* ══ IMPRESSÃO ══ */
+@media print {
+  body.printing-hist .gf-topbar,
+  body.printing-hist .tabs,
+  body.printing-hist #v-home,
+  body.printing-hist #v-semana,
+  body.printing-hist #v-hoje,
+  body.printing-hist #v-dash,
+  body.printing-hist .salvar-dia-btn,
+  body.printing-hist .confirm-all-btn,
+  body.printing-hist .hist-filtros,
+  body.printing-hist .hist-scr{display:none!important;}
+  body.printing-hist #v-hist{display:block!important;overflow:visible!important;}
+  body.printing-hist #printReport{display:block!important;padding:0;}
+  .pr-wrap{font-family:Arial,sans-serif;font-size:12pt;color:#000;}
+  .pr-hdr{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:16px;}
+  .pr-hdr h2{font-size:16pt;margin:0 0 4px;}
+  .pr-hdr p{font-size:10pt;margin:2px 0;color:#333;}
+  .pr-table{width:100%;border-collapse:collapse;font-size:11pt;margin-bottom:16px;}
+  .pr-table th{background:#e0e0e0;border:1px solid #aaa;padding:5px 8px;text-align:left;font-size:10pt;}
+  .pr-table th.r,.pr-table td.r{text-align:right;}
+  .pr-table td{border:1px solid #ccc;padding:5px 8px;}
+  .pr-cat{background:#f0f0f0;font-weight:bold;font-size:10pt;}
+  .pr-sub{background:#e8f5e9;font-weight:bold;}
+  .pr-total{background:#1B4332;color:#fff;font-weight:bold;}
+  .pr-sign{margin-top:36px;border-top:1px solid #000;padding-top:8px;font-size:10pt;}
+  @page{margin:1.5cm;}
+}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="sp-logo">🏭</div>
+  <div class="sp-ttl">Produção</div>
+  <div class="sp-sub">GestFood · Supermercado MG</div>
+  <div class="sp-dots"><div class="sp-dot"></div><div class="sp-dot"></div><div class="sp-dot"></div></div>
+</div>
+
+<!-- TOPBAR -->
+<div class="gf-topbar">
+  <a href="GESTFOOD_INDEX.html" class="gf-back">← Hub</a>
+  <div style="display:flex;align-items:center;gap:7px;">
+    <div class="gf-mark">G</div>
+    <span class="gf-name">Gest<span>Food</span></span>
+  </div>
+  <span class="gf-modulo">🏭 Produção</span>
+  <div class="gf-spacer"></div>
+  <div class="sync-pill">
+    <span class="dot wait" id="syncDot"></span>
+    <span id="syncTxt">...</span>
+  </div>
+  <div class="user-pill" id="userPill" style="display:none;">
+    <div class="user-av" id="userAv"></div>
+    <span id="userNm"></span>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab on" onclick="go('home')"><span class="tab-ico">🏠</span>Início</div>
+  <div class="tab" onclick="go('semana')"><span class="tab-ico">📅</span>Semana</div>
+  <div class="tab" onclick="go('hoje')"><span class="tab-ico">✅</span>Hoje</div>
+  <div class="tab" onclick="go('dash')"><span class="tab-ico">📊</span>Dashboard</div>
+  <div class="tab" onclick="go('hist')"><span class="tab-ico">📋</span>Histórico</div>
+</div>
+
+<!-- CONTEÚDO -->
+<div class="scr">
+
+  <!-- HOME -->
+  <div class="vw on" id="v-home">
+    <div id="homeContent"><div class="loading-ring"></div></div>
+  </div>
+
+  <!-- SEMANA -->
+  <div class="vw" id="v-semana">
+    <div id="semanaContent"><div class="loading-ring"></div></div>
+    <div class="salvar-dia-btn" id="salvarDiaBar" style="display:none;">
+      <button id="btnSalvarDia" onclick="salvarDia()">💾 Salvar Planejamento do Dia</button>
+    </div>
+  </div>
+
+  <!-- HOJE -->
+  <div class="vw" id="v-hoje">
+    <div id="hojeContent"><div class="loading-ring"></div></div>
+    <div class="confirm-all-btn" id="confirmAllBar" style="display:none;">
+      <button id="btnConfirmAll" onclick="confirmarTudo()">✅ Confirmar Produção do Dia</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="vw" id="v-dash">
+    <div id="dashContent"><div class="loading-ring"></div></div>
+  </div>
+
+  <!-- HISTÓRICO -->
+  <div class="vw" id="v-hist">
+    <div class="hist-filtros" style="background:var(--white);border-bottom:1px solid var(--border);flex-shrink:0;">
+      <select id="histMes" class="hist-sel" onchange="onHistFiltroChange()"></select>
+      <select id="histSetor" class="hist-sel" onchange="onHistFiltroChange()">
+        <option value="PADARIA">🍞 Padaria</option>
+        <option value="CONFEITARIA">🍰 Confeitaria</option>
+      </select>
+      <div class="hist-toggle-bar">
+        <button id="btnHistDia" class="hist-toggle-btn on" onclick="toggleHistView('dia')">Por dia</button>
+        <button id="btnHistCons" class="hist-toggle-btn" onclick="toggleHistView('consolidado')">Consolidado</button>
+      </div>
+      <button class="btn-pdf" onclick="exportarHistPDF()" style="margin-left:auto;">🖨️ Imprimir</button>
+    </div>
+    <div class="hist-scr" id="histScr" style="flex:1;overflow-y:auto;"><div class="loading-ring"></div></div>
+    <div id="printReport" style="display:none;"></div>
+  </div>
+
+</div>
+
+<!-- MODAL CÉLULA PLANEJAMENTO -->
+<div class="modal-ov" id="modalCelula">
+  <div class="modal-box" style="padding-bottom:24px;">
+    <div class="modal-drag"></div>
+    <div id="modalCelulaContent"></div>
+  </div>
+</div>
+
+<!-- MODAL ADD PRODUTO -->
+<div class="modal-ov" id="modalAddProd">
+  <div class="modal-box">
+    <div class="modal-drag"></div>
+    <div class="modal-ttl">➕ Adicionar Produto ao Dia</div>
+    <div class="modal-search">
+      <span class="modal-search-ico">🔍</span>
+      <input type="text" id="modalBusca" placeholder="Buscar produto..." oninput="filtrarModalProd()" autocomplete="off">
+    </div>
+    <div class="modal-prod-list" id="modalProdList"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="tst" id="tst"></div>
+
+<!-- MODAL CONFIRMAÇÃO -->
+<div class="conf-ov" id="confOv">
+  <div class="conf-box">
+    <div class="conf-ico" id="confIco">⚠️</div>
+    <div class="conf-ttl" id="confTtl">Confirmar</div>
+    <div class="conf-msg" id="confMsg"></div>
+    <div class="conf-btns">
+      <button class="conf-cn" onclick="_confResp(false)">Cancelar</button>
+      <button class="conf-ok" id="confOk" onclick="_confResp(true)">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ═══════════════════════════════════════════════════════
+// SUPABASE
+// ═══════════════════════════════════════════════════════
+const SU = 'https://rjkseydseuotdkavskss.supabase.co';
+const SK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqa3NleWRzZXVvdGRrYXZza3NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTE4OTAsImV4cCI6MjA4Nzc4Nzg5MH0.wEzZ9sZhXJhu0jjNx2OeW7RacGi8djUj-9r9u1-8KYY';
+const SH = {'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'};
+
+function sbFetch(url, opts={}, ms=10000){
+  const ctrl = new AbortController();
+  const tid = setTimeout(()=>ctrl.abort(), ms);
+  return fetch(url, {...opts, signal:ctrl.signal})
+    .finally(()=>clearTimeout(tid));
+}
+async function sbQ(t, qs=''){
+  const r = await sbFetch(`${SU}/rest/v1/${t}?${qs}`, {headers:SH});
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbInsert(t, body){
+  const r = await sbFetch(`${SU}/rest/v1/${t}`, {method:'POST',headers:{...SH,'Prefer':'return=representation'},body:JSON.stringify(body)});
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbUpdate(t, id, body){
+  const r = await sbFetch(`${SU}/rest/v1/${t}?id=eq.${id}`, {method:'PATCH',headers:{...SH,'Prefer':'return=representation'},body:JSON.stringify(body)});
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbUpsert(t, body, onConflict='id'){
+  const r = await sbFetch(`${SU}/rest/v1/${t}?on_conflict=${onConflict}`, {method:'POST',headers:{...SH,'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(body)});
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+// ═══════════════════════════════════════════════════════
+// ESTADO
+// ═══════════════════════════════════════════════════════
+let SESS = null, SETOR = '', TAB = 'home';
+let PRODUTOS = [], PROJECAO = [];
+let SEMANA = null, ITENS = [];
+let DIA_SEL = '';
+let SEMANAS_HIST = [];
+
+// Semana View (navegação independente da semana atual)
+let SEMANA_OFFSET = 0;      // 0=atual, -1=anterior, +1=próxima
+let SEMANA_VIEW = null;     // semana sendo exibida na tabela
+let ITENS_VIEW = [];        // itens da semana sendo exibida
+let CHECKLIST_MAP = {};     // produto_nome → {status, prioritario}
+let _celulaEdit = null;     // estado do modal de célula
+
+const DIAS_KEY = ['seg','ter','qua','qui','sex','sab','dom'];
+const DIAS_NM  = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+
+// ── Data LOCAL (evita bug de fuso horário UTC-3 após 21h) ──
+function _localISO(d) {
+  const dt = d || new Date();
+  return dt.getFullYear() + '-' +
+    String(dt.getMonth()+1).padStart(2,'0') + '-' +
+    String(dt.getDate()).padStart(2,'0');
+}
+const HOJE_ISO = _localISO();
+const _hjd = new Date();
+const HOJE_KEY = DIAS_KEY[_hjd.getDay() === 0 ? 6 : _hjd.getDay() - 1];
+
+const DOM_PAD_EDITAVEIS = ['PAO KG','PAO DOCE'];
+const CAT_ICONS = {'PÃES':'🍞','SALGADOS':'🥟','BOLACHAS':'🍪','TORRADAS':'🥖','BOLOS':'🎂','TORTAS':'🍰','DOCES':'🍬','OUTROS':'📦'};
+const CAT_ORDER_PAD  = ['PÃES','SALGADOS','BOLACHAS','TORRADAS','OUTROS'];
+const CAT_ORDER_CONF = ['BOLOS','TORTAS','SALGADOS','OUTROS'];
+
+const METAS_PADARIA = [
+  {nome:'PAO KG',               cat:'PÃES',    und:'KG', seg:304,ter:270,qua:287,qui:277,sex:279,sab:250,dom:151},
+  {nome:'PAO DOCE',             cat:'PÃES',    und:'KG', seg:16, ter:12, qua:15, qui:15, sex:15, sab:13, dom:3},
+  {nome:'PAO CACH QUENTE',      cat:'PÃES',    und:'KG', seg:10, ter:10, qua:12, qui:13, sex:15, sab:11, dom:0},
+  {nome:'PAO HAMBURGUER',       cat:'PÃES',    und:'KG', seg:7,  ter:8,  qua:9,  qui:11, sex:13, sab:8,  dom:0},
+  {nome:'PAO DE CAIXA',         cat:'PÃES',    und:'KG', seg:7,  ter:6,  qua:7,  qui:6,  sex:8,  sab:6,  dom:0},
+  {nome:'PAO DE QUEIJO',        cat:'PÃES',    und:'KG', seg:4,  ter:4,  qua:4,  qui:4,  sex:4,  sab:3,  dom:0},
+  {nome:'MINI CROISSANT',       cat:'PÃES',    und:'KG', seg:7,  ter:5,  qua:6,  qui:5,  sex:5,  sab:4,  dom:0},
+  {nome:'PAO RECIFE',           cat:'PÃES',    und:'KG', seg:7,  ter:4,  qua:4,  qui:4,  sex:3,  sab:3,  dom:0},
+  {nome:'MINI PAO DOCE',        cat:'PÃES',    und:'KG', seg:6,  ter:3,  qua:4,  qui:4,  sex:4,  sab:3,  dom:0},
+  {nome:'PAO FRANCES INTEGRAL', cat:'PÃES',    und:'KG', seg:4,  ter:3,  qua:4,  qui:4,  sex:4,  sab:4,  dom:0},
+  {nome:'SALGADOS FOLHADOS',    cat:'SALGADOS',und:'KG', seg:37, ter:30, qua:41, qui:37, sex:42, sab:32, dom:0},
+  {nome:'SALGADO JOELHO',       cat:'SALGADOS',und:'UND',seg:15, ter:15, qua:24, qui:28, sex:18, sab:15, dom:0},
+  {nome:'SALG BATATA/FGO',      cat:'SALGADOS',und:'UND',seg:28, ter:20, qua:30, qui:19, sex:25, sab:20, dom:0},
+  {nome:'BOL PRAEIRA',          cat:'BOLACHAS',und:'KG', seg:5,  ter:4,  qua:5,  qui:5,  sex:5,  sab:4,  dom:0},
+  {nome:'BOL SODA DA CASA',     cat:'BOLACHAS',und:'KG', seg:2,  ter:2,  qua:2,  qui:3,  sex:3,  sab:2,  dom:0},
+  {nome:'TORRADA ALHO',         cat:'TORRADAS',und:'KG', seg:4,  ter:3,  qua:3,  qui:3,  sex:3,  sab:3,  dom:0},
+  {nome:'TORRADA DA CASA',      cat:'TORRADAS',und:'KG', seg:2,  ter:2,  qua:2,  qui:3,  sex:2,  sab:2,  dom:0},
+  {nome:'PIZZA DA CASA PQ',     cat:'OUTROS',  und:'UND',seg:5,  ter:4,  qua:3,  qui:7,  sex:5,  sab:4,  dom:0},
+  {nome:'CHOCOTONE',            cat:'OUTROS',  und:'UND',seg:4,  ter:4,  qua:5,  qui:5,  sex:6,  sab:4,  dom:0},
+  {nome:'PANETONE',             cat:'OUTROS',  und:'UND',seg:4,  ter:4,  qua:5,  qui:4,  sex:5,  sab:4,  dom:0},
+  {nome:'SANDUICHE CROISSANT',  cat:'OUTROS',  und:'UND',seg:3,  ter:3,  qua:4,  qui:2,  sex:3,  sab:2,  dom:0},
+  {nome:'FARINHA DE ROSCA',     cat:'OUTROS',  und:'KG', seg:2,  ter:2,  qua:3,  qui:3,  sex:3,  sab:2,  dom:0},
+];
+
+const METAS_CONFEITARIA = [
+  {nome:'BOLO MACAXEIRA',        cat:'BOLOS',   und:'UND',seg:5,ter:5,qua:6,qui:7,sex:5,sab:6,dom:0},
+  {nome:'BOLO PAMONHA',          cat:'BOLOS',   und:'UND',seg:3,ter:3,qua:5,qui:4,sex:4,sab:4,dom:0},
+  {nome:'BOLO DE QUEIJO',        cat:'BOLOS',   und:'UND',seg:3,ter:3,qua:4,qui:4,sex:3,sab:4,dom:0},
+  {nome:'BOLO FORMIGUEIRO',      cat:'BOLOS',   und:'UND',seg:3,ter:3,qua:2,qui:3,sex:3,sab:3,dom:0},
+  {nome:'BOLO TRIGO PQ',         cat:'BOLOS',   und:'UND',seg:2,ter:2,qua:3,qui:2,sex:3,sab:2,dom:0},
+  {nome:'BOLO BANANA C/CANELA',  cat:'BOLOS',   und:'UND',seg:3,ter:3,qua:3,qui:3,sex:2,sab:3,dom:0},
+  {nome:'BOLO CENOURA',          cat:'BOLOS',   und:'UND',seg:2,ter:2,qua:2,qui:2,sex:2,sab:2,dom:0},
+  {nome:'BOLO MACA/CANELA',      cat:'BOLOS',   und:'UND',seg:2,ter:2,qua:2,qui:2,sex:2,sab:2,dom:0},
+  {nome:'BOLO MESCLADO',         cat:'BOLOS',   und:'UND',seg:2,ter:2,qua:2,qui:2,sex:2,sab:2,dom:0},
+  {nome:'BOLO INGLES',           cat:'BOLOS',   und:'UND',seg:2,ter:2,qua:2,qui:2,sex:2,sab:2,dom:0},
+  {nome:'BOLO DE BANANA',        cat:'BOLOS',   und:'UND',seg:1,ter:2,qua:2,qui:2,sex:3,sab:2,dom:0},
+  {nome:'BOLO DE ABACAXI',       cat:'BOLOS',   und:'UND',seg:2,ter:2,qua:1,qui:1,sex:2,sab:2,dom:0},
+  {nome:'BOLO ENG MARIDO',       cat:'BOLOS',   und:'UND',seg:2,ter:2,qua:2,qui:2,sex:2,sab:2,dom:0},
+  {nome:'BOLO DE LARANJA',       cat:'BOLOS',   und:'UND',seg:1,ter:1,qua:1,qui:1,sex:1,sab:2,dom:0},
+  {nome:'BOLO AIPIM',            cat:'BOLOS',   und:'UND',seg:1,ter:1,qua:1,qui:1,sex:1,sab:1,dom:0},
+  {nome:'BOLO LEITE CONDENSADO', cat:'BOLOS',   und:'UND',seg:1,ter:1,qua:1,qui:1,sex:1,sab:1,dom:0},
+  {nome:'TORTA CHOCOLATE',       cat:'TORTAS',  und:'UND',seg:2,ter:2,qua:2,qui:3,sex:2,sab:2,dom:0},
+  {nome:'TORTA DC LEITE',        cat:'TORTAS',  und:'UND',seg:1,ter:1,qua:1,qui:1,sex:2,sab:2,dom:0},
+  {nome:'TORTA MORANGO',         cat:'TORTAS',  und:'UND',seg:1,ter:1,qua:1,qui:1,sex:2,sab:2,dom:0},
+  {nome:'SALG QUEIJO',           cat:'SALGADOS',und:'UND',seg:3,ter:3,qua:4,qui:4,sex:5,sab:5,dom:0},
+  {nome:'MINI BROA',             cat:'OUTROS',  und:'UND',seg:2,ter:2,qua:2,qui:3,sex:3,sab:3,dom:0},
+  {nome:'COOKIES',               cat:'OUTROS',  und:'UND',seg:1,ter:1,qua:1,qui:1,sex:1,sab:1,dom:0},
+  {nome:'BROA',                  cat:'OUTROS',  und:'UND',seg:1,ter:1,qua:1,qui:1,sex:2,sab:2,dom:0},
+];
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+// ── Failsafe: remove splash após 3s no matter what ──
+setTimeout(function() {
+  try {
+    const sp = document.getElementById('splash');
+    if (sp) { sp.style.opacity='0'; sp.style.display='none'; }
+  } catch(e) {}
+}, 3000);
+
+// ── Global error display ──
+window.addEventListener('error', function(ev) {
+  try {
+    const sp = document.getElementById('splash');
+    if (sp) sp.style.display = 'none';
+    const el = document.getElementById('homeContent');
+    if (el) el.innerHTML = '<div class="emp" style="background:#FDECEA;padding:16px;border-radius:10px;margin:10px;">'
+      + '<div class="big">⚠️</div>'
+      + '<p style="font-size:.78rem;color:#C0392B;word-break:break-word;line-height:1.5;">'
+      + 'Erro JavaScript:<br><strong>' + (ev.message||'?') + '</strong><br>linha ' + (ev.lineno||'?')
+      + '</p></div>';
+    const vh = document.getElementById('v-home');
+    if (vh) { document.querySelectorAll('.vw').forEach(v=>v.classList.remove('on')); vh.classList.add('on'); }
+  } catch(e2) {}
+});
+
+function init() {
+  // Sessão — tenta múltiplas chaves, nunca trava
+  try {
+    const raw = localStorage.getItem('gestfood_session')
+             || localStorage.getItem('gf_session')
+             || localStorage.getItem('session')
+             || 'null';
+    const s = JSON.parse(raw);
+    SESS = (s && s.nome) ? s : {nome:'Usuário', role:'admin', setor:'PADARIA'};
+  } catch(e) {
+    SESS = {nome:'Usuário', role:'admin', setor:'PADARIA'};
+  }
+
+  // Setor inicial
+  SETOR = (SESS.role === 'op') ? (SESS.setor || 'PADARIA') : 'PADARIA';
+
+  // UI usuário
+  try {
+    document.getElementById('userPill').style.display = 'flex';
+    document.getElementById('userNm').textContent = SESS.nome;
+    document.getElementById('userAv').textContent = (SESS.nome||'U')[0].toUpperCase();
+  } catch(e) {}
+
+  // Dia selecionado = hoje
+  DIA_SEL = HOJE_KEY;
+
+  // Esconder splash
+  hideSplash();
+
+  // Renderizar home (com fallback se der erro)
+  try {
+    renderHome();
+  } catch(e) {
+    try {
+      document.getElementById('homeContent').innerHTML =
+        '<div class="emp" style="background:#FDECEA;padding:16px;border-radius:10px;">'
+        + '<div class="big">⚠️</div>'
+        + '<p style="font-size:.78rem;color:#C0392B;word-break:break-word;">Erro: ' + e.message + '</p></div>';
+    } catch(e2) {}
+  }
+
+  // Carrega Supabase em segundo plano
+  setSyncUI('wait', 'sincronizando');
+  carregarDadosBG();
+}
+
+init();
+
+async function carregarDadosBG() {
+  try {
+    await Promise.all([carregarProdutos(), carregarProjecao()]);
+    await carregarSemana();
+    setSyncUI('ok', 'conectado');
+    renderHome(); // atualiza com dados reais
+    if (TAB === 'semana') renderSemana();
+    if (TAB === 'hoje')   renderHoje();
+    if (TAB === 'dash')   renderDash();
+  } catch(e) {
+    setSyncUI('off', 'offline');
+  }
+}
+
+async function carregarProdutos(){
+  if (SESS && SESS.role === 'op' && !SESS.setor) {
+    toast('⚠️ Usuário sem setor configurado. Contate o administrador.', 'wa');
+    PRODUTOS = [];
+    return;
+  }
+  // Igual ao Desperdícios: carrega TODOS os ativos sem filtrar por setor na query
+  // Filtragem por setor é feita no cliente (filtrarModalProd)
+  const todos = await sbQ('produtos',
+    'select=id,nome,cod,setor,unidade,categoria&ativo=eq.true&order=nome.asc&limit=2000');
+  // Normaliza campo setor para uppercase para comparação segura
+  PRODUTOS = (todos || []).map(p => ({
+    ...p,
+    setor: (p.setor || '').toUpperCase().trim(),
+    categoria: p.categoria || 'OUTROS',
+    unidade: (p.unidade || 'KG').toUpperCase()
+  }));
+  console.log('Produtos carregados (total):', PRODUTOS.length, PRODUTOS.map(p => p.nome));
+  const doSetor = PRODUTOS.filter(p => p.setor === SETOR);
+  console.log('Produtos do setor', SETOR + ':', doSetor.length);
+  toast(`✅ ${PRODUTOS.length} produtos carregados`, 'ok');
+}
+
+async function carregarProjecao(){
+  try {
+    PROJECAO = await sbQ('projecao_base',
+      `select=*&setor=eq.${encodeURIComponent(SETOR)}&order=categoria,produto_nome`);
+  } catch(e) { PROJECAO = []; } // tabela pode não existir ainda
+}
+
+async function carregarSemana(){
+  const seg = getMondayISO();
+  try {
+    let rows = await sbQ('producao_semanas',
+      `select=*&setor=eq.${encodeURIComponent(SETOR)}&semana_inicio=eq.${seg}&order=criado_em.desc&limit=1`);
+    if (!rows || !rows.length) {
+      // Criar nova semana
+      const created = await sbInsert('producao_semanas', {
+        semana_inicio: seg,
+        setor: SETOR,
+        responsavel_id: SESS.id,
+        responsavel_nome: SESS.nome,
+        status: 'em_andamento'
+      });
+      SEMANA = Array.isArray(created) ? created[0] : created;
+    } else {
+      SEMANA = rows[0];
+    }
+    // Carregar itens
+    ITENS = await sbQ('producao_itens',
+      `select=*&semana_id=eq.${SEMANA.id}&order=data_dia,produto_nome`);
+    // Gerar itens se semana nova — sempre usa metas hardcoded como base
+    if (ITENS.length === 0) {
+      await gerarItensIniciais();
+    }
+  } catch(e) {
+    SEMANA = null; ITENS = [];
+  }
+}
+
+async function recarregarTudo(){
+  setSyncUI('wait', 'atualizando');
+  try {
+    await carregarProjecao();
+    await carregarSemana();
+    setSyncUI('ok', 'conectado');
+  } catch(e) { setSyncUI('off', 'offline'); }
+}
+
+// ═══════════════════════════════════════════════════════
+// SEMANA — helpers de data
+// ═══════════════════════════════════════════════════════
+function getMondayISO(refDate) {
+  const d = refDate ? new Date(refDate + 'T12:00:00') : new Date();
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return _localISO(d);
+}
+
+function getSundayISO(mondayISO) {
+  const d = new Date(mondayISO + 'T12:00:00');
+  d.setDate(d.getDate() + 6);
+  return _localISO(d);
+}
+
+function getDataDia(mondayISO, diaKey) {
+  const idx = DIAS_KEY.indexOf(diaKey);
+  const d = new Date(mondayISO + 'T12:00:00');
+  d.setDate(d.getDate() + idx);
+  return _localISO(d);
+}
+
+function fmtDataBR(iso) {
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}`;
+}
+
+async function gerarItensDaProjecao() {
+  if (!SEMANA || !PROJECAO.length) return;
+  const itens = [];
+  PROJECAO.forEach(p => {
+    DIAS_KEY.forEach((dia, i) => {
+      const qtd = parseFloat(p[dia]) || 0;
+      if (qtd > 0) {
+        const dataDia = getDataDia(SEMANA.semana_inicio, dia);
+        itens.push({
+          semana_id: SEMANA.id,
+          produto_id: p.produto_id,
+          produto_nome: p.produto_nome,
+          categoria: p.categoria || '',
+          setor: p.setor,
+          unidade: p.unidade || 'KG',
+          dia,
+          data_dia: dataDia,
+          qtd_sugerida: qtd,
+          qtd_planejada: qtd,
+          qtd_produzida: null,
+          status: 'planejado'
+        });
+      }
+    });
+  });
+  if (itens.length > 0) {
+    const saved = await sbInsert('producao_itens', itens);
+    ITENS = Array.isArray(saved) ? saved : [];
+    toast(`📋 ${ITENS.length} itens gerados da projeção`, 'ok');
+  }
+}
+
+// Gera itens usando metas hardcoded como base (PROJECAO sobrescreve se disponível)
+async function gerarItensIniciais() {
+  if (!SEMANA) return;
+  const metas = SETOR === 'PADARIA' ? METAS_PADARIA : METAS_CONFEITARIA;
+  const itens = [];
+  metas.forEach(prod => {
+    // Se PROJECAO tem este produto, usa os valores dela; senão usa meta hardcoded
+    const proj = PROJECAO.find(p => p.produto_nome === prod.nome);
+    DIAS_KEY.forEach(dia => {
+      const qtd = proj ? (parseFloat(proj[dia]) || 0) : (prod[dia] || 0);
+      if (qtd > 0) {
+        const dataDia = getDataDia(SEMANA.semana_inicio, dia);
+        itens.push({
+          semana_id: SEMANA.id,
+          produto_id: proj ? (proj.produto_id || null) : null,
+          produto_nome: prod.nome,
+          categoria: prod.cat,
+          setor: SETOR,
+          unidade: prod.und,
+          dia,
+          data_dia: dataDia,
+          qtd_sugerida: qtd,
+          qtd_planejada: qtd,
+          qtd_produzida: null,
+          status: 'planejado'
+        });
+      }
+    });
+  });
+  if (itens.length === 0) return;
+  try {
+    const saved = await sbInsert('producao_itens', itens);
+    ITENS = Array.isArray(saved) ? saved : itens;
+    toast('📋 ' + ITENS.length + ' itens planejados', 'ok');
+  } catch(e) {
+    // Falha ao salvar no Supabase: usa array local para visualização
+    ITENS = itens.map((it, idx) => ({...it, id: 'temp-' + idx}));
+    toast('📋 ' + ITENS.length + ' itens (offline)', 'wa');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// NAVEGAÇÃO
+// ═══════════════════════════════════════════════════════
+function go(t) {
+  TAB = t;
+  document.querySelectorAll('.tab').forEach((el,i) =>
+    el.classList.toggle('on', ['home','semana','hoje','dash','hist'][i] === t));
+  document.querySelectorAll('.vw').forEach(v => v.classList.remove('on'));
+  document.getElementById('v-' + t).classList.add('on');
+  if (t === 'home')   renderHome();
+  if (t === 'semana') renderSemana();
+  if (t === 'hoje')   renderHoje();
+  if (t === 'dash')   renderDash();
+  if (t === 'hist')   renderHistTab();
+}
+
+// ═══════════════════════════════════════════════════════
+// SETOR
+// ═══════════════════════════════════════════════════════
+async function mudarSetor(s) {
+  if (s === SETOR) return;
+  SETOR = s;
+  SEMANA = null; ITENS = []; PROJECAO = [];
+  DIA_SEL = HOJE_KEY;
+  HIST_LOADED_KEY = ''; // reset hist cache on sector change
+  document.getElementById('homeContent').innerHTML = '<div class="loading-ring"></div>';
+  await recarregarTudo();
+  renderHome();
+  if (TAB === 'semana') renderSemana();
+  if (TAB === 'hoje')   renderHoje();
+}
+
+function setorSelectorHTML() {
+  if (SESS.role !== 'admin') return '';
+  return `<div class="setor-pill-wrap">
+    <div class="setor-pill padaria${SETOR==='PADARIA'?' on':''}" onclick="mudarSetor('PADARIA')">🍞 Padaria</div>
+    <div class="setor-pill conf${SETOR==='CONFEITARIA'?' on':''}" onclick="mudarSetor('CONFEITARIA')">🍰 Confeitaria</div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER HOME
+// ═══════════════════════════════════════════════════════
+function renderHome() {
+  const seg = SEMANA ? fmtDataBR(SEMANA.semana_inicio) : '—';
+  const sun = SEMANA ? fmtDataBR(getSundayISO(SEMANA.semana_inicio)) : '—';
+
+  // Status da semana
+  const diasComPlan = DIAS_KEY.filter(d => ITENS.some(i => i.dia === d && i.qtd_planejada > 0));
+  const diasConfirmados = DIAS_KEY.filter(d => {
+    const its = ITENS.filter(i => i.dia === d && i.qtd_planejada > 0);
+    return its.length > 0 && its.every(i => i.status === 'confirmado' || i.status === 'nao_produzido');
+  });
+  const totalPlan = ITENS.filter(i => i.qtd_planejada > 0).length;
+  const totalConf = ITENS.filter(i => i.status === 'confirmado').length;
+  const aderencia = totalPlan > 0 ? Math.round((totalConf / totalPlan) * 100) : 0;
+
+  const hojeConfirmado = ITENS.filter(i => i.dia === HOJE_KEY && i.qtd_planejada > 0)
+    .every(i => i.status === 'confirmado' || i.status === 'nao_produzido');
+  const temHojePlanejado = ITENS.some(i => i.dia === HOJE_KEY && i.qtd_planejada > 0);
+
+  const statusCls = aderencia >= 80 ? 'ok' : aderencia >= 50 ? 'warn' : 'danger';
+  const alertHoje = temHojePlanejado && !hojeConfirmado
+    ? `<div class="status-alert">⚠️ Produção de hoje ainda não foi confirmada</div>` : '';
+
+  document.getElementById('homeContent').innerHTML = `
+    <div class="home-greeting">
+      <div class="home-ola">Olá, ${SESS.nome}! 👋</div>
+      <div class="home-setor">
+        <span class="home-setor-badge">
+          ${SETOR === 'PADARIA' ? '🍞' : '🍰'} ${SETOR === 'PADARIA' ? 'Padaria' : 'Confeitaria/Pastelaria'}
+        </span>
+      </div>
+      <div style="font-size:.72rem;opacity:.65;margin-top:6px;">
+        📅 Semana ${seg} – ${sun}
+        ${SEMANA ? `<span style="margin-left:8px;background:rgba(255,255,255,.18);padding:2px 8px;border-radius:10px;">${SEMANA.status === 'em_andamento' ? '🔄 Em andamento' : '✅ Finalizada'}</span>` : ''}
+      </div>
+    </div>
+
+    ${setorSelectorHTML()}
+
+    <div class="status-card ${statusCls}">
+      <div class="status-card-ttl">📊 Status da Semana</div>
+      <div class="status-nums">
+        <div class="sn-item">
+          <span class="sn-val" style="color:var(--grn)">${diasConfirmados.length}</span>
+          <span class="sn-lbl">Dias confirmados</span>
+        </div>
+        <div class="sn-item">
+          <span class="sn-val" style="color:var(--blue)">${totalPlan}</span>
+          <span class="sn-lbl">Itens planejados</span>
+        </div>
+        <div class="sn-item">
+          <span class="sn-val" style="color:${aderencia>=80?'var(--grn)':aderencia>=50?'var(--amber)':'var(--red)'}">${aderencia}%</span>
+          <span class="sn-lbl">Aderência</span>
+        </div>
+      </div>
+      ${alertHoje}
+    </div>
+
+    <div class="big-btns">
+      <button class="big-btn blue" onclick="go('semana')">
+        <span class="big-btn-ico">📅</span>Ver Semana
+      </button>
+      <button class="big-btn grn" onclick="go('hoje')">
+        <span class="big-btn-ico">✅</span>Confirmar Hoje
+      </button>
+    </div>
+
+    <button class="btn-dash" onclick="location.href='DASHBOARD_GERAL.html'">
+      📊 Dashboard Geral →
+    </button>
+
+    ${!SEMANA ? `<div class="emp"><div class="big">⚠️</div><p>Não foi possível carregar a semana.<br>Verifique a conexão.</p></div>` : ''}
+  `;
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER SEMANA — TABELA SEMANAL COMPLETA
+// ═══════════════════════════════════════════════════════
+async function renderSemana() {
+  const el = document.getElementById('semanaContent');
+  document.getElementById('salvarDiaBar').style.display = 'none';
+
+  // Renderiza imediatamente com os dados que já temos (metas hardcoded)
+  // Usa SEMANA_VIEW se já carregado, senão cria um objeto temporário
+  if (!SEMANA_VIEW) {
+    SEMANA_VIEW = SEMANA || {
+      id: null,
+      semana_inicio: getMondayByOffset(SEMANA_OFFSET),
+      setor: SETOR,
+      status: 'em_andamento',
+      _setor: SETOR
+    };
+    ITENS_VIEW = SEMANA_OFFSET === 0 ? (ITENS || []) : [];
+  }
+  el.innerHTML = buildSemanaHTML();
+
+  // Carrega checklist e sincroniza itens em segundo plano
+  sincronizarSemanaView().then(() => {
+    carregarChecklistStatus().then(() => {
+      el.innerHTML = buildSemanaHTML();
+    });
+  }).catch(() => {});
+}
+
+async function sincronizarSemanaView() {
+  const seg = getMondayByOffset(SEMANA_OFFSET);
+  // Já está carregada?
+  if (SEMANA_VIEW && SEMANA_VIEW.semana_inicio === seg && SEMANA_VIEW._setor === SETOR) return;
+  try {
+    let rows = await sbQ('producao_semanas',
+      `select=*&setor=eq.${encodeURIComponent(SETOR)}&semana_inicio=eq.${seg}&order=criado_em.desc&limit=1`);
+    if (!rows || !rows.length) {
+      const created = await sbInsert('producao_semanas', {
+        semana_inicio: seg, setor: SETOR,
+        responsavel_id: SESS.id || null,
+        responsavel_nome: SESS.nome,
+        status: 'em_andamento'
+      });
+      SEMANA_VIEW = Array.isArray(created) ? created[0] : created;
+    } else {
+      SEMANA_VIEW = rows[0];
+    }
+    SEMANA_VIEW._setor = SETOR;
+    ITENS_VIEW = await sbQ('producao_itens',
+      `select=*&semana_id=eq.${SEMANA_VIEW.id}&order=data_dia,produto_nome`);
+    // Se é semana atual, sincroniza SEMANA/ITENS também
+    if (SEMANA_OFFSET === 0) { SEMANA = SEMANA_VIEW; ITENS = ITENS_VIEW; }
+  } catch(e) {
+    SEMANA_VIEW = null; ITENS_VIEW = [];
+  }
+}
+
+async function carregarChecklistStatus() {
+  try {
+    const [regs, cfgs] = await Promise.all([
+      sbQ('checklist_registros',`select=produto_id,produto_nome,status&salvo_em=gte.${HOJE_ISO}T00:00:00&order=salvo_em.desc`).catch(()=>[]),
+      sbQ('checklist_config','select=produto_id,produto_nome,prioritario&ativo=eq.true').catch(()=>[])
+    ]);
+    const prioMap = {};
+    (cfgs||[]).forEach(c => { prioMap[c.produto_nome] = !!c.prioritario; });
+    CHECKLIST_MAP = {};
+    const seen = new Set();
+    (regs||[]).forEach(r => {
+      if (!seen.has(r.produto_nome)) {
+        seen.add(r.produto_nome);
+        CHECKLIST_MAP[r.produto_nome] = {status: r.status, prioritario: prioMap[r.produto_nome]||false};
+      }
+    });
+    (cfgs||[]).forEach(c => {
+      if (!CHECKLIST_MAP[c.produto_nome])
+        CHECKLIST_MAP[c.produto_nome] = {status:'ok', prioritario:!!c.prioritario};
+    });
+  } catch(e) { /* silencioso */ }
+}
+
+function getMondayByOffset(offset) {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff + offset * 7);
+  return _localISO(d);
+}
+
+function getPrioridade(nome) {
+  const c = CHECKLIST_MAP[nome] || {};
+  const s = c.status || 'ok'; const p = c.prioritario || false;
+  if (s==='critico'&&p) return 1;
+  if (s==='alerta'&&p)  return 2;
+  if (p)                return 3;
+  if (s==='critico')    return 4;
+  if (s==='alerta')     return 5;
+  return 6;
+}
+
+function getPrioIcon(nome) {
+  const c = CHECKLIST_MAP[nome] || {};
+  const s = c.status||'ok'; const p = c.prioritario||false;
+  if (s==='critico'&&p) return '🔴⭐';
+  if (s==='alerta'&&p)  return '🟡⭐';
+  if (p)                return '⭐';
+  if (s==='critico')    return '🔴';
+  if (s==='alerta')     return '🟡';
+  return '';
+}
+
+function getMetaDia(prodNome, diaKey) {
+  const proj = PROJECAO.find(p => p.produto_nome === prodNome);
+  if (proj) return parseFloat(proj[diaKey])||0;
+  const metas = SETOR==='PADARIA' ? METAS_PADARIA : METAS_CONFEITARIA;
+  const m = metas.find(x => x.nome===prodNome);
+  return m ? (m[diaKey]||0) : 0;
+}
+
+function buildItensMap() {
+  const map = {};
+  ITENS_VIEW.forEach(i => { map[`${i.produto_nome}|${i.dia}`] = i; });
+  return map;
+}
+
+function fmtQtd(v) {
+  if (v===null||v===undefined) return '—';
+  const n = parseFloat(v)||0;
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
+function buildSemanaHTML() {
+  if (!SEMANA_VIEW) return '<div class="emp"><div class="big">⚠️</div><p>Sem conexão.<br>Tente novamente.</p></div>';
+
+  const seg = SEMANA_VIEW.semana_inicio;
+  const sun = getSundayISO(seg);
+  const isAtual = SEMANA_OFFSET === 0;
+
+  // Datas de cada coluna
+  const dates = DIAS_KEY.map((d,i) => {
+    const dt = new Date(seg+'T12:00:00'); dt.setDate(dt.getDate()+i);
+    return dt.toISOString().slice(0,10);
+  });
+
+  const itensMap = buildItensMap();
+  const metas = SETOR==='PADARIA' ? METAS_PADARIA : METAS_CONFEITARIA;
+  const catOrder = SETOR==='PADARIA' ? CAT_ORDER_PAD : CAT_ORDER_CONF;
+
+  // KPIs da semana
+  const diasConf = DIAS_KEY.filter(d => {
+    const its = ITENS_VIEW.filter(i=>i.dia===d&&(i.qtd_planejada||0)>0);
+    return its.length>0 && its.every(i=>i.status==='confirmado'||i.status==='nao_produzido');
+  });
+  const totalPlan = ITENS_VIEW.filter(i=>(i.qtd_planejada||0)>0).length;
+  const totalConf = ITENS_VIEW.filter(i=>i.status==='confirmado').length;
+  const aderencia = totalPlan>0 ? Math.round((totalConf/totalPlan)*100) : 0;
+  const naoProdHoje = ITENS_VIEW.filter(i=>i.dia===HOJE_KEY&&i.status==='nao_produzido').length;
+
+  // Ordenar produtos por prioridade dentro de cada categoria
+  const prodsByCat = {};
+  metas.forEach(m => {
+    if (!prodsByCat[m.cat]) prodsByCat[m.cat] = [];
+    prodsByCat[m.cat].push({...m, _pri: getPrioridade(m.nome)});
+  });
+  Object.values(prodsByCat).forEach(arr => arr.sort((a,b)=>a._pri-b._pri));
+
+  // Header tabela
+  const thDias = DIAS_KEY.map((d,i) => {
+    const isH = dates[i]===HOJE_ISO;
+    return `<th class="col-dia${isH?' col-hoje':''}">${DIAS_NM[i]}<span class="col-dia-date">${fmtDataBR(dates[i])}</span></th>`;
+  }).join('');
+
+  // Aviso domingo
+  const domAlert = SETOR === 'PADARIA'
+    ? `<div class="dom-warn"><span class="dom-warn-ico">⚠️</span><div><strong>Domingo — equipe reduzida</strong>Produção apenas: Pão Francês e Pão Doce</div></div>`
+    : `<div class="dom-warn dom-warn-closed"><span class="dom-warn-ico">🔒</span><div><strong>Domingo — setor fechado</strong></div></div>`;
+
+  // Linhas por categoria
+  let tbody = '';
+  catOrder.forEach(cat => {
+    const prods = prodsByCat[cat]; if (!prods||!prods.length) return;
+    tbody += `<tr class="cat-hdr-row"><td colspan="9">${CAT_ICONS[cat]||'📦'} ${cat}</td></tr>`;
+    prods.forEach(prod => {
+      const metaSem = DIAS_KEY.reduce((a,d)=>a+(prod[d]||0),0);
+      const pico = getPrioIcon(prod.nome);
+      const ck = CHECKLIST_MAP[prod.nome];
+      const badge = ck&&ck.status==='critico'
+        ? `<span style="font-size:.5rem;background:var(--red);color:#fff;padding:1px 4px;border-radius:3px;margin-left:3px;vertical-align:middle;">⚠️crítico</span>` : '';
+      const cells = DIAS_KEY.map((d,i) => renderCell(prod, d, dates[i], itensMap)).join('');
+      tbody += `<tr class="prod-row">
+        <td class="col-prod-cell">
+          ${pico?`<span class="prio-ico">${pico}</span>`:''}
+          <span class="prod-row-nm">${prod.nome}${badge}</span>
+        </td>
+        <td class="col-meta-cell">${metaSem||'—'}</td>
+        ${cells}
+      </tr>`;
+    });
+  });
+
+  return `
+    ${setorSelectorHTML()}
+    <div class="semana-nav">
+      <button class="semana-nav-btn" onclick="navSemana(-1)">◀</button>
+      <div style="text-align:center;flex:1;">
+        <div class="semana-nav-range">${fmtDataBR(seg)} — ${fmtDataBR(sun)}</div>
+        <div class="semana-nav-sub">${isAtual?'📅 Semana atual':SEMANA_OFFSET<0?`${Math.abs(SEMANA_OFFSET)} sem. atrás`:`${SEMANA_OFFSET} sem. à frente`}</div>
+      </div>
+      <button class="semana-nav-btn" onclick="navSemana(1)">▶</button>
+      ${!isAtual?`<button class="semana-hoje-btn" onclick="navSemana(0)">Hoje ✅</button>`:''}
+    </div>
+
+    <div class="semana-kpis">
+      <div class="sk grn"><span class="sk-val" style="color:var(--grn)">${diasConf.length}/7</span><span class="sk-lbl">Dias confirmados</span></div>
+      <div class="sk blue"><span class="sk-val" style="color:${aderencia>=80?'var(--grn)':aderencia>=50?'var(--amber)':'var(--red)'}">${aderencia}%</span><span class="sk-lbl">Aderência</span></div>
+      <div class="sk red"><span class="sk-val" style="color:${naoProdHoje>0?'var(--red)':'var(--grn)'}">${naoProdHoje}</span><span class="sk-lbl">Não prod. hoje</span></div>
+    </div>
+    <button class="btn-dash" onclick="go('hoje')" style="margin-bottom:8px;">✅ Confirmar produção de hoje →</button>
+
+    ${domAlert}
+
+    <div class="semana-table-wrap">
+      <table class="semana-table">
+        <thead><tr>
+          <th class="col-prod">Produto</th>
+          <th class="col-meta">Meta<br>/sem</th>
+          ${thDias}
+        </tr></thead>
+        <tbody>${tbody}</tbody>
+      </table>
+    </div>
+    <div style="height:20px;"></div>
+  `;
+}
+
+function renderCell(prod, diaKey, dataDia, itensMap) {
+  const isToday = dataDia === HOJE_ISO;
+  const isPast  = dataDia < HOJE_ISO;
+  const isDom   = diaKey === 'dom';
+
+  // Bloqueio domingo
+  if (isDom && SETOR==='CONFEITARIA')
+    return '<td class="cell cell-blocked"><span class="cell-val">—</span></td>';
+  if (isDom && SETOR==='PADARIA' && !DOM_PAD_EDITAVEIS.includes(prod.nome))
+    return '<td class="cell cell-blocked"><span class="cell-val">—</span></td>';
+
+  const item  = itensMap[`${prod.nome}|${diaKey}`];
+  const meta  = getMetaDia(prod.nome, diaKey);
+  const und   = prod.und||'KG';
+
+  if (isPast) {
+    if (item && item.status==='confirmado') {
+      const v = item.qtd_produzida!==null ? item.qtd_produzida : item.qtd_planejada;
+      return `<td class="cell cell-past-conf" onclick="tooltipCelula('${escHtml(prod.nome)}','${diaKey}',${v||0},${meta},'${und}')">
+        <span class="cell-val">${fmtQtd(v)}</span><span class="cell-ico">✅</span></td>`;
+    }
+    if (item && item.status==='nao_produzido') {
+      return `<td class="cell cell-past-nconf" onclick="tooltipCelula('${escHtml(prod.nome)}','${diaKey}',0,${meta},'${und}')">
+        <span class="cell-val">—</span><span class="cell-ico">❌</span></td>`;
+    }
+    // Passado sem registro
+    const v = item?.qtd_planejada||meta;
+    return `<td class="cell cell-past-empty" onclick="tooltipCelula('${escHtml(prod.nome)}','${diaKey}',${v},${meta},'${und}')">
+      <span class="cell-val" style="color:var(--gray)">${v>0?fmtQtd(v):'—'}</span></td>`;
+  }
+
+  if (isToday) {
+    if (item && (item.status==='confirmado'||item.status==='nao_produzido')) {
+      // Já confirmado/não-produzido → mostra status, link para aba Hoje
+      const v = item.qtd_produzida!==null?item.qtd_produzida:item.qtd_planejada;
+      return `<td class="cell cell-today" onclick="go('hoje')">
+        <span class="cell-val">${item.status==='nao_produzido'?'—':fmtQtd(v)}</span>
+        <span class="cell-ico">${item.status==='confirmado'?'✅':'❌'}</span></td>`;
+    }
+    // Ainda não confirmado → EDITÁVEL (abre modal de planejamento)
+    const v = item && item.qtd_planejada!=null ? item.qtd_planejada : meta;
+    const isEmpty = !v || v===0;
+    return `<td class="cell cell-today" onclick="abrirCelulaPlan('${escHtml(prod.nome)}','${diaKey}','${dataDia}',${v||0},'${item&&item.id?item.id:''}','${escHtml(prod.cat||'')}','${und}')">
+      <span class="cell-val${isEmpty?' empty':''}">${isEmpty?'+':fmtQtd(v)}</span>
+      <span class="cell-lbl">✏️ Hoje</span></td>`;
+  }
+
+  // Futuro — editável
+  const v = item?.qtd_planejada!=null ? item.qtd_planejada : meta;
+  const isEmpty = !v || v===0;
+  return `<td class="cell cell-future" onclick="abrirCelulaPlan('${escHtml(prod.nome)}','${diaKey}','${dataDia}',${v||0},'${item?.id||''}','${escHtml(prod.cat||'')}','${und}')">
+    <span class="cell-val${isEmpty?' empty':''}">${isEmpty?'+':fmtQtd(v)}</span>
+  </td>`;
+}
+
+async function navSemana(dir) {
+  // dir=0 → ir para semana atual; dir=-1/+1 → navegar
+  if (dir === 0) SEMANA_OFFSET = 0;
+  else SEMANA_OFFSET += dir;
+  SEMANA_VIEW = null;
+  renderSemana();
+}
+
+function salvarDia() { /* legado — botão oculto */ }
+
+// ── Modal célula futura ──
+function abrirCelulaPlan(prodNome, diaKey, dataDia, qtdAtual, itemId, categoria, unidade) {
+  _celulaEdit = {prodNome, diaKey, dataDia, qtdAtual, itemId, categoria, unidade};
+  const diaIdx = DIAS_KEY.indexOf(diaKey);
+  document.getElementById('modalCelulaContent').innerHTML = `
+    <div style="font-size:.68rem;color:var(--gray);margin-bottom:3px;">📅 ${DIAS_NM[diaIdx]} · ${fmtDataBR(dataDia)}</div>
+    <div style="font-size:.95rem;font-weight:800;margin-bottom:14px;">${prodNome}</div>
+    <label style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--brown2);display:block;margin-bottom:6px;">Quantidade planejada (${unidade})</label>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;">
+      <button class="qty-btn" style="width:44px;height:56px;" onclick="adjCelula(-1)">−</button>
+      <input class="qty-inp" id="celulaQtdInp" type="number" inputmode="numeric"
+        value="${qtdAtual||0}" min="0" step="0.5"
+        style="flex:1;height:56px;font-size:1.2rem;font-weight:800;text-align:center;">
+      <button class="qty-btn" style="width:44px;height:56px;" onclick="adjCelula(1)">+</button>
+      <span style="font-size:.72rem;color:var(--gray);font-weight:600;">${unidade}</span>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="fecharModalCelula()" style="flex:1;background:var(--gray-l);color:var(--brown);border:none;border-radius:10px;padding:13px;font-size:.85rem;cursor:pointer;font-family:inherit;">Cancelar</button>
+      <button onclick="salvarCelula()" style="flex:2;background:var(--grn);color:#fff;border:none;border-radius:10px;padding:13px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;">💾 Salvar</button>
+    </div>
+  `;
+  document.getElementById('modalCelula').classList.add('on');
+  setTimeout(()=>document.getElementById('celulaQtdInp')?.focus(),300);
+}
+
+function adjCelula(d) {
+  const inp = document.getElementById('celulaQtdInp'); if(!inp) return;
+  const v = Math.max(0, parseFloat(inp.value||0)+d*0.5);
+  inp.value = Number.isInteger(v)?v:v.toFixed(1);
+}
+
+function fecharModalCelula() {
+  document.getElementById('modalCelula').classList.remove('on');
+  _celulaEdit = null;
+}
+
+document.getElementById('modalCelula').addEventListener('click', function(e){
+  if(e.target===this) fecharModalCelula();
+});
+
+async function salvarCelula() {
+  const e = _celulaEdit; if(!e||!SEMANA_VIEW) return;
+  const inp = document.getElementById('celulaQtdInp');
+  const qtd = parseFloat(inp?.value||0)||0;
+  fecharModalCelula();
+  try {
+    if (e.itemId) {
+      await sbUpdate('producao_itens', e.itemId, {
+        qtd_planejada: qtd, atualizado_em: new Date().toISOString()
+      });
+      const it = ITENS_VIEW.find(i=>String(i.id)===String(e.itemId));
+      if(it) it.qtd_planejada = qtd;
+    } else {
+      const novo = await sbInsert('producao_itens', {
+        semana_id: SEMANA_VIEW.id,
+        produto_id: null, produto_nome: e.prodNome,
+        categoria: e.categoria, setor: SETOR, unidade: e.unidade,
+        dia: e.diaKey, data_dia: e.dataDia,
+        qtd_sugerida: getMetaDia(e.prodNome, e.diaKey),
+        qtd_planejada: qtd, qtd_produzida: null, status: 'planejado'
+      });
+      const item = Array.isArray(novo)?novo[0]:novo;
+      if(item) ITENS_VIEW.push(item);
+      if(SEMANA_OFFSET===0) ITENS = ITENS_VIEW;
+    }
+    toast('✅ Salvo', 'ok');
+    // Re-render apenas a célula (UI rápida)
+    document.getElementById('semanaContent').innerHTML = buildSemanaHTML();
+  } catch(err) {
+    toast('❌ Erro: '+err.message,'er');
+  }
+}
+
+function tooltipCelula(nome, diaKey, produzido, sugerido, und) {
+  const diaIdx = DIAS_KEY.indexOf(diaKey);
+  toast(`${DIAS_NM[diaIdx]} · ${nome}: prod ${fmtQtd(produzido)} ${und} / sug ${fmtQtd(sugerido)} ${und}`, '');
+}
+
+function selectDia(d) { DIA_SEL = d; }  // legado – mantido para compatibilidade
+
+// ═══════════════════════════════════════════════════════
+// RENDER HOJE
+// ═══════════════════════════════════════════════════════
+function renderHoje() {
+  const el = document.getElementById('hojeContent');
+  const bar = document.getElementById('confirmAllBar');
+  const dtBR = new Date(HOJE_ISO + 'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
+  const dtCap = dtBR.charAt(0).toUpperCase() + dtBR.slice(1);
+  const isDomingo = HOJE_KEY === 'dom';
+
+  // ── Confeitaria domingo: setor fechado ──
+  if (isDomingo && SETOR === 'CONFEITARIA') {
+    el.innerHTML = `
+      <div class="hoje-hdr">
+        <div><div class="hoje-data">${dtCap}</div><div class="hoje-progresso">Setor fechado aos domingos</div></div>
+        <span class="hoje-badge">🔒</span>
+      </div>
+      <div class="dom-warn dom-warn-closed">
+        <span class="dom-warn-ico">🔒</span>
+        <div><strong>Domingo — setor fechado</strong>Confeitaria/Pastelaria não opera aos domingos.</div>
+      </div>
+      <div class="emp"><div class="big">😴</div><p>Setor em repouso.<br>Boa folga! 🏖️</p></div>`;
+    bar.style.display = 'none';
+    return;
+  }
+
+  // ── Filtrar itens (Padaria domingo: apenas PAO KG e PAO DOCE) ──
+  let itensHoje = ITENS.filter(i => i.dia === HOJE_KEY && (i.qtd_planejada || 0) > 0);
+  if (isDomingo && SETOR === 'PADARIA') {
+    itensHoje = itensHoje.filter(i => DOM_PAD_EDITAVEIS.includes(i.produto_nome));
+  }
+
+  const totalConf = itensHoje.filter(i => i.status === 'confirmado').length;
+  const totalNao  = itensHoje.filter(i => i.status === 'nao_produzido').length;
+  const totalPend = itensHoje.filter(i => i.status === 'planejado').length;
+
+  if (!itensHoje.length) {
+    el.innerHTML = `
+      <div class="hoje-hdr">
+        <div><div class="hoje-data">✅ Confirmar Hoje</div><div class="hoje-progresso">0 itens planejados</div></div>
+      </div>
+      ${isDomingo && SETOR==='PADARIA' ? `
+        <div class="dom-warn">
+          <span class="dom-warn-ico">⚠️</span>
+          <div><strong>Domingo — equipe reduzida</strong>Produção apenas: Pão Francês e Pão Doce</div>
+        </div>` : ''}
+      <div class="emp"><div class="big">📭</div>
+        <p>Nenhum item planejado para hoje.<br>
+        <button class="btn-dash" style="margin-top:12px;" onclick="go('semana')">📅 Ir para Semana →</button></p>
+      </div>`;
+    bar.style.display = 'none'; return;
+  }
+
+  const pctConf = Math.round((totalConf / itensHoje.length) * 100);
+
+  el.innerHTML = `
+    <div class="hoje-hdr">
+      <div>
+        <div class="hoje-data">✅ ${dtCap}</div>
+        <div class="hoje-progresso">${totalConf} confirmados · ${totalNao} não produzidos · ${totalPend} pendentes</div>
+      </div>
+      <span class="hoje-badge">${pctConf}%</span>
+    </div>
+    ${setorSelectorHTML()}
+    ${isDomingo && SETOR==='PADARIA' ? `
+      <div class="dom-warn">
+        <span class="dom-warn-ico">⚠️</span>
+        <div><strong>Domingo — equipe reduzida</strong>Produção apenas: Pão Francês e Pão Doce</div>
+      </div>` : ''}
+    <div id="hojeItens">
+      ${itensHoje.map(item => hojeItemHTML(item)).join('')}
+    </div>
+    <div style="height:70px;"></div>
+  `;
+
+  bar.style.display = 'block';
+  const btnConf = document.getElementById('btnConfirmAll');
+  if (btnConf) btnConf.disabled = totalPend === 0;
+}
+
+function hojeItemHTML(item) {
+  const conf = item.status === 'confirmado';
+  const naoProd = item.status === 'nao_produzido';
+  const cls = conf ? 'confirmado' : naoProd ? 'nao-prod' : '';
+  const prodVal = item.qtd_produzida !== null ? item.qtd_produzida : (item.qtd_planejada || 0);
+  return `<div class="hoje-item ${cls}" id="hi-${item.id}">
+    <div class="hoje-item-top">
+      <div class="hoje-item-info">
+        <div class="hoje-item-nm">${item.produto_nome}</div>
+        <div class="hoje-item-meta">${item.categoria||''} · ${item.unidade||'KG'}</div>
+        <div class="hoje-sugestao">🎯 Planejado: ${item.qtd_planejada} ${item.unidade||'KG'}</div>
+      </div>
+    </div>
+    <div class="hoje-item-bottom">
+      <span class="hoje-qty-label">Produzido</span>
+      <input class="hoje-qty-input" type="number" inputmode="numeric" id="hqi-${item.id}"
+        value="${prodVal}" min="0" step="0.1"
+        onchange="onHojeQtdChange('${item.id}',this.value)"
+        ${naoProd ? 'disabled' : ''}>
+      <span style="font-size:.68rem;color:var(--gray);font-weight:600;">${item.unidade||'KG'}</span>
+      <div class="status-btns">
+        <button class="sbtn ok${conf?' on':''}" onclick="setStatusHoje('${item.id}','confirmado')">✅</button>
+        <button class="sbtn no${naoProd?' on':''}" onclick="setStatusHoje('${item.id}','nao_produzido')">❌</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function onHojeQtdChange(id, val) {
+  const v = Math.max(0, parseFloat(val)||0);
+  const inp = document.getElementById('hqi-' + id);
+  if (inp) inp.value = Number.isInteger(v) ? v : v.toFixed(1);
+}
+
+function setStatusHoje(id, status) {
+  const item = ITENS.find(i => String(i.id) === String(id));
+  if (!item) return;
+  item._statusPend = status;
+  // Atualizar UI imediatamente
+  const el = document.getElementById('hi-' + id);
+  if (!el) return;
+  el.classList.remove('confirmado', 'nao-prod');
+  if (status === 'confirmado') el.classList.add('confirmado');
+  if (status === 'nao_produzido') el.classList.add('nao-prod');
+  const inpEl = document.getElementById('hqi-' + id);
+  if (inpEl) inpEl.disabled = status === 'nao_produzido';
+  // Atualizar botões
+  el.querySelectorAll('.sbtn').forEach(b => b.classList.remove('on'));
+  const btn = el.querySelector(`.sbtn.${status === 'confirmado' ? 'ok' : 'no'}`);
+  if (btn) btn.classList.add('on');
+  // Habilitar botão confirmar tudo
+  const allPend = ITENS.filter(i => i.dia === HOJE_KEY && (i.qtd_planejada||0) > 0)
+    .every(i => i._statusPend || i.status !== 'planejado');
+  const confBtn = document.getElementById('btnConfirmAll');
+  if (confBtn) confBtn.disabled = !allPend && false; // sempre permitir salvar parcial
+  confBtn.disabled = false;
+}
+
+async function confirmarTudo() {
+  const itensHoje = ITENS.filter(i => i.dia === HOJE_KEY && (i.qtd_planejada||0) > 0);
+  const pendentes = itensHoje.filter(i => i.status === 'planejado' && !i._statusPend);
+  if (pendentes.length > 0) {
+    const ok = await confirmar(
+      `${pendentes.length} item(ns) ainda sem status.\nDeseja confirmar todos como ✅ Produzido?`,
+      'Confirmar Produção', '✅', 'Confirmar assim mesmo'
+    );
+    if (!ok) return;
+    pendentes.forEach(i => { i._statusPend = 'confirmado'; });
+  }
+
+  const btn = document.getElementById('btnConfirmAll');
+  btn.disabled = true; btn.textContent = '⏳ Salvando...';
+
+  try {
+    for (const item of itensHoje) {
+      const inpEl = document.getElementById('hqi-' + item.id);
+      const qtdProd = item._statusPend === 'nao_produzido' ? 0 : (inpEl ? parseFloat(inpEl.value)||0 : item.qtd_planejada||0);
+      const status = item._statusPend || item.status || 'confirmado';
+      if (status === 'planejado') continue; // skip se não tocado
+      await sbUpdate('producao_itens', item.id, {
+        qtd_produzida: qtdProd,
+        status,
+        atualizado_em: new Date().toISOString()
+      });
+      item.qtd_produzida = qtdProd;
+      item.status = status;
+      delete item._statusPend;
+    }
+    toast('✅ Produção do dia confirmada!', 'ok');
+    renderHoje();
+    renderHome();
+  } catch(e) {
+    toast('❌ Erro ao salvar: ' + e.message, 'er');
+  }
+  btn.disabled = false; btn.textContent = '✅ Confirmar Produção do Dia';
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER DASHBOARD
+// ═══════════════════════════════════════════════════════
+async function renderDash() {
+  const el = document.getElementById('dashContent');
+  el.innerHTML = '<div class="loading-ring"></div>';
+
+  try {
+    // Buscar histórico das últimas semanas
+    SEMANAS_HIST = await sbQ('producao_semanas',
+      `select=*&setor=eq.${encodeURIComponent(SETOR)}&order=semana_inicio.desc&limit=8`);
+    // Buscar itens dessas semanas
+    const ids = SEMANAS_HIST.map(s => s.id).join(',');
+    let itensHist = [];
+    if (ids) {
+      itensHist = await sbQ('producao_itens', `select=*&semana_id=in.(${ids})`);
+    }
+    renderDashContent(itensHist);
+  } catch(e) {
+    // Usar dados em memória se falhar
+    renderDashContent(ITENS);
+  }
+}
+
+function renderDashContent(itensHist) {
+  const el = document.getElementById('dashContent');
+
+  // KPIs da semana atual
+  const itSem = ITENS;
+  const totalPlan = itSem.filter(i => (i.qtd_planejada||0) > 0).length;
+  const totalConf = itSem.filter(i => i.status === 'confirmado').length;
+  const totalNao  = itSem.filter(i => i.status === 'nao_produzido').length;
+  const aderencia = totalPlan > 0 ? Math.round((totalConf / totalPlan) * 100) : 0;
+
+  const totKgPlan = itSem.filter(i => (i.unidade||'KG').toUpperCase()==='KG')
+    .reduce((a,i) => a + (i.qtd_planejada||0), 0);
+  const totKgProd = itSem.filter(i => i.status==='confirmado' && (i.unidade||'KG').toUpperCase()==='KG')
+    .reduce((a,i) => a + (i.qtd_produzida||0), 0);
+
+  // Histórico semanas
+  const hist = SEMANAS_HIST.map(s => {
+    const its = itensHist.filter(i => i.semana_id === s.id);
+    const plan = its.filter(i => (i.qtd_planejada||0) > 0).length;
+    const conf = its.filter(i => i.status === 'confirmado').length;
+    const pct = plan > 0 ? Math.round((conf/plan)*100) : 0;
+    return {s, plan, conf, pct, kgConf: its.filter(i => i.status==='confirmado').reduce((a,i)=>a+(i.qtd_produzida||0),0)};
+  });
+
+  el.innerHTML = `
+    ${setorSelectorHTML()}
+    <div class="card-hdr" style="margin-bottom:8px;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--gray);">
+      Semana Atual
+    </div>
+    <div class="kpi-grid" style="margin-bottom:12px;">
+      <div class="kpi-card grn">
+        <span class="kpi-val" style="color:var(--grn)">${aderencia}%</span>
+        <span class="kpi-lbl">Aderência</span>
+      </div>
+      <div class="kpi-card blue">
+        <span class="kpi-val" style="color:var(--blue)">${totalPlan}</span>
+        <span class="kpi-lbl">Itens planejados</span>
+      </div>
+      <div class="kpi-card grn">
+        <span class="kpi-val" style="color:var(--grn)">${totalConf}</span>
+        <span class="kpi-lbl">Confirmados</span>
+      </div>
+      <div class="kpi-card amber">
+        <span class="kpi-val" style="color:var(--amber)">${totalNao}</span>
+        <span class="kpi-lbl">Não produzidos</span>
+      </div>
+    </div>
+    <div class="kpi-grid" style="margin-bottom:14px;">
+      <div class="kpi-card blue">
+        <span class="kpi-val" style="color:var(--blue);font-size:1rem;">${totKgPlan.toFixed(1)}</span>
+        <span class="kpi-lbl">KG planejado</span>
+      </div>
+      <div class="kpi-card grn">
+        <span class="kpi-val" style="color:var(--grn);font-size:1rem;">${totKgProd.toFixed(1)}</span>
+        <span class="kpi-lbl">KG produzido</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr">📅 Histórico de Semanas <span style="font-size:.6rem;color:var(--gray)">${SETOR === 'PADARIA' ? 'Padaria' : 'Confeitaria'}</span></div>
+      ${hist.length ? `<div class="semanas-hist">${hist.map(h => {
+        const seg = fmtDataBR(h.s.semana_inicio);
+        const sun = fmtDataBR(getSundayISO(h.s.semana_inicio));
+        const cor = h.pct >= 80 ? 'var(--grn)' : h.pct >= 50 ? 'var(--amber)' : 'var(--red)';
+        const isAtual = SEMANA && h.s.id === SEMANA.id;
+        return `<div class="semana-row" style="${isAtual?'border:2px solid var(--grn);':''}" onclick="verSemanaHist('${h.s.id}')">
+          <div class="semana-row-info">
+            <div class="semana-row-range">${seg} – ${sun} ${isAtual?'<span style="font-size:.58rem;background:var(--grn);color:#fff;padding:1px 6px;border-radius:6px;">Atual</span>':''}</div>
+            <div class="semana-row-sub">${h.conf} de ${h.plan} confirmados · ${h.kgConf.toFixed(1)} kg</div>
+            <div class="prog-bar-wrap"><div class="prog-bar" style="width:${h.pct}%;background:${cor};"></div></div>
+          </div>
+          <div class="semana-row-pct" style="color:${cor}">${h.pct}%</div>
+        </div>`;
+      }).join('')}</div>` : '<div class="emp" style="padding:20px;"><p>Sem histórico ainda.</p></div>'}
+    </div>
+
+    <button class="btn-dash" onclick="location.href='DASHBOARD_GERAL.html'">
+      📊 Dashboard Geral (Produção + Desperdícios) →
+    </button>
+  `;
+}
+
+async function verSemanaHist(semanaId) {
+  if (!SEMANA || String(semanaId) === String(SEMANA.id)) {
+    go('semana'); return;
+  }
+  // Carregar semana histórica
+  toast('⏳ Carregando semana...', '');
+  try {
+    const rows = await sbQ('producao_semanas', `select=*&id=eq.${semanaId}`);
+    if (rows && rows.length) {
+      const itens = await sbQ('producao_itens', `select=*&semana_id=eq.${semanaId}&order=data_dia,produto_nome`);
+      SEMANA = rows[0]; ITENS = itens;
+      DIA_SEL = HOJE_KEY;
+      go('semana');
+    }
+  } catch(e) { toast('❌ Erro ao carregar semana', 'er'); }
+}
+
+// ═══════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════
+function hideSplash() {
+  try {
+    const sp = document.getElementById('splash');
+    if (!sp) return;
+    sp.style.opacity = '0';
+    sp.style.pointerEvents = 'none';
+    sp.classList.add('hide');
+    setTimeout(() => { try { sp.remove(); } catch(e) {} }, 450);
+  } catch(e) {}
+}
+function hideSplashImediato() {
+  try {
+    const sp = document.getElementById('splash');
+    if (!sp) return;
+    sp.style.display = 'none';
+    sp.remove();
+  } catch(e) {}
+}
+
+function setSyncUI(s, txt) {
+  const d = document.getElementById('syncDot');
+  const t = document.getElementById('syncTxt');
+  if (d) d.className = 'dot' + (s==='ok' ? '' : s==='wait' ? ' wait' : ' off');
+  if (t) t.textContent = txt || s;
+}
+
+function toast(msg, t='') {
+  const el = document.getElementById('tst');
+  el.textContent = msg;
+  el.className = 'tst on' + (t ? ' ' + t : '');
+  clearTimeout(el._to);
+  el._to = setTimeout(() => el.className = 'tst', 3000);
+}
+
+let _confResolve = null;
+function confirmar(msg, ttl='Confirmar', ico='⚠️', okTxt='Confirmar', red=false) {
+  return new Promise(res => {
+    _confResolve = res;
+    document.getElementById('confIco').textContent = ico;
+    document.getElementById('confTtl').textContent = ttl;
+    document.getElementById('confMsg').textContent = msg;
+    const ok = document.getElementById('confOk');
+    ok.textContent = okTxt;
+    ok.className = 'conf-ok' + (red ? ' red' : '');
+    document.getElementById('confOv').classList.add('on');
+  });
+}
+function _confResp(v) {
+  document.getElementById('confOv').classList.remove('on');
+  if (_confResolve) { _confResolve(v); _confResolve = null; }
+}
+
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════════════════════
+// MODAL ADICIONAR PRODUTO
+// ═══════════════════════════════════════════════════════
+function abrirModalAddProduto() {
+  document.getElementById('modalBusca').value = '';
+  filtrarModalProd();
+  document.getElementById('modalAddProd').classList.add('on');
+  setTimeout(() => document.getElementById('modalBusca').focus(), 300);
+}
+
+function fecharModalAdd() {
+  document.getElementById('modalAddProd').classList.remove('on');
+}
+
+document.getElementById('modalAddProd').addEventListener('click', function(e) {
+  if (e.target === this) fecharModalAdd();
+});
+
+function filtrarModalProd() {
+  const busca = (document.getElementById('modalBusca').value || '').toLowerCase();
+  // Produtos já adicionados neste dia
+  const jaAdicionados = new Set(ITENS.filter(i => i.dia === DIA_SEL).map(i => i.produto_id));
+  const lista = PRODUTOS.filter(p => {
+    // Filtra por setor no cliente (mesmo padrão do Desperdícios)
+    if (p.setor && p.setor !== SETOR) return false;
+    if (jaAdicionados.has(p.id)) return false;
+    if (busca && !(p.nome || '').toLowerCase().includes(busca)) return false;
+    return true;
+  }).slice(0, 50);
+
+  const el = document.getElementById('modalProdList');
+  if (!lista.length) {
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray);font-size:.82rem;">Nenhum produto encontrado</div>';
+    return;
+  }
+  el.innerHTML = lista.map(p => {
+    const cat = p.categoria || 'OUTROS';
+    const und = (p.unidade || 'KG').toUpperCase();
+    const corUnd = und === 'KG' ? 'var(--red)' : 'var(--orange)';
+    return `<div class="modal-prod-item" onclick="addProdutoDia('${p.id}','${escHtml(p.nome)}','${escHtml(cat)}','${und}')">
+      <div>
+        <div class="modal-prod-nm">${escHtml(p.nome)}</div>
+        <div class="modal-prod-meta">${escHtml(cat)} · <span style="color:${corUnd};">${und}</span></div>
+      </div>
+      <span style="font-size:1.1rem;color:var(--grn);">+</span>
+    </div>`;
+  }).join('');
+}
+
+async function addProdutoDia(prodId, prodNm, categoria, unidade) {
+  fecharModalAdd();
+  if (!SEMANA) { toast('⚠️ Semana não carregada', 'wa'); return; }
+  const dataDia = getDataDia(SEMANA.semana_inicio, DIA_SEL);
+  try {
+    const novo = await sbInsert('producao_itens', {
+      semana_id: SEMANA.id,
+      produto_id: prodId,
+      produto_nome: prodNm,
+      categoria,
+      setor: SETOR,
+      unidade,
+      dia: DIA_SEL,
+      data_dia: dataDia,
+      qtd_sugerida: 0,
+      qtd_planejada: 0,
+      qtd_produzida: null,
+      status: 'planejado'
+    });
+    const item = Array.isArray(novo) ? novo[0] : novo;
+    ITENS.push(item);
+    toast(`✅ ${prodNm} adicionado`, 'ok');
+    renderSemana();
+  } catch(e) {
+    toast('❌ Erro: ' + e.message, 'er');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// MÓDULO HISTÓRICO E RELATÓRIO MENSAL
+// ═══════════════════════════════════════════════════════
+
+let HIST_SETOR = 'PADARIA';
+let HIST_MES = new Date().getMonth() + 1;
+let HIST_ANO = new Date().getFullYear();
+let HIST_ITENS = [];
+let HIST_VIEW = 'dia'; // 'dia' | 'consolidado'
+let HIST_COMPARATIVO = false;
+let HIST_DIA_EXPAND = new Set();
+let HIST_LOADING = false;
+let HIST_LOADED_KEY = ''; // track last loaded combo to avoid redundant fetches
+
+function renderHistTab() {
+  // Init setor to current if first open
+  if (!HIST_LOADED_KEY) {
+    HIST_SETOR = SETOR || 'PADARIA';
+  }
+  const selSetor = document.getElementById('histSetor');
+  if (selSetor) selSetor.value = HIST_SETOR;
+  _preencherHistMeses();
+  const newKey = HIST_MES + '-' + HIST_ANO + '-' + HIST_SETOR;
+  if (HIST_LOADED_KEY !== newKey) {
+    _carregarHistDados();
+  }
+}
+
+function _preencherHistMeses() {
+  const sel = document.getElementById('histMes');
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const hoje = new Date();
+  sel.innerHTML = '';
+  for (let i = 0; i < 12; i++) {
+    let m = hoje.getMonth() + 1 - i;
+    let y = hoje.getFullYear();
+    if (m <= 0) { m += 12; y -= 1; }
+    const opt = document.createElement('option');
+    opt.value = m + '-' + y;
+    opt.textContent = meses[m-1] + ' ' + y;
+    if (m === HIST_MES && y === HIST_ANO) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+
+function onHistFiltroChange() {
+  const mesVal = document.getElementById('histMes').value;
+  const [m, y] = mesVal.split('-').map(Number);
+  HIST_MES = m; HIST_ANO = y;
+  HIST_SETOR = document.getElementById('histSetor').value;
+  HIST_DIA_EXPAND = new Set();
+  HIST_LOADED_KEY = '';
+  _carregarHistDados();
+}
+
+async function _carregarHistDados() {
+  if (HIST_LOADING) return;
+  HIST_LOADING = true;
+  const scr = document.getElementById('histScr');
+  if (scr) scr.innerHTML = '<div class="loading-ring"></div>';
+  const loadKey = HIST_MES + '-' + HIST_ANO + '-' + HIST_SETOR;
+  try {
+    const inicio = HIST_ANO + '-' + String(HIST_MES).padStart(2,'0') + '-01';
+    const fim = HIST_ANO + '-' + String(HIST_MES).padStart(2,'0') + '-' + String(_ultimoDiaMes(HIST_MES, HIST_ANO)).padStart(2,'0');
+    const url = SU + '/rest/v1/producao_itens?select=*&status=eq.confirmado&data_dia=gte.' + inicio + '&data_dia=lte.' + fim + '&setor=eq.' + HIST_SETOR + '&order=data_dia.asc,produto_nome.asc';
+    const r = await fetch(url, { headers: { 'apikey': SK, 'Authorization': 'Bearer ' + SK } });
+    HIST_ITENS = await r.json();
+    if (!Array.isArray(HIST_ITENS)) HIST_ITENS = [];
+    HIST_LOADED_KEY = loadKey;
+  } catch(e) {
+    HIST_ITENS = [];
+  }
+  HIST_LOADING = false;
+  _renderHistContent();
+}
+
+function _ultimoDiaMes(mes, ano) {
+  return new Date(ano, mes, 0).getDate();
+}
+
+function toggleHistView(v) {
+  HIST_VIEW = v;
+  document.getElementById('btnHistDia').classList.toggle('on', v === 'dia');
+  document.getElementById('btnHistCons').classList.toggle('on', v === 'consolidado');
+  _renderHistContent();
+}
+
+function _renderHistContent() {
+  const scr = document.getElementById('histScr');
+  if (!scr) return;
+  if (HIST_ITENS.length === 0) {
+    scr.innerHTML = '<div style="text-align:center;padding:48px 20px;color:var(--gray);font-size:.85rem;">Nenhum item confirmado neste período.</div>';
+    return;
+  }
+  scr.innerHTML = HIST_VIEW === 'dia' ? _buildHistDias() : _buildHistConsolidado();
+}
+
+function _buildHistDias() {
+  // group by data_dia
+  const byDia = {};
+  HIST_ITENS.forEach(it => {
+    if (!byDia[it.data_dia]) byDia[it.data_dia] = [];
+    byDia[it.data_dia].push(it);
+  });
+  const dias = Object.keys(byDia).sort();
+  const semDias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  let html = '';
+  dias.forEach(data => {
+    const itens = byDia[data];
+    const totalKg = itens.filter(i => (i.unidade||'KG').toUpperCase()==='KG').reduce((s,i) => s + (i.qtd_produzida||0), 0);
+    const totalUnd = itens.filter(i => (i.unidade||'KG').toUpperCase()==='UND').reduce((s,i) => s + (i.qtd_produzida||0), 0);
+    const planejados = itens.filter(i => (i.qtd_planejada||0) > 0).length;
+    const adh = planejados > 0 ? Math.round((itens.length / planejados) * 100) : 100;
+    const d = new Date(data + 'T12:00:00');
+    const diaSem = semDias[d.getDay()];
+    const diaNum = String(d.getDate()).padStart(2,'0');
+    const mesNm = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][d.getMonth()];
+    const expanded = HIST_DIA_EXPAND.has(data);
+    const totStr = totalKg > 0 && totalUnd > 0
+      ? `<span style="color:var(--red)">${totalKg.toFixed(1)}kg</span> · <span style="color:var(--orange)">${totalUnd}und</span>`
+      : totalKg > 0 ? `<span style="color:var(--red)">${totalKg.toFixed(1)}kg</span>`
+      : `<span style="color:var(--orange)">${totalUnd}und</span>`;
+    html += `<div class="hist-dia-card">
+      <div class="hist-dia-hdr" onclick="toggleHistDia('${data}')">
+        <div class="hist-dia-dt"><span class="hist-dia-sem">${diaSem}</span><span class="hist-dia-num">${diaNum} ${mesNm}</span></div>
+        <div class="hist-dia-kpis">${totStr} · <span style="color:var(--grn);font-weight:600;">${itens.length} itens</span></div>
+        <div class="hist-dia-adh${adh>=85?' ok':adh>=70?' wa':' er'}">${adh}%</div>
+        <div class="hist-dia-chv">${expanded ? '▲' : '▼'}</div>
+      </div>`;
+    if (expanded) {
+      html += `<div class="hist-dia-body"><table class="hist-table"><thead><tr><th>Produto</th><th>Categoria</th><th>Produzido</th>`;
+      if (HIST_COMPARATIVO) html += `<th>Planejado</th><th>Diferença</th>`;
+      html += `</tr></thead><tbody>`;
+      itens.forEach(it => {
+        const und = (it.unidade||'KG').toUpperCase();
+        const cor = und === 'KG' ? 'var(--red)' : 'var(--orange)';
+        const prod = it.qtd_produzida != null ? (und==='KG' ? it.qtd_produzida.toFixed(1)+'kg' : it.qtd_produzida+'und') : '—';
+        html += `<tr><td>${escHtml(it.produto_nome||'')}</td><td style="color:var(--gray)">${escHtml(it.categoria||'—')}</td><td style="color:${cor};font-weight:600;">${prod}</td>`;
+        if (HIST_COMPARATIVO) {
+          const plan = it.qtd_planejada != null ? (und==='KG' ? (+it.qtd_planejada).toFixed(1)+'kg' : it.qtd_planejada+'und') : '—';
+          const diff = (it.qtd_produzida != null && it.qtd_planejada != null) ? it.qtd_produzida - it.qtd_planejada : null;
+          const diffStr = diff == null ? '—' : (und==='KG' ? diff.toFixed(1)+'kg' : diff+'und');
+          const diffCls = diff == null ? '' : diff > 0 ? 'hist-diff-pos' : diff < 0 ? 'hist-diff-neg' : '';
+          html += `<td>${plan}</td><td class="${diffCls}">${diff != null && diff > 0 ? '+' : ''}${diffStr}</td>`;
+        }
+        html += `</tr>`;
+      });
+      html += `</tbody></table></div>`;
+    }
+    html += `</div>`;
+  });
+  // comparativo toggle
+  html += `<div style="display:flex;justify-content:center;padding:12px 0 4px;">
+    <button class="btn-cmp" onclick="toggleHistComparativo()">${HIST_COMPARATIVO ? '🔼 Ocultar Planejado' : '📊 Comparar com Planejado'}</button>
+  </div>`;
+  return html;
+}
+
+function toggleHistDia(data) {
+  if (HIST_DIA_EXPAND.has(data)) HIST_DIA_EXPAND.delete(data);
+  else HIST_DIA_EXPAND.add(data);
+  _renderHistContent();
+}
+
+function _buildHistConsolidado() {
+  // group by categoria then produto_nome
+  const byCat = {};
+  HIST_ITENS.forEach(it => {
+    if ((it.qtd_produzida || 0) === 0) return;
+    const cat = it.categoria || 'Outros';
+    if (!byCat[cat]) byCat[cat] = {};
+    const key = it.produto_nome + '||' + (it.unidade||'KG');
+    if (!byCat[cat][key]) byCat[cat][key] = { nome: it.produto_nome, unidade: it.unidade||'KG', total: 0, planejado: 0, dias: 0 };
+    byCat[cat][key].total += it.qtd_produzida || 0;
+    byCat[cat][key].planejado += it.qtd_planejada || 0;
+    byCat[cat][key].dias += 1;
+  });
+  const cats = Object.keys(byCat).sort();
+  if (cats.length === 0) return '<div style="text-align:center;padding:48px 20px;color:var(--gray);font-size:.85rem;">Nenhum item produzido neste período.</div>';
+  let html = `<table class="hist-table"><thead><tr><th>Produto</th><th>Dias</th><th>Total Produzido</th>`;
+  if (HIST_COMPARATIVO) html += `<th>Total Planejado</th><th>Diferença</th>`;
+  html += `</tr></thead><tbody>`;
+  cats.forEach(cat => {
+    html += `<tr class="hist-cat-row"><td colspan="${HIST_COMPARATIVO ? 5 : 3}">📁 ${escHtml(cat)}</td></tr>`;
+    Object.values(byCat[cat]).sort((a,b) => a.nome.localeCompare(b.nome)).forEach(p => {
+      const und = p.unidade.toUpperCase();
+      const cor = und === 'KG' ? 'var(--red)' : 'var(--orange)';
+      const tot = und === 'KG' ? p.total.toFixed(1)+'kg' : p.total+'und';
+      html += `<tr><td style="padding-left:20px;">${escHtml(p.nome)}</td><td style="color:var(--gray)">${p.dias}x</td><td style="color:${cor};font-weight:600;">${tot}</td>`;
+      if (HIST_COMPARATIVO) {
+        const plan = und === 'KG' ? p.planejado.toFixed(1)+'kg' : p.planejado+'und';
+        const diff = p.total - p.planejado;
+        const diffStr = (und==='KG' ? diff.toFixed(1)+'kg' : diff+'und');
+        const diffCls = diff > 0 ? 'hist-diff-pos' : diff < 0 ? 'hist-diff-neg' : '';
+        html += `<td>${plan}</td><td class="${diffCls}">${diff > 0 ? '+' : ''}${diffStr}</td>`;
+      }
+      html += `</tr>`;
+    });
+  });
+  html += `</tbody></table>`;
+  html += `<div style="display:flex;justify-content:center;padding:12px 0 4px;">
+    <button class="btn-cmp" onclick="toggleHistComparativo()">${HIST_COMPARATIVO ? '🔼 Ocultar Planejado' : '📊 Comparar com Planejado'}</button>
+  </div>`;
+  return html;
+}
+
+function toggleHistComparativo() {
+  HIST_COMPARATIVO = !HIST_COMPARATIVO;
+  _renderHistContent();
+}
+
+function _buildPrintReport() {
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mesNm = meses[HIST_MES - 1] + ' ' + HIST_ANO;
+  const setNm = HIST_SETOR === 'PADARIA' ? '🍞 Padaria' : '🍰 Confeitaria';
+  const byDia = {};
+  HIST_ITENS.forEach(it => {
+    if (!byDia[it.data_dia]) byDia[it.data_dia] = [];
+    byDia[it.data_dia].push(it);
+  });
+  const dias = Object.keys(byDia).sort();
+  const semDias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  let body = '';
+  dias.forEach(data => {
+    const itens = byDia[data];
+    const d = new Date(data + 'T12:00:00');
+    const lbl = semDias[d.getDay()] + ' ' + String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0');
+    body += `<h3 style="margin:16px 0 6px;font-size:.85rem;color:#2D6A4F;">${lbl}</h3>`;
+    body += `<table style="width:100%;border-collapse:collapse;font-size:.78rem;">
+      <thead><tr style="background:#EAF4EF;"><th style="text-align:left;padding:4px 8px;">Produto</th><th style="text-align:left;padding:4px 8px;">Categoria</th><th style="text-align:right;padding:4px 8px;">Produzido</th>`;
+    if (HIST_COMPARATIVO) body += `<th style="text-align:right;padding:4px 8px;">Planejado</th>`;
+    body += `</tr></thead><tbody>`;
+    itens.forEach(it => {
+      const und = (it.unidade||'KG').toUpperCase();
+      const prod = it.qtd_produzida != null ? (und==='KG' ? it.qtd_produzida.toFixed(1)+'kg' : it.qtd_produzida+'und') : '—';
+      body += `<tr style="border-bottom:1px solid #eee;"><td style="padding:3px 8px;">${escHtml(it.produto_nome||'')}</td><td style="padding:3px 8px;color:#666;">${escHtml(it.categoria||'—')}</td><td style="padding:3px 8px;text-align:right;font-weight:600;">${prod}</td>`;
+      if (HIST_COMPARATIVO) {
+        const plan = it.qtd_planejada != null ? (und==='KG' ? (+it.qtd_planejada).toFixed(1)+'kg' : it.qtd_planejada+'und') : '—';
+        body += `<td style="padding:3px 8px;text-align:right;">${plan}</td>`;
+      }
+      body += `</tr>`;
+    });
+    body += `</tbody></table>`;
+  });
+  return `<div style="font-family:'Plus Jakarta Sans',sans-serif;padding:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;border-bottom:2px solid #2D6A4F;padding-bottom:12px;">
+      <div>
+        <div style="font-size:1.1rem;font-weight:800;color:#1B4332;">📋 Relatório de Produção</div>
+        <div style="font-size:.8rem;color:#666;margin-top:2px;">${setNm} · ${mesNm}</div>
+      </div>
+      <div style="font-size:.7rem;color:#999;">Gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
+    </div>
+    ${body}
+    <div style="margin-top:40px;border-top:1px solid #ccc;padding-top:16px;display:flex;gap:60px;">
+      <div style="font-size:.75rem;color:#666;">Responsável: _______________________<br><span style="font-size:.65rem;">Assinatura</span></div>
+      <div style="font-size:.75rem;color:#666;">Supervisor: _______________________<br><span style="font-size:.65rem;">Assinatura</span></div>
+    </div>
+  </div>`;
+}
+
+function exportarHistPDF() {
+  const pr = document.getElementById('printReport');
+  pr.innerHTML = _buildPrintReport();
+  pr.style.display = 'block';
+  document.body.classList.add('printing-hist');
+  window.print();
+  setTimeout(() => {
+    document.body.classList.remove('printing-hist');
+    pr.style.display = 'none';
+  }, 500);
+}
+
+</script>
+</body>
+</html>

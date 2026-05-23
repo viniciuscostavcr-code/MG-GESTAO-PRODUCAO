@@ -1,0 +1,1507 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2D6A4F">
+<title>🏭 Plano de Produção — GestFood</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-gestfood-180.png">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F7F5;--white:#FFF;--brown:#1C1C1A;--brown2:#4A4A46;
+  --grn:#2D6A4F;--grn2:#1B4332;--grn-l:#EAF4EF;--grn-ll:#F0FAF4;
+  --border:#E2EDE8;--cream:#F7F7F5;
+  --red:#C0392B;--red-l:#FDECEA;--red-ll:#FFF5F5;
+  --blue:#1D4ED8;--blue-l:#EEF2FF;
+  --orange:#E67E22;--orange-l:#FEF3EC;
+  --amber:#D97706;--amber-l:#FEF3C7;
+  --gray:#6B7280;--gray-l:#F4F4F2;--gray-ll:#FAFAF8;
+  --sh:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.07);--r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Plus Jakarta Sans',-apple-system,sans-serif;background:var(--bg);color:var(--brown);display:flex;flex-direction:column;font-size:16px;}
+
+/* TOPBAR */
+.topbar{background:#fff;border-bottom:3px solid var(--grn);height:52px;flex-shrink:0;display:flex;align-items:center;padding:0 14px;gap:10px;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.tb-back{display:flex;align-items:center;gap:6px;background:#F4F4F2;border:1px solid #E8E8E4;border-radius:8px;padding:6px 11px;font-size:.78rem;font-weight:600;color:#4A4A46;text-decoration:none;cursor:pointer;white-space:nowrap;}
+.tb-back:active{background:#E8E8E4;}
+.tb-mark{width:26px;height:26px;background:var(--grn);border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.9rem;flex-shrink:0;}
+.tb-title{font-size:.82rem;font-weight:700;color:var(--brown);}
+.tb-spacer{flex:1;}
+.sync-pill{display:flex;align-items:center;gap:5px;background:#F4F4F2;border:1px solid #E8E8E4;border-radius:20px;padding:3px 9px;font-size:.62rem;color:var(--gray);font-weight:500;}
+.dot{width:7px;height:7px;border-radius:50%;background:#22C55E;flex-shrink:0;}
+.dot.off{background:#EF4444;}.dot.wait{background:#F59E0B;animation:pulse 1.2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.user-pill{display:flex;align-items:center;gap:6px;background:var(--grn-l);border:1px solid #C6E6D4;border-radius:20px;padding:4px 10px 4px 4px;font-size:.68rem;font-weight:600;color:var(--grn2);}
+.user-av{width:22px;height:22px;border-radius:50%;background:var(--grn);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.6rem;font-weight:700;flex-shrink:0;}
+
+/* TABS */
+.tabs{display:flex;background:#F4F4F2;flex-shrink:0;padding:6px 10px;gap:4px;}
+.tab{flex:1;text-align:center;padding:7px 4px;font-size:.67rem;font-weight:600;color:var(--gray);cursor:pointer;border-radius:8px;transition:all .15s;min-height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;white-space:nowrap;}
+.tab.on{color:#fff;background:var(--grn);}
+.tab-ico{font-size:.9rem;}
+
+/* SCROLL */
+.scr{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 12px 120px;}
+.vw{display:none;}.vw.on{display:block;}
+
+/* HOME */
+.home-hello{background:linear-gradient(135deg,var(--grn) 0%,var(--grn2) 100%);border-radius:16px;padding:18px 16px;color:#fff;margin-bottom:12px;}
+.home-hello-name{font-size:1.1rem;font-weight:800;margin-bottom:2px;}
+.home-hello-sub{font-size:.75rem;color:rgba(255,255,255,.65);}
+.home-hello-setor{display:inline-block;background:rgba(255,255,255,.18);border-radius:20px;padding:4px 12px;font-size:.75rem;font-weight:700;margin-top:8px;}
+.home-status{background:var(--white);border-radius:14px;padding:16px;box-shadow:var(--sh);margin-bottom:12px;display:flex;align-items:center;gap:12px;border-left:4px solid var(--border);}
+.home-status.s-ok{border-left-color:var(--grn);}
+.home-status.s-and{border-left-color:var(--blue);}
+.home-status.s-pend{border-left-color:var(--amber);}
+.home-status-ico{font-size:2rem;flex-shrink:0;}
+.home-status-body{flex:1;}
+.home-status-ttl{font-size:.88rem;font-weight:700;margin-bottom:2px;}
+.home-status-sub{font-size:.72rem;color:var(--gray);line-height:1.4;}
+.home-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.home-btn{background:var(--white);border:2px solid var(--border);border-radius:14px;padding:18px 12px;text-align:center;cursor:pointer;transition:all .15s;box-shadow:var(--sh);min-height:90px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;}
+.home-btn:active{transform:scale(.96);}
+.home-btn.primary{background:var(--grn);border-color:var(--grn);}
+.hb-ico{font-size:1.6rem;}
+.hb-lbl{font-size:.82rem;font-weight:700;color:var(--brown);}
+.home-btn.primary .hb-lbl{color:#fff;}
+.hb-sub{font-size:.62rem;color:var(--gray);}
+.home-btn.primary .hb-sub{color:rgba(255,255,255,.7);}
+
+/* SETOR SELECTOR */
+.setor-sel{background:var(--white);border-radius:12px;padding:12px;box-shadow:var(--sh);margin-bottom:10px;}
+.setor-sel label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--brown2);display:block;margin-bottom:6px;}
+.setor-pills{display:flex;gap:7px;flex-wrap:wrap;}
+.sp{padding:10px 14px;border-radius:10px;font-size:.75rem;font-weight:700;border:2px solid var(--border);background:var(--white);color:var(--gray);cursor:pointer;transition:.15s;min-height:44px;display:flex;align-items:center;}
+.sp.on{color:#fff;border-color:transparent;}
+.sp[data-s="PADARIA"].on{background:var(--blue);}
+.sp[data-s="CONFEITARIA/PASTELARIA"].on{background:var(--red);}
+.sp[data-s="LANCHONETE"].on{background:var(--grn);}
+
+/* SEARCH + FILTER CHIPS */
+.sw{position:relative;margin-bottom:8px;}
+.sw input{width:100%;border:2px solid var(--border);border-radius:10px;padding:11px 12px 11px 38px;font-size:1rem;background:var(--white);box-shadow:var(--sh);outline:none;font-family:inherit;color:var(--brown);}
+.sw input:focus{border-color:var(--grn);}
+.si{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:1rem;opacity:.4;}
+.filter-chips{display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+.filter-chips::-webkit-scrollbar{display:none;}
+.fchip{flex-shrink:0;padding:7px 14px;border-radius:20px;font-size:.72rem;font-weight:700;border:2px solid var(--border);background:var(--white);color:var(--gray);cursor:pointer;min-height:38px;transition:.15s;}
+.fchip.on{background:var(--grn2);color:#fff;border-color:var(--grn2);}
+
+/* TURNO MODAL */
+.turno-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:flex-end;justify-content:center;}
+.turno-ov.on{display:flex;}
+.turno-box{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:24px 20px 40px;animation:slideUp .25s ease;}
+@keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.turno-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px;}
+.turno-ttl{font-size:.95rem;font-weight:800;text-align:center;margin-bottom:6px;}
+.turno-sub{font-size:.74rem;color:var(--gray);text-align:center;margin-bottom:20px;}
+.turno-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.turno-btn{border:2px solid var(--border);border-radius:14px;padding:20px 12px;text-align:center;cursor:pointer;transition:all .15s;background:var(--white);}
+.turno-btn:active{transform:scale(.96);}
+.turno-btn.sel{border-color:var(--grn);background:var(--grn-l);}
+.turno-ico{font-size:2rem;margin-bottom:6px;}
+.turno-nm{font-size:.88rem;font-weight:700;}
+.turno-hr{font-size:.68rem;color:var(--gray);margin-top:2px;}
+
+/* AVISO DOMINGO */
+.dom-aviso{background:var(--amber-l);border:1.5px solid var(--amber);border-radius:10px;padding:11px 13px;font-size:.78rem;color:var(--amber);font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+
+/* CHECKLIST CARD */
+.chk-cat-hdr{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--gray);margin:14px 2px 8px;display:flex;justify-content:space-between;align-items:center;}
+.chk-cat-cnt{background:var(--gray-l);color:var(--gray);font-size:.62rem;font-weight:600;padding:2px 8px;border-radius:10px;}
+.chk-card{background:var(--white);border-radius:14px;margin-bottom:8px;box-shadow:var(--sh);border-left:4px solid var(--border);transition:border-color .2s,opacity .2s;}
+.chk-card.s-ok{border-left-color:var(--grn);}
+.chk-card.s-atencao{border-left-color:var(--amber);}
+.chk-card.s-critico{border-left-color:var(--red);}
+.chk-card.s-bloqueado{opacity:.55;background:var(--gray-l);}
+.chk-card-top{padding:12px 12px 8px;display:flex;align-items:flex-start;gap:10px;}
+.chk-card-ico{font-size:1.3rem;flex-shrink:0;width:34px;text-align:center;margin-top:2px;}
+.chk-card-info{flex:1;min-width:0;}
+.chk-card-nm{font-size:.92rem;font-weight:700;line-height:1.3;word-break:break-word;}
+.chk-card-sub{display:flex;gap:5px;flex-wrap:wrap;margin-top:3px;align-items:center;}
+.ctag{font-size:.58rem;font-weight:700;padding:2px 6px;border-radius:5px;display:inline-block;}
+.ctag.kg{background:var(--red-l);color:var(--red);}
+.ctag.und{background:var(--orange-l);color:var(--orange);}
+.ctag.pac{background:var(--blue-l);color:var(--blue);}
+.ctag.prio{background:var(--amber-l);color:var(--amber);}
+.sem-badge{flex-shrink:0;font-size:.65rem;font-weight:700;padding:3px 9px;border-radius:20px;}
+.sem-badge.ok{background:var(--grn-l);color:var(--grn2);}
+.sem-badge.atencao{background:var(--amber-l);color:var(--amber);}
+.sem-badge.critico{background:var(--red-l);color:var(--red);}
+.sem-badge.sem-controle{background:var(--gray-l);color:var(--gray);}
+.sem-badge.bloqueado{background:var(--gray-l);color:var(--gray);}
+.chk-card-body{padding:0 12px 12px;}
+.chk-min{font-size:.65rem;color:var(--gray);margin-bottom:8px;}
+.chk-input-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.chk-input-lbl{font-size:.68rem;font-weight:600;color:var(--brown2);width:72px;flex-shrink:0;}
+.chk-input-wrap{flex:1;display:flex;align-items:center;gap:6px;}
+.chk-qty{flex:1;border:2px solid var(--border);border-radius:10px;padding:10px 10px;font-size:1.05rem;font-weight:700;text-align:center;color:var(--brown);background:var(--cream);outline:none;font-family:inherit;min-height:46px;}
+.chk-qty:focus{border-color:var(--grn);background:#fff;}
+.chk-qty.v-ok{border-color:var(--grn);color:var(--grn2);}
+.chk-qty.v-atencao{border-color:var(--amber);color:var(--amber);}
+.chk-qty.v-critico{border-color:var(--red);color:var(--red);}
+.chk-qty:disabled{background:var(--gray-l);color:var(--gray);border-color:var(--border);}
+.chk-und{font-size:.72rem;font-weight:600;color:var(--gray);flex-shrink:0;}
+.chk-total-row{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;background:var(--gray-ll);border-top:1px solid var(--border);border-radius:0 0 11px 11px;font-size:.72rem;font-weight:600;color:var(--brown2);}
+.chk-status-row{padding:4px 12px 10px;display:flex;align-items:center;gap:6px;}
+.chk-status-txt{font-size:.72rem;font-weight:700;}
+.chk-status-txt.critico{color:var(--red);}
+.chk-status-txt.atencao{color:var(--amber);}
+.chk-status-txt.ok{color:var(--grn2);}
+
+/* PROGRESS BAR */
+.prog-wrap{background:var(--white);border-radius:12px;padding:12px 14px;box-shadow:var(--sh);margin-bottom:10px;}
+.prog-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.prog-lbl{font-size:.68rem;font-weight:700;color:var(--brown2);}
+.prog-val{font-size:.72rem;font-weight:800;color:var(--grn);}
+.prog-bar{height:8px;background:var(--border);border-radius:4px;overflow:hidden;}
+.prog-fill{height:100%;background:var(--grn);border-radius:4px;transition:width .4s ease;}
+
+/* PLANO CARDS */
+.plano-cat-hdr{display:flex;align-items:center;gap:8px;margin:16px 2px 8px;}
+.plano-cat-ico{font-size:1.1rem;}
+.plano-cat-nm{font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--brown2);flex:1;}
+.plano-cat-line{height:2px;flex:1;background:var(--border);border-radius:2px;}
+.plano-card{background:var(--white);border-radius:14px;margin-bottom:8px;box-shadow:var(--sh);border-left:4px solid var(--border);overflow:hidden;}
+.plano-card.urg-prio{border-left-color:var(--red);}
+.plano-card.urg{border-left-color:var(--red);}
+.plano-card.atc-prio{border-left-color:var(--amber);}
+.plano-card.atc{border-left-color:var(--amber);}
+.plano-card.confirmado{border-left-color:var(--grn);}
+.plano-card.bloqueado{opacity:.5;}
+.pc-top{display:flex;align-items:center;gap:8px;padding:12px 12px 6px;}
+.pc-badges{display:flex;gap:3px;flex-shrink:0;}
+.pc-badge{font-size:.85rem;}
+.pc-nome{flex:1;font-size:.9rem;font-weight:700;line-height:1.3;word-break:break-word;}
+.pc-und{font-size:.62rem;font-weight:700;background:var(--gray-l);color:var(--gray);padding:2px 7px;border-radius:6px;flex-shrink:0;}
+.pc-alerta{margin:0 12px 6px;background:var(--red-l);border-radius:7px;padding:5px 9px;font-size:.68rem;font-weight:600;color:var(--red);}
+.pc-week{display:flex;gap:4px;padding:6px 12px 4px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+.pc-week::-webkit-scrollbar{display:none;}
+.pc-day{flex-shrink:0;width:42px;border-radius:9px;padding:5px 4px;text-align:center;background:var(--gray-ll);border:1.5px solid var(--border);}
+.pc-day.hoje{background:var(--grn-l);border-color:var(--grn);}
+.pc-day.bloqueado{background:var(--gray-l);opacity:.6;}
+.pc-day-lbl{font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray);display:block;margin-bottom:2px;}
+.pc-day.hoje .pc-day-lbl{color:var(--grn2);}
+.pc-day-val{font-size:.82rem;font-weight:700;color:var(--brown2);}
+.pc-day.hoje .pc-day-val{color:var(--grn2);}
+.pc-today-row{display:flex;align-items:center;gap:10px;padding:8px 12px;}
+.pc-today-lbl{font-size:.72rem;font-weight:600;color:var(--brown2);flex-shrink:0;}
+.pc-today-input{flex:1;border:2px solid var(--grn);border-radius:10px;padding:9px 10px;font-size:1.05rem;font-weight:700;text-align:center;color:var(--grn2);background:var(--white);outline:none;font-family:inherit;min-height:46px;}
+.pc-today-input:focus{border-color:var(--grn2);}
+.pc-today-input.editado{border-color:var(--blue);color:var(--blue);}
+.pc-today-input:disabled{background:var(--gray-l);color:var(--gray);border-color:var(--border);}
+.pc-meta{font-size:.65rem;color:var(--gray);flex-shrink:0;}
+.pc-footer{display:flex;align-items:center;justify-content:space-between;padding:4px 12px 10px;gap:8px;}
+.pc-confirm-btn{background:var(--grn);color:#fff;border:none;border-radius:9px;padding:9px 14px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;min-height:40px;transition:.15s;}
+.pc-confirm-btn:active{background:var(--grn2);}
+.pc-confirm-btn.confirmed{background:var(--grn-l);color:var(--grn2);}
+.pc-confirm-btn:disabled{background:var(--gray-l);color:var(--gray);cursor:not-allowed;}
+
+/* RELATÓRIO */
+.rel-box{background:var(--white);border-radius:16px;padding:20px;box-shadow:var(--sh);margin-bottom:12px;text-align:center;}
+.rel-ico{font-size:2.5rem;margin-bottom:8px;}
+.rel-ttl{font-size:1rem;font-weight:800;margin-bottom:4px;}
+.rel-sub{font-size:.72rem;color:var(--gray);margin-bottom:14px;}
+.rel-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.rel-stat{background:var(--gray-ll);border-radius:10px;padding:10px;text-align:center;}
+.rel-stat-val{font-size:1.2rem;font-weight:800;display:block;}
+.rel-stat-lbl{font-size:.62rem;color:var(--gray);margin-top:2px;}
+.rel-total{font-size:.88rem;font-weight:700;margin-bottom:14px;padding:10px;background:var(--grn-l);border-radius:10px;color:var(--grn2);}
+.rel-btns{display:flex;gap:8px;}
+.rel-btn{flex:1;border:none;border-radius:10px;padding:13px;font-size:.84rem;font-weight:700;cursor:pointer;font-family:inherit;min-height:48px;}
+.rel-btn.print{background:var(--gray-l);color:var(--brown);}
+.rel-btn.novo{background:var(--grn);color:#fff;}
+
+/* ADD PRODUTO MODAL */
+.add-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:600;align-items:flex-end;}
+.add-ov.on{display:flex;}
+.add-box{background:#fff;border-radius:20px 20px 0 0;width:100%;max-height:80vh;overflow-y:auto;padding:20px 16px 40px;animation:slideUp .25s ease;}
+.add-busca{position:relative;margin-bottom:10px;}
+.add-busca input{width:100%;border:2px solid var(--border);border-radius:10px;padding:11px 12px 11px 38px;font-size:1rem;background:var(--white);outline:none;font-family:inherit;}
+.add-busca input:focus{border-color:var(--grn);}
+.add-busca-ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:1rem;opacity:.4;}
+.add-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);gap:8px;}
+.add-item:last-child{border:none;}
+.add-item-nm{flex:1;font-size:.84rem;font-weight:500;}
+.add-item-und{font-size:.65rem;color:var(--gray);}
+.add-item-btn{background:var(--grn-l);color:var(--grn2);border:none;border-radius:8px;padding:7px 12px;font-size:.74rem;font-weight:700;cursor:pointer;font-family:inherit;}
+
+/* HISTÓRICO */
+.hist-item{background:var(--white);border-radius:12px;padding:14px;margin-bottom:8px;box-shadow:var(--sh);border-left:4px solid var(--border);}
+.hist-item.finalizado{border-left-color:var(--grn);}
+.hist-item.em_andamento{border-left-color:var(--blue);}
+.hist-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px;}
+.hist-data{font-size:.88rem;font-weight:700;}
+.hist-meta{font-size:.68rem;color:var(--gray);margin-top:2px;}
+.hist-badge{font-size:.6rem;font-weight:700;padding:3px 9px;border-radius:20px;flex-shrink:0;}
+.hist-badge.finalizado{background:var(--grn-l);color:var(--grn2);}
+.hist-badge.em_andamento{background:var(--blue-l);color:var(--blue);}
+.hist-det{margin-top:8px;border-top:1px solid var(--border);padding-top:8px;display:none;}
+.hist-det.on{display:block;}
+.hist-det-item{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:.78rem;gap:6px;}
+.hist-det-item:last-child{border:none;}
+.hist-det-nm{flex:1;font-weight:500;}
+.hist-toggle{width:100%;background:var(--gray-l);border:none;border-radius:8px;padding:8px;font-size:.74rem;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px;min-height:40px;color:var(--brown);}
+.hist-filt{background:var(--white);border-radius:12px;padding:12px;box-shadow:var(--sh);margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;}
+.hist-filt>div{flex:1;min-width:110px;}
+.hist-filt label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--brown2);display:block;margin-bottom:4px;}
+.hist-filt select{border:2px solid var(--border);border-radius:8px;padding:10px;font-size:.9rem;background:var(--cream);outline:none;width:100%;font-family:inherit;min-height:48px;-webkit-appearance:none;}
+.hist-filt-btn{background:var(--grn2);color:#fff;border:none;border-radius:8px;padding:10px 14px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;align-self:flex-end;min-height:48px;}
+
+/* FOOTER BAR */
+.footer-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:2px solid var(--grn-l);padding:10px 14px;display:flex;gap:9px;align-items:center;box-shadow:0 -4px 20px rgba(26,77,46,.10);z-index:100;}
+.footer-info{flex:1;}
+.footer-info strong{font-size:.9rem;font-weight:700;display:block;}
+.footer-info span{font-size:.68rem;color:var(--gray);}
+.footer-btn{background:var(--grn);color:#fff;border:none;border-radius:11px;padding:12px 18px;font-size:.88rem;font-weight:700;cursor:pointer;min-height:48px;font-family:inherit;white-space:nowrap;}
+.footer-btn:disabled{opacity:.35;cursor:not-allowed;}
+
+/* TOAST */
+.tst{position:fixed;top:65px;left:50%;transform:translateX(-50%) translateY(-16px);background:var(--brown);color:#fff;padding:10px 20px;border-radius:24px;font-size:.84rem;font-weight:600;opacity:0;pointer-events:none;transition:.28s;z-index:999;white-space:nowrap;box-shadow:var(--sh);}
+.tst.on{opacity:1;transform:translateX(-50%) translateY(0);}
+.tst.ok{background:var(--grn);}
+.tst.er{background:var(--red);}
+
+/* CONFIRM */
+.conf-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;align-items:center;justify-content:center;}
+.conf-ov.on{display:flex;}
+.conf-box{background:#fff;border-radius:20px;width:88%;max-width:340px;padding:24px 20px 18px;box-shadow:0 8px 40px rgba(0,0,0,.25);animation:upConf .2s ease;text-align:center;}
+@keyframes upConf{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.conf-ico{font-size:2rem;margin-bottom:8px;}
+.conf-ttl{font-size:.95rem;font-weight:800;margin-bottom:6px;}
+.conf-msg{font-size:.78rem;color:var(--brown2);line-height:1.6;margin-bottom:18px;white-space:pre-line;}
+.conf-btns{display:flex;gap:8px;}
+.conf-ok{flex:1;background:var(--grn);color:#fff;border:none;border-radius:10px;padding:13px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;min-height:48px;}
+.conf-cn{flex:1;background:var(--gray-l);color:var(--brown);border:none;border-radius:10px;padding:13px;font-size:.9rem;cursor:pointer;font-family:inherit;min-height:48px;}
+
+/* EMPTY */
+.emp{text-align:center;padding:36px 20px;color:var(--gray);}
+.emp .big{font-size:2.2rem;margin-bottom:8px;}
+.emp p{font-size:.84rem;line-height:1.6;}
+
+/* SPLASH */
+#splash{position:fixed;inset:0;background:#1B4332;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .5s ease;}
+@keyframes splashPop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* PRINT */
+@media print{
+  .topbar,.tabs,.footer-bar,.tst,.conf-ov,.turno-ov,.add-ov,.sw,.filter-chips,.setor-sel,.hist-filt,
+  .pc-confirm-btn,.rel-btns,.home-btns,.home-status,.prog-wrap{display:none!important;}
+  body{overflow:visible!important;background:#fff;font-size:12pt;}
+  html,body{height:auto!important;overflow:visible!important;}
+  .scr{overflow:visible!important;padding:0!important;}
+  .vw{display:block!important;}
+  .print-header{display:block!important;}
+  .plano-card{break-inside:avoid;box-shadow:none;border:1px solid #ccc;border-left:3px solid #333;}
+  .pc-week{overflow:visible!important;}
+}
+.print-header{display:none;text-align:center;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid #333;}
+.print-header h1{font-size:14pt;font-weight:800;}
+.print-header p{font-size:10pt;color:#555;margin-top:4px;}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div style="animation:splashPop .45s ease forwards;">
+    <div style="width:72px;height:72px;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.25);border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:2.4rem;">🏭</div>
+    <div style="text-align:center;">
+      <div style="font-size:1.35rem;font-weight:800;color:#fff;letter-spacing:-.5px;">Gest<span style="font-weight:300;color:#A7D9BC;">Food</span></div>
+      <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:4px;">Plano de Produção</div>
+    </div>
+  </div>
+  <div style="position:absolute;bottom:40px;display:flex;align-items:center;gap:6px;">
+    <div style="width:6px;height:6px;border-radius:50%;background:#52B788;animation:pulse 1s infinite;"></div>
+    <span style="font-size:.68rem;color:rgba(255,255,255,.4);">carregando...</span>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <a href="GESTFOOD_INDEX.html" class="tb-back">← Hub</a>
+  <div style="display:flex;align-items:center;gap:7px;">
+    <div class="tb-mark">🏭</div>
+    <span class="tb-title">Plano de Produção</span>
+  </div>
+  <div class="tb-spacer"></div>
+  <div class="sync-pill"><span class="dot wait" id="syncDot"></span><span id="syncTxt">carregando</span></div>
+  <div class="user-pill" id="userPill" style="display:none;">
+    <div class="user-av" id="userAv"></div>
+    <span id="userNm"></span>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab on"  onclick="goTab('home')"><span class="tab-ico">🏠</span>Início</div>
+  <div class="tab"     onclick="goTab('chk')"><span class="tab-ico">📋</span>Checklist</div>
+  <div class="tab"     onclick="goTab('plano')"><span class="tab-ico">🏭</span>Plano do Dia</div>
+  <div class="tab"     onclick="goTab('hist')"><span class="tab-ico">📊</span>Histórico</div>
+</div>
+
+<!-- SCROLL -->
+<div class="scr">
+
+  <!-- HOME -->
+  <div class="vw on" id="v-home">
+    <div class="home-hello" id="homeHello"></div>
+    <div id="homeStatus" class="home-status s-pend">
+      <div class="home-status-ico">⏳</div>
+      <div class="home-status-body">
+        <div class="home-status-ttl">Verificando...</div>
+        <div class="home-status-sub">Aguarde</div>
+      </div>
+    </div>
+    <div class="setor-sel" id="setorSelHome" style="display:none;">
+      <label>Setor de trabalho</label>
+      <div class="setor-pills" id="setorPillsHome"></div>
+    </div>
+    <div class="home-btns">
+      <div class="home-btn" onclick="goTab('chk')">
+        <div class="hb-ico">📋</div>
+        <div class="hb-lbl">Checklist</div>
+        <div class="hb-sub">Contar gôndola</div>
+      </div>
+      <div class="home-btn primary" onclick="goTab('plano')">
+        <div class="hb-ico">🏭</div>
+        <div class="hb-lbl">Plano do Dia</div>
+        <div class="hb-sub">Registrar produção</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHECKLIST -->
+  <div class="vw" id="v-chk">
+    <div class="setor-sel" id="setorSelChk" style="display:none;">
+      <label>Setor</label>
+      <div class="setor-pills" id="setorPillsChk"></div>
+    </div>
+    <div id="chkContent"><div class="emp"><div class="big">📋</div><p>Carregando...</p></div></div>
+  </div>
+
+  <!-- PLANO DO DIA -->
+  <div class="vw" id="v-plano">
+    <div class="print-header" id="printHeader"></div>
+    <div class="setor-sel" id="setorSelPlano" style="display:none;">
+      <label>Setor</label>
+      <div class="setor-pills" id="setorPillsPlano"></div>
+    </div>
+    <div id="planoContent"><div class="emp"><div class="big">🏭</div><p>Carregando...</p></div></div>
+  </div>
+
+  <!-- HISTÓRICO -->
+  <div class="vw" id="v-hist">
+    <div class="hist-filt">
+      <div>
+        <label>Setor</label>
+        <select id="histSetorFilt">
+          <option value="">Todos</option>
+          <option value="PADARIA">PADARIA</option>
+          <option value="CONFEITARIA/PASTELARIA">CONFEITARIA/PASTELARIA</option>
+          <option value="LANCHONETE">LANCHONETE</option>
+        </select>
+      </div>
+      <div>
+        <label>Status</label>
+        <select id="histStatusFilt">
+          <option value="">Todos</option>
+          <option value="finalizado">Finalizado</option>
+          <option value="em_andamento">Em andamento</option>
+        </select>
+      </div>
+      <button class="hist-filt-btn" onclick="renderHistorico()">Filtrar</button>
+    </div>
+    <div id="histContent"><div class="emp"><div class="big">📊</div><p>Carregando...</p></div></div>
+  </div>
+
+</div><!-- /scr -->
+
+<!-- FOOTER BAR -->
+<div class="footer-bar" id="footerBar" style="display:none;">
+  <div class="footer-info">
+    <strong id="footerTitle">—</strong>
+    <span id="footerSub">—</span>
+  </div>
+  <button class="footer-btn" id="footerBtn" onclick="footerAction()">Ação</button>
+</div>
+
+<!-- TURNO MODAL -->
+<div class="turno-ov" id="turnoOv">
+  <div class="turno-box">
+    <div class="turno-handle"></div>
+    <div class="turno-ttl">Selecionar Turno</div>
+    <div class="turno-sub" id="turnoSubTxt">Escolha o turno para iniciar o checklist</div>
+    <div class="turno-btns">
+      <div class="turno-btn" onclick="selecionarTurno('manha')">
+        <div class="turno-ico">🌅</div>
+        <div class="turno-nm">Manhã</div>
+        <div class="turno-hr">05:00 – 13:00</div>
+      </div>
+      <div class="turno-btn" onclick="selecionarTurno('noite')">
+        <div class="turno-ico">🌙</div>
+        <div class="turno-nm">Noite</div>
+        <div class="turno-hr">13:00 – 22:00</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD PRODUTO MODAL -->
+<div class="add-ov" id="addOv">
+  <div class="add-box">
+    <div class="turno-handle"></div>
+    <div class="turno-ttl" style="text-align:center;margin-bottom:12px;">Adicionar Produto</div>
+    <div class="add-busca">
+      <span class="add-busca-ico">🔍</span>
+      <input type="text" id="addBusca" placeholder="Buscar produto..." oninput="filtrarAddProdutos()">
+    </div>
+    <div id="addLista"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="tst" id="tst"></div>
+
+<!-- CONFIRM -->
+<div class="conf-ov" id="confOv">
+  <div class="conf-box">
+    <div class="conf-ico" id="confIco">⚠️</div>
+    <div class="conf-ttl" id="confTtl">Confirmar</div>
+    <div class="conf-msg" id="confMsg"></div>
+    <div class="conf-btns">
+      <button class="conf-cn" onclick="_confResp(false)">Cancelar</button>
+      <button class="conf-ok" id="confOkBtn" onclick="_confResp(true)">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// SUPABASE
+// ═══════════════════════════════════════════════
+const SU='https://rjkseydseuotdkavskss.supabase.co';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqa3NleWRzZXVvdGRrYXZza3NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTE4OTAsImV4cCI6MjA4Nzc4Nzg5MH0.wEzZ9sZhXJhu0jjNx2OeW7RacGi8djUj-9r9u1-8KYY';
+const SH={'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=representation'};
+async function sbSelect(t,q=''){const r=await fetch(`${SU}/rest/v1/${t}?${q}`,{headers:SH});if(!r.ok)throw new Error(await r.text());return r.json();}
+async function sbInsert(t,b){const r=await fetch(`${SU}/rest/v1/${t}`,{method:'POST',headers:SH,body:JSON.stringify(b)});if(!r.ok)throw new Error(await r.text());return r.json();}
+async function sbPatch(t,q,b){const h={...SH,'Prefer':'return=representation'};const r=await fetch(`${SU}/rest/v1/${t}?${q}`,{method:'PATCH',headers:h,body:JSON.stringify(b)});if(!r.ok)throw new Error(await r.text());return r.json();}
+
+// ═══════════════════════════════════════════════
+// SESSÃO
+// ═══════════════════════════════════════════════
+const SES_KEY='gf_session',SES_MAX=8*60*60*1000;
+let SESSAO=null,IS_ADMIN=false;
+function verificarSessao(){
+  try{const s=JSON.parse(localStorage.getItem(SES_KEY)||'null');
+  if(!s||Date.now()-s.loggedAt>SES_MAX){localStorage.removeItem(SES_KEY);window.location.replace('LOGIN.html');return null;}
+  return s;}catch(e){window.location.replace('LOGIN.html');return null;}
+}
+
+// ═══════════════════════════════════════════════
+// CONSTANTES
+// ═══════════════════════════════════════════════
+// Índices: [seg=0,ter=1,qua=2,qui=3,sex=4,sab=5,dom=6]
+// getDay(): 0=dom,1=seg,2=ter,3=qua,4=qui,5=sex,6=sab → map[getDay()]→idx
+const GD_MAP=[6,0,1,2,3,4,5];
+const DIAS_LABEL=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+
+const METAS_BASE={
+  'PADARIA':{
+    'PAO KG':            [304,270,287,277,279,250,151],
+    'SALGADOS FOLHADOS': [37,30,41,37,42,32,5],
+    'PAO DOCE':          [16,12,15,15,15,13,3],
+    'PAO CACH QUENTE':   [10,10,12,13,15,11,8],
+    'PAO HAMBURGUER':    [7,8,9,11,13,8,5],
+    'PIZZA DA CASA PQ':  [5,4,3,7,5,4,3],
+    'PAO DE CAIXA':      [7,6,7,6,8,6,4],
+    'PAO DE QUEIJO':     [4,4,4,4,4,3,1],
+    'MINI CROISSANT':    [7,5,6,5,5,4,4],
+    'BOL PRAEIRA':       [5,4,5,5,5,4,2],
+    'PAO RECIFE':        [7,4,4,4,3,3,2],
+    'TORRADA ALHO':      [4,3,3,3,3,3,1],
+    'MINI PAO DOCE':     [6,3,4,4,4,3,2],
+    'BOL SODA DA CASA':  [2,2,2,3,3,2,1],
+    'PAO FRANCES INTEGRAL':[4,3,4,4,4,4,1],
+    'TORRADA DA CASA':   [2,2,2,3,2,2,1],
+    'CHOCOTONE':         [4,4,5,5,6,4,0],
+    'PANETONE':          [4,4,5,4,5,4,0],
+    'SANDUICHE CROISSANT':[3,3,4,2,3,2,0],
+    'SALGADO JOELHO':    [15,15,24,28,18,15,0],
+    'SALG BATATA/FGO':   [28,20,30,19,25,20,0],
+    'FARINHA DE ROSCA':  [2,2,3,3,3,2,0]
+  },
+  'CONFEITARIA/PASTELARIA':{
+    'BOLO MACAXEIRA':    [5,5,6,7,5,6,0],
+    'SALG QUEIJO':       [3,3,4,4,5,5,0],
+    'BOLO PAMONHA':      [3,3,5,4,4,4,0],
+    'BOLO DE QUEIJO':    [3,3,4,4,3,4,0],
+    'TORTA CHOCOLATE':   [2,2,2,3,2,2,0],
+    'BOLO FORMIGUEIRO':  [3,3,2,3,3,3,0],
+    'MINI BROA':         [2,2,2,3,3,3,0],
+    'BOLO TRIGO PQ':     [2,2,3,2,3,2,0],
+    'BOLO BANANA C/CANELA':[3,3,3,3,2,3,0],
+    'TORTA DC LEITE':    [1,1,1,1,2,2,0],
+    'BOLO CENOURA':      [2,2,2,2,2,2,0],
+    'TORTA MORANGO':     [1,1,1,1,2,2,0],
+    'BOLO MACA/CANELA':  [2,2,2,2,2,2,0],
+    'BOLO MESCLADO':     [2,2,2,2,2,2,0],
+    'BOLO INGLES':       [2,2,2,2,2,2,0],
+    'BOLO DE BANANA':    [1,2,2,2,3,2,0],
+    'BOLO DE ABACAXI':   [2,2,1,1,2,2,0],
+    'BOLO ENG MARIDO':   [2,2,2,2,2,2,0],
+    'COOKIES':           [1,1,1,1,1,1,0],
+    'BOLO DE LARANJA':   [1,1,1,1,1,2,0],
+    'BROA':              [1,1,1,1,2,2,0],
+    'BOLO AIPIM':        [1,1,1,1,1,1,0],
+    'BOLO LEITE CONDENSADO':[1,1,1,1,1,1,0]
+  }
+};
+
+const PAD_DOM_ALLOW=['pao kg','pao doce'];
+
+const CAT_ICONS={'paes':'🍞','pao':'🍞','salgado':'🥟','bolo':'🎂','torta':'🍰',
+  'biscoito':'🍪','bolacha':'🍪','torrada':'🥖','pizza':'🍕','sanduiche':'🥪',
+  'mini':'🥐','broa':'🥖','cookie':'🍪','farinha':'🌾','panetone':'🎄','chocotone':'🎄'};
+
+// ═══════════════════════════════════════════════
+// ESTADO
+// ═══════════════════════════════════════════════
+let TAB='home';
+let SETOR='PADARIA';
+const SETORES=['PADARIA','CONFEITARIA/PASTELARIA','LANCHONETE'];
+let CHK_CONFIG=[];     // checklist_config do setor
+let PRODUTOS_ALL=[];   // todos os produtos ativos
+let CHK_SESSAO=null;   // checklist_sessoes atual
+let CHK_REGS={};       // produto_id→{id,qtd_gondola,qtd_freezer,status}
+let PLANO_ATIVO=null;
+let PLANO_ITENS={};    // produto_id→item
+let PROJ_BASE=[];      // projecao_base do setor
+let _footerFn=null;
+const _debounce={};
+
+// ═══════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════
+function hoje(){return new Date().toISOString().slice(0,10);}
+function isDomingo(){return new Date().getDay()===0;}
+function todayIdx(){return GD_MAP[new Date().getDay()];}
+function fmtData(iso){if(!iso)return'—';const[y,m,d]=iso.split('-');const n=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];return`${d}/${m}/${y} (${n[new Date(iso+'T12:00').getDay()]})`;}
+function fmtHora(ts){if(!ts)return'—';return new Date(ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}
+function normalizar(s){return(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();}
+function setSyncUI(s,txt){
+  const d=document.getElementById('syncDot'),t=document.getElementById('syncTxt');
+  if(d)d.className='dot'+(s==='ok'?' ':s==='wait'?' wait':' off');
+  if(t)t.textContent=txt;
+}
+function toast(msg,t=''){
+  const el=document.getElementById('tst');
+  el.textContent=msg;el.className='tst on'+(t?' '+t:'');
+  setTimeout(()=>el.className='tst',3000);
+}
+let _confRes=null;
+function confirmar(msg,ttl,ico,okTxt){
+  return new Promise(r=>{
+    _confRes=r;
+    document.getElementById('confIco').textContent=ico||'⚠️';
+    document.getElementById('confTtl').textContent=ttl||'Confirmar';
+    document.getElementById('confMsg').textContent=msg;
+    document.getElementById('confOkBtn').textContent=okTxt||'Confirmar';
+    document.getElementById('confOv').classList.add('on');
+  });
+}
+function _confResp(v){document.getElementById('confOv').classList.remove('on');if(_confRes){_confRes(v);_confRes=null;}}
+
+function icoP(nome){
+  const n=normalizar(nome);
+  for(const[k,v]of Object.entries(CAT_ICONS)){if(n.includes(k))return v;}
+  return'🏷️';
+}
+function catIcon(cat){
+  const n=normalizar(cat||'');
+  for(const[k,v]of Object.entries(CAT_ICONS)){if(n.includes(k))return v;}
+  return'📦';
+}
+
+// Semáforo: retorna 'ok'|'atencao'|'critico'|'sem-controle'
+function calcSemaforo(qtdG,qtdF,cfg){
+  const minG=cfg.qtd_minima_gondola||0;
+  const minF=cfg.qtd_minima_freezer||0;
+  const tf=cfg.tem_freezer;
+  if(!minG&&!minF)return'sem-controle';
+  let sG='ok';
+  if(minG>0){
+    if(qtdG===''||qtdG===null||qtdG===undefined)return'sem-controle';
+    const v=parseFloat(qtdG)||0;
+    if(v<minG*0.8)sG='critico';
+    else if(v<minG)sG='atencao';
+  }
+  let sF='ok';
+  if(tf&&minF>0){
+    const v=parseFloat(qtdF)||0;
+    if(v<minF*0.8)sF='critico';
+    else if(v<minF)sF='atencao';
+  }
+  if(sG==='critico'||sF==='critico')return'critico';
+  if(sG==='atencao'||sF==='atencao')return'atencao';
+  return'ok';
+}
+
+function sortPriority(a,b){
+  function rank(item){
+    const s=item._sem||'sem-controle';
+    const p=item.prioritario;
+    if(p&&s==='critico')return 0;
+    if(p&&s==='atencao')return 1;
+    if(p)return 2;
+    if(s==='critico')return 3;
+    if(s==='atencao')return 4;
+    if(s==='ok')return 5;
+    return 6;
+  }
+  return rank(a)-rank(b);
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+(async()=>{
+  SESSAO=verificarSessao();
+  if(!SESSAO)return;
+  IS_ADMIN=SESSAO.role==='admin';
+  if(!IS_ADMIN&&SESSAO.setor)SETOR=SESSAO.setor;
+
+  document.getElementById('userPill').style.display='flex';
+  document.getElementById('userNm').textContent=SESSAO.nome;
+  document.getElementById('userAv').textContent=(SESSAO.nome||'?')[0].toUpperCase();
+
+  setSyncUI('wait','carregando');
+  try{
+    const[cfg,prods]=await Promise.all([
+      sbSelect('checklist_config','select=*&ativo=eq.true&order=produto_nome'),
+      sbSelect('produtos','select=id,nome,cod,setor,unidade,categoria&ativo=eq.true&order=nome')
+    ]);
+    CHK_CONFIG=cfg||[];
+    PRODUTOS_ALL=prods||[];
+    setSyncUI('ok',`${CHK_CONFIG.length} itens`);
+  }catch(e){
+    setSyncUI('off','erro');
+    toast('❌ Erro ao carregar dados','er');
+  }
+
+  renderSetorPills();
+  renderHome();
+  await verificarPlanoHoje();
+
+  setTimeout(()=>{
+    const s=document.getElementById('splash');
+    s.style.opacity='0';
+    setTimeout(()=>s&&s.remove(),500);
+  },900);
+})();
+
+// ═══════════════════════════════════════════════
+// NAVEGAÇÃO
+// ═══════════════════════════════════════════════
+function goTab(t){
+  TAB=t;
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('on',['home','chk','plano','hist'][i]===t));
+  document.querySelectorAll('.vw').forEach(v=>v.classList.remove('on'));
+  document.getElementById('v-'+t).classList.add('on');
+  document.getElementById('footerBar').style.display='none';
+  if(t==='chk')iniciarChecklist();
+  if(t==='plano')renderPlano();
+  if(t==='hist')renderHistorico();
+}
+
+// ═══════════════════════════════════════════════
+// SETOR PILLS
+// ═══════════════════════════════════════════════
+function renderSetorPills(){
+  [['setorSelHome','setorPillsHome'],
+   ['setorSelChk','setorPillsChk'],
+   ['setorSelPlano','setorPillsPlano']].forEach(([wid,pid])=>{
+    const wrap=document.getElementById(wid),el=document.getElementById(pid);
+    if(!wrap||!el)return;
+    if(!IS_ADMIN){wrap.style.display='none';return;}
+    wrap.style.display='block';
+    el.innerHTML=SETORES.map(s=>`<div class="sp ${s===SETOR?'on':''}" data-s="${s}" onclick="setSetor('${s}')">${s}</div>`).join('');
+  });
+}
+function setSetor(s){
+  SETOR=s;
+  document.querySelectorAll('.sp').forEach(p=>p.classList.toggle('on',p.dataset.s===s));
+  CHK_SESSAO=null;CHK_REGS={};PLANO_ATIVO=null;PLANO_ITENS={};
+  if(TAB==='home'){verificarPlanoHoje().then(()=>renderHome());}
+  if(TAB==='chk')iniciarChecklist();
+  if(TAB==='plano'){verificarPlanoHoje().then(()=>renderPlano());}
+}
+
+// ═══════════════════════════════════════════════
+// HOME
+// ═══════════════════════════════════════════════
+function renderHome(){
+  const dias=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  const meses=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const n=new Date();
+  document.getElementById('homeHello').innerHTML=`
+    <div class="home-hello-name">Olá, ${SESSAO.nome.split(' ')[0]}! 👋</div>
+    <div class="home-hello-sub">${dias[n.getDay()]}, ${n.getDate()} de ${meses[n.getMonth()]} de ${n.getFullYear()}</div>
+    <span class="home-hello-setor">🏭 ${SETOR}</span>`;
+}
+async function verificarPlanoHoje(){
+  try{
+    const r=await sbSelect('plano_producao',`select=*&data=eq.${hoje()}&setor=eq.${encodeURIComponent(SETOR)}&order=iniciado_em.desc&limit=1`);
+    PLANO_ATIVO=r&&r.length?r[0]:null;
+  }catch(e){PLANO_ATIVO=null;}
+  const el=document.getElementById('homeStatus');
+  if(!el)return;
+  if(!PLANO_ATIVO){
+    el.className='home-status s-pend';
+    el.innerHTML=`<div class="home-status-ico">⏳</div><div class="home-status-body"><div class="home-status-ttl">Plano não iniciado</div><div class="home-status-sub">Vá em "Plano do Dia" para iniciar.</div></div>`;
+  }else if(PLANO_ATIVO.status==='finalizado'){
+    el.className='home-status s-ok';
+    el.innerHTML=`<div class="home-status-ico">✅</div><div class="home-status-body"><div class="home-status-ttl">Plano finalizado hoje</div><div class="home-status-sub">Finalizado às ${fmtHora(PLANO_ATIVO.finalizado_em)} · ${SETOR}</div></div>`;
+  }else{
+    el.className='home-status s-and';
+    el.innerHTML=`<div class="home-status-ico">🔄</div><div class="home-status-body"><div class="home-status-ttl">Plano em andamento</div><div class="home-status-sub">Iniciado às ${fmtHora(PLANO_ATIVO.iniciado_em)} · ${SETOR}</div></div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════
+// CHECKLIST — TURNO
+// ═══════════════════════════════════════════════
+async function iniciarChecklist(){
+  const el=document.getElementById('chkContent');
+  // Verificar se já tem sessão de hoje
+  try{
+    const r=await sbSelect('checklist_sessoes',`select=*&data=eq.${hoje()}&setor=eq.${encodeURIComponent(SETOR)}&responsavel_id=eq.${SESSAO.id}&order=iniciado_em.desc&limit=1`);
+    if(r&&r.length){
+      CHK_SESSAO=r[0];
+      await carregarRegistros();
+      renderChecklist();
+      return;
+    }
+  }catch(e){console.error(e);}
+  // Mostrar seleção de turno
+  document.getElementById('turnoSubTxt').textContent=`Checklist de hoje · ${SETOR}`;
+  document.getElementById('turnoOv').classList.add('on');
+  el.innerHTML=`<div class="emp"><div class="big">🌅</div><p>Selecione o turno para iniciar.</p></div>`;
+}
+
+async function selecionarTurno(turno){
+  document.getElementById('turnoOv').classList.remove('on');
+  try{
+    const ins=await sbInsert('checklist_sessoes',{
+      data:hoje(),turno,setor:SETOR,
+      responsavel_id:SESSAO.id,responsavel_nome:SESSAO.nome,
+      status:'em_andamento',iniciado_em:new Date().toISOString()
+    });
+    CHK_SESSAO=Array.isArray(ins)?ins[0]:ins;
+    CHK_REGS={};
+    renderChecklist();
+  }catch(e){
+    toast('❌ Erro ao criar sessão: '+e.message,'er');
+  }
+}
+
+async function carregarRegistros(){
+  if(!CHK_SESSAO)return;
+  try{
+    const r=await sbSelect('checklist_registros',`select=*&sessao_id=eq.${CHK_SESSAO.id}`)||[];
+    CHK_REGS={};
+    r.forEach(reg=>CHK_REGS[reg.produto_id]=reg);
+  }catch(e){CHK_REGS={};}
+}
+
+// ═══════════════════════════════════════════════
+// CHECKLIST — RENDER
+// ═══════════════════════════════════════════════
+function renderChecklist(){
+  const el=document.getElementById('chkContent');
+  if(!CHK_SESSAO){el.innerHTML=`<div class="emp"><div class="big">📋</div><p>Selecione o turno para iniciar.</p></div>`;return;}
+
+  const config=CHK_CONFIG.filter(c=>c.setor===SETOR);
+  if(!config.length){
+    el.innerHTML=`<div class="emp"><div class="big">📋</div><p>Nenhum produto configurado para ${SETOR}.</p></div>`;
+    return;
+  }
+
+  const domingo=isDomingo();
+  const setorFechado=domingo&&SETOR==='CONFEITARIA/PASTELARIA';
+
+  // Calcular status de cada item
+  const items=config.map(c=>{
+    const reg=CHK_REGS[c.produto_id]||{};
+    const bloqueado=domingo&&SETOR==='PADARIA'&&!PAD_DOM_ALLOW.includes(normalizar(c.produto_nome));
+    const bloqConf=setorFechado;
+    const qtdG=bloqueado||bloqConf?0:(reg.qtd_gondola!=null?reg.qtd_gondola:'');
+    const qtdF=bloqueado||bloqConf?0:(reg.qtd_freezer!=null?reg.qtd_freezer:'');
+    const sem=bloqueado||bloqConf?'bloqueado':calcSemaforo(qtdG,qtdF,c);
+    return{...c,_reg:reg,_qtdG:qtdG,_qtdF:qtdF,_sem:sem,_bloqueado:bloqueado||bloqConf};
+  });
+
+  items.sort(sortPriority);
+
+  const contado=items.filter(i=>CHK_REGS[i.produto_id]).length;
+  const total=items.length;
+  const pct=total?Math.round((contado/total)*100):0;
+
+  let html='';
+
+  // Avisos domingo
+  if(setorFechado){
+    html+=`<div class="dom-aviso">🔒 Domingo — setor fechado. Todos os produtos bloqueados.</div>`;
+  }else if(domingo&&SETOR==='PADARIA'){
+    html+=`<div class="dom-aviso">⚠️ Domingo — equipe reduzida. Apenas PÃO KG e PÃO DOCE disponíveis.</div>`;
+  }
+
+  // Info sessão
+  const turnoLabel=CHK_SESSAO.turno==='manha'?'🌅 Manhã':'🌙 Noite';
+  html+=`<div style="background:var(--grn-l);border-radius:10px;padding:9px 13px;font-size:.72rem;font-weight:600;color:var(--grn2);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+    <span>${turnoLabel} · ${SETOR}</span>
+    <span>${fmtData(hoje())}</span>
+  </div>`;
+
+  // Progresso
+  html+=`<div class="prog-wrap">
+    <div class="prog-top"><span class="prog-lbl">Checklist</span><span class="prog-val" id="chkPctTxt">${contado}/${total} (${pct}%)</span></div>
+    <div class="prog-bar"><div class="prog-fill" id="chkFill" style="width:${pct}%"></div></div>
+  </div>`;
+
+  // Busca + filtros
+  html+=`<div class="sw"><span class="si">🔍</span><input type="text" id="chkBusca" placeholder="Buscar produto..." oninput="filtrarChk()"></div>
+  <div class="filter-chips" id="chkFilters">
+    <div class="fchip on" data-f="todos" onclick="setChkFilter(this,'todos')">Todos</div>
+    <div class="fchip" data-f="prio" onclick="setChkFilter(this,'prio')">⭐ Prio</div>
+    <div class="fchip" data-f="critico" onclick="setChkFilter(this,'critico')">🔴 Crítico</div>
+    <div class="fchip" data-f="atencao" onclick="setChkFilter(this,'atencao')">🟡 Atenção</div>
+    <div class="fchip" data-f="ok" onclick="setChkFilter(this,'ok')">✅ OK</div>
+  </div>`;
+
+  // Cards por categoria
+  const byCat={};
+  items.forEach(c=>{const k=c.categoria||'Geral';if(!byCat[k])byCat[k]=[];byCat[k].push(c);});
+
+  Object.entries(byCat).sort(([a],[b])=>a.localeCompare(b)).forEach(([cat,itens])=>{
+    const dCat=itens.filter(i=>CHK_REGS[i.produto_id]).length;
+    html+=`<div class="chk-cat-hdr" data-cat="${cat}">
+      <span>${catIcon(cat)} ${cat}</span>
+      <span class="chk-cat-cnt" id="catcnt-${normalizar(cat)}">${dCat}/${itens.length}</span>
+    </div>`;
+    itens.forEach(c=>{html+=htmlChkCard(c);});
+  });
+
+  el.innerHTML=html;
+
+  // Footer
+  setFooter(`${contado}/${total} contados`,`Turno ${turnoLabel} · ${SETOR}`,'finalizarChecklist',`✅ Finalizar Checklist`);
+}
+
+function htmlChkCard(c){
+  const s=c._sem,b=c._bloqueado;
+  const und=c.unidade_checklist||'und';
+  const tagUnd=und==='kg'?'kg':und==='pacote'?'pac':'und';
+  const minG=c.qtd_minima_gondola||0,minF=c.qtd_minima_freezer||0,tf=c.tem_freezer;
+  const semTxt={ok:'🟢 OK',atencao:'🟡 ATENÇÃO',critico:'🔴 CRÍTICO','sem-controle':'⚫ SEM CONTROLE',bloqueado:'🔒 Bloqueado'};
+  const statusMsg=s==='critico'?`🔴 CRÍTICO — faltam ${Math.max(0,minG-(parseFloat(c._qtdG)||0)).toFixed(1)} ${und}`
+    :s==='atencao'?`🟡 ATENÇÃO — abaixo do mínimo`
+    :s==='ok'?`🟢 OK`
+    :s==='bloqueado'?'🔒 Bloqueado'
+    :'⚫ Sem controle';
+
+  return`<div class="chk-card s-${s}" id="cc-${c.produto_id}" data-nome="${normalizar(c.produto_nome)}" data-sem="${s}" data-prio="${c.prioritario?'1':'0'}">
+    <div class="chk-card-top">
+      <div class="chk-card-ico">${icoP(c.produto_nome)}</div>
+      <div class="chk-card-info">
+        <div class="chk-card-nm">${c.prioritario?'⭐ ':''}<strong>${c.produto_nome}</strong></div>
+        <div class="chk-card-sub">
+          <span class="ctag ${tagUnd}">${und.toUpperCase()}</span>
+          ${c.prioritario?'<span class="ctag prio">PRIORITÁRIO</span>':''}
+        </div>
+      </div>
+      <span class="sem-badge ${s}" id="sbadge-${c.produto_id}">${semTxt[s]||s}</span>
+    </div>
+    <div class="chk-card-body">
+      ${minG>0||minF>0?`<div class="chk-min">Mín. gôndola: ${minG}${tf&&minF>0?` · Mín. freezer: ${minF}`:''} ${und}</div>`:''}
+      <div class="chk-input-row">
+        <span class="chk-input-lbl">Gôndola:</span>
+        <div class="chk-input-wrap">
+          <input type="number" inputmode="decimal" class="chk-qty" id="qtdG-${c.produto_id}"
+            value="${c._qtdG!==''?c._qtdG:''}" placeholder="0" min="0" step="0.1"
+            ${b?'disabled':''}
+            oninput="onChkInput('${c.produto_id}','gondola',this.value)"
+            onfocus="this.select()">
+          <span class="chk-und">${und}</span>
+        </div>
+      </div>
+      ${tf?`<div class="chk-input-row">
+        <span class="chk-input-lbl">Freezer:</span>
+        <div class="chk-input-wrap">
+          <input type="number" inputmode="decimal" class="chk-qty" id="qtdF-${c.produto_id}"
+            value="${c._qtdF!==''?c._qtdF:''}" placeholder="0" min="0" step="0.1"
+            ${b?'disabled':''}
+            oninput="onChkInput('${c.produto_id}','freezer',this.value)"
+            onfocus="this.select()">
+          <span class="chk-und">${und}</span>
+        </div>
+      </div>
+      <div class="chk-total-row">
+        <span>Total combinado:</span>
+        <span id="chkTot-${c.produto_id}">${((parseFloat(c._qtdG)||0)+(parseFloat(c._qtdF)||0)).toFixed(1)} ${und}</span>
+      </div>`:''}
+      <div class="chk-status-row">
+        <span class="chk-status-txt ${s==='bloqueado'?'':s}" id="chkMsg-${c.produto_id}">${statusMsg}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+let _chkFilter='todos';
+function setChkFilter(el,f){
+  _chkFilter=f;
+  document.querySelectorAll('.fchip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  filtrarChk();
+}
+function filtrarChk(){
+  const q=normalizar(document.getElementById('chkBusca')?.value||'');
+  document.querySelectorAll('.chk-card').forEach(card=>{
+    const nm=card.dataset.nome||'';
+    const sem=card.dataset.sem||'';
+    const prio=card.dataset.prio==='1';
+    const matchQ=!q||nm.includes(q);
+    const matchF=_chkFilter==='todos'||((_chkFilter==='prio')&&prio)||((_chkFilter==='critico')&&sem==='critico')||((_chkFilter==='atencao')&&sem==='atencao')||((_chkFilter==='ok')&&sem==='ok');
+    card.style.display=matchQ&&matchF?'':'none';
+  });
+}
+
+function onChkInput(prodId,campo,val){
+  const cfg=CHK_CONFIG.find(c=>c.produto_id===prodId||c.produto_id===prodId);
+  clearTimeout(_debounce['chk-'+prodId]);
+  // Atualizar total (se tem freezer)
+  if(cfg&&cfg.tem_freezer){
+    const vG=parseFloat(document.getElementById(`qtdG-${prodId}`)?.value)||0;
+    const vF=parseFloat(document.getElementById(`qtdF-${prodId}`)?.value)||0;
+    const totEl=document.getElementById(`chkTot-${prodId}`);
+    const und=cfg.unidade_checklist||'und';
+    if(totEl)totEl.textContent=`${(vG+vF).toFixed(1)} ${und}`;
+  }
+  // Atualizar semáforo visual imediato
+  if(cfg){
+    const qtdG=parseFloat(document.getElementById(`qtdG-${prodId}`)?.value)||0;
+    const qtdF=parseFloat(document.getElementById(`qtdF-${prodId}`)?.value)||0;
+    const sem=calcSemaforo(qtdG,qtdF,cfg);
+    atualizarSemCard(prodId,sem,cfg,qtdG);
+  }
+  // Salvar com debounce
+  _debounce['chk-'+prodId]=setTimeout(()=>salvarChkReg(prodId),800);
+}
+
+function atualizarSemCard(prodId,sem,cfg,qtdG){
+  const card=document.getElementById(`cc-${prodId}`);
+  const badge=document.getElementById(`sbadge-${prodId}`);
+  const msg=document.getElementById(`chkMsg-${prodId}`);
+  const minG=cfg.qtd_minima_gondola||0;
+  const und=cfg.unidade_checklist||'und';
+  if(card){card.className=`chk-card s-${sem}`;card.dataset.sem=sem;}
+  const semTxt={ok:'🟢 OK',atencao:'🟡 ATENÇÃO',critico:'🔴 CRÍTICO','sem-controle':'⚫ SEM CONTROLE'};
+  if(badge){badge.className=`sem-badge ${sem}`;badge.textContent=semTxt[sem]||sem;}
+  if(msg){
+    msg.className=`chk-status-txt ${sem}`;
+    msg.textContent=sem==='critico'?`🔴 CRÍTICO — faltam ${Math.max(0,minG-qtdG).toFixed(1)} ${und}`
+      :sem==='atencao'?`🟡 ATENÇÃO — abaixo do mínimo`
+      :sem==='ok'?`🟢 OK`:'⚫ Sem controle';
+  }
+  // Colorir input
+  const inp=document.getElementById(`qtdG-${prodId}`);
+  if(inp)inp.className=`chk-qty ${sem!=='sem-controle'&&sem!=='bloqueado'?'v-'+sem:''}`;
+  // Atualizar progresso
+  atualizarProgChk();
+}
+
+function atualizarProgChk(){
+  const config=CHK_CONFIG.filter(c=>c.setor===SETOR);
+  const contado=config.filter(c=>CHK_REGS[c.produto_id]).length;
+  const total=config.length;
+  const pct=total?Math.round((contado/total)*100):0;
+  const fill=document.getElementById('chkFill'),txt=document.getElementById('chkPctTxt');
+  if(fill)fill.style.width=pct+'%';
+  if(txt)txt.textContent=`${contado}/${total} (${pct}%)`;
+  const ft=document.getElementById('footerTitle');
+  if(ft)ft.textContent=`${contado}/${total} contados`;
+}
+
+async function salvarChkReg(prodId){
+  if(!CHK_SESSAO)return;
+  const cfg=CHK_CONFIG.find(c=>c.produto_id===prodId);
+  if(!cfg)return;
+  const qtdG=parseFloat(document.getElementById(`qtdG-${prodId}`)?.value)||0;
+  const qtdF=cfg.tem_freezer?(parseFloat(document.getElementById(`qtdF-${prodId}`)?.value)||0):0;
+  const sem=calcSemaforo(qtdG,qtdF,cfg);
+  const payload={
+    sessao_id:CHK_SESSAO.id,produto_id:prodId,produto_nome:cfg.produto_nome,
+    setor:SETOR,qtd_gondola:qtdG,qtd_freezer:qtdF,status:sem,
+    responsavel_id:SESSAO.id,responsavel_nome:SESSAO.nome,
+    salvo_em:new Date().toISOString()
+  };
+  // localStorage backup
+  const lsKey=`chk_${SETOR}_${hoje()}`;
+  try{const cur=JSON.parse(localStorage.getItem(lsKey)||'{}');cur[prodId]=payload;localStorage.setItem(lsKey,JSON.stringify(cur));}catch(e){}
+  try{
+    const reg=CHK_REGS[prodId];
+    if(reg&&reg.id){
+      const upd=await sbPatch('checklist_registros',`id=eq.${reg.id}`,{qtd_gondola:qtdG,qtd_freezer:qtdF,status:sem,salvo_em:payload.salvo_em});
+      CHK_REGS[prodId]={...reg,...(Array.isArray(upd)?upd[0]:upd)};
+    }else{
+      const ins=await sbInsert('checklist_registros',payload);
+      CHK_REGS[prodId]=Array.isArray(ins)?ins[0]:ins;
+    }
+  }catch(e){console.error('chk save err',e);}
+  atualizarProgChk();
+}
+
+async function finalizarChecklist(){
+  const config=CHK_CONFIG.filter(c=>c.setor===SETOR);
+  const contado=config.filter(c=>CHK_REGS[c.produto_id]).length;
+  const total=config.length;
+  if(contado<total){
+    const ok=await confirmar(`${total-contado} produto(s) ainda não contados.\nDeseja finalizar mesmo assim?`,'Finalizar Checklist','⚠️','Finalizar');
+    if(!ok)return;
+  }
+  try{
+    await sbPatch('checklist_sessoes',`id=eq.${CHK_SESSAO.id}`,{status:'finalizado',finalizado_em:new Date().toISOString()});
+    CHK_SESSAO={...CHK_SESSAO,status:'finalizado'};
+  }catch(e){toast('❌ Erro ao finalizar','er');return;}
+
+  const criticos=config.filter(c=>CHK_REGS[c.produto_id]?.status==='critico').length;
+  const atencao=config.filter(c=>CHK_REGS[c.produto_id]?.status==='atencao').length;
+  const ok2=config.filter(c=>CHK_REGS[c.produto_id]?.status==='ok').length;
+
+  const el=document.getElementById('chkContent');
+  el.innerHTML=`<div class="rel-box">
+    <div class="rel-ico">✅</div>
+    <div class="rel-ttl">Checklist Finalizado!</div>
+    <div class="rel-sub">${fmtData(hoje())} · ${CHK_SESSAO.turno==='manha'?'🌅 Manhã':'🌙 Noite'} · ${SETOR}</div>
+    <div class="rel-stats">
+      <div class="rel-stat"><span class="rel-stat-val" style="color:var(--red)">${criticos}</span><span class="rel-stat-lbl">🔴 Críticos</span></div>
+      <div class="rel-stat"><span class="rel-stat-val" style="color:var(--amber)">${atencao}</span><span class="rel-stat-lbl">🟡 Atenção</span></div>
+      <div class="rel-stat"><span class="rel-stat-val" style="color:var(--grn)">${ok2}</span><span class="rel-stat-lbl">🟢 OK</span></div>
+      <div class="rel-stat"><span class="rel-stat-val">${total}</span><span class="rel-stat-lbl">Total</span></div>
+    </div>
+    ${criticos>0?`<div style="background:var(--red-l);border-radius:10px;padding:10px;font-size:.74rem;color:var(--red);font-weight:600;margin-bottom:12px;">⚠️ ${criticos} produto(s) em estado crítico! Priorize a produção.</div>`:''}
+    <button class="footer-btn" style="width:100%;" onclick="goTab('plano')">🏭 Ver Plano do Dia →</button>
+  </div>`;
+  document.getElementById('footerBar').style.display='none';
+  toast('✅ Checklist finalizado!','ok');
+}
+
+// ═══════════════════════════════════════════════
+// PLANO DO DIA
+// ═══════════════════════════════════════════════
+async function renderPlano(){
+  const el=document.getElementById('planoContent');
+  if(!PLANO_ATIVO)await verificarPlanoHoje();
+
+  if(!PLANO_ATIVO){
+    el.innerHTML=`<div style="background:var(--white);border-radius:14px;padding:28px 20px;text-align:center;box-shadow:var(--sh);">
+      <div style="font-size:2.5rem;margin-bottom:10px;">🏭</div>
+      <div style="font-size:.92rem;font-weight:700;margin-bottom:6px;">Nenhum plano iniciado hoje</div>
+      <div style="font-size:.74rem;color:var(--gray);line-height:1.6;margin-bottom:18px;">Inicie o plano para <strong>${SETOR}</strong> em <strong>${hoje().split('-').reverse().join('/')}</strong>.<br>As sugestões vêm da projeção base.</div>
+      <button style="width:100%;background:var(--grn);color:#fff;border:none;border-radius:12px;padding:16px;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit;" onclick="iniciarPlano()">🚀 Iniciar Plano do Dia</button>
+    </div>`;
+    document.getElementById('footerBar').style.display='none';
+    return;
+  }
+
+  // Carregar itens
+  try{
+    const itens=await sbSelect('plano_producao_itens',`select=*&plano_id=eq.${PLANO_ATIVO.id}&order=categoria,produto_nome`)||[];
+    PLANO_ITENS={};
+    itens.forEach(i=>PLANO_ITENS[i.produto_id]=i);
+  }catch(e){
+    el.innerHTML=`<div class="emp"><div class="big">❌</div><p>Erro ao carregar itens.</p></div>`;return;
+  }
+
+  // Carregar projeção base se ainda não carregada
+  if(!PROJ_BASE.length){
+    try{PROJ_BASE=await sbSelect('projecao_base',`select=*&setor=eq.${encodeURIComponent(SETOR)}`)||[];}
+    catch(e){PROJ_BASE=[];}
+  }
+
+  const final=PLANO_ATIVO.status==='finalizado';
+  if(final){renderRelatorio();return;}
+
+  const total=Object.values(PLANO_ITENS).length;
+  const conf=Object.values(PLANO_ITENS).filter(i=>i.confirmado).length;
+  const pct=total?Math.round((conf/total)*100):0;
+
+  let html=`<div class="prog-wrap">
+    <div class="prog-top"><span class="prog-lbl">Plano do Dia · ${SETOR}</span><span class="prog-val" id="planoPct">${conf}/${total} (${pct}%)</span></div>
+    <div class="prog-bar"><div class="prog-fill" id="planoFill" style="width:${pct}%"></div></div>
+  </div>`;
+
+  if(isDomingo()&&SETOR==='CONFEITARIA/PASTELARIA'){
+    html+=`<div class="dom-aviso">🔒 Domingo — setor fechado.</div>`;
+  }else if(isDomingo()&&SETOR==='PADARIA'){
+    html+=`<div class="dom-aviso">⚠️ Domingo — equipe reduzida. Apenas PÃO KG e PÃO DOCE.</div>`;
+  }
+
+  // Agrupar por categoria
+  const byCat={};
+  Object.values(PLANO_ITENS).forEach(i=>{const c=i.categoria||'Geral';if(!byCat[c])byCat[c]=[];byCat[c].push(i);});
+
+  if(!Object.keys(byCat).length){
+    html+=`<div class="emp" style="padding:16px 0;"><div class="big">📦</div><p>Nenhum item. Configure em Projeção Base.</p></div>`;
+  }else{
+    // Sorting por urgência dentro de cada categoria
+    Object.entries(byCat).sort(([a],[b])=>a.localeCompare(b)).forEach(([cat,itens])=>{
+      const cConf=itens.filter(i=>i.confirmado).length;
+      html+=`<div class="plano-cat-hdr">
+        <span class="plano-cat-ico">${catIcon(cat)}</span>
+        <span class="plano-cat-nm">${cat}</span>
+        <span style="font-size:.6rem;color:var(--gray);font-weight:600;">${cConf}/${itens.length}</span>
+        <div class="plano-cat-line"></div>
+      </div>`;
+      itens.forEach(i=>{html+=htmlPlanoCard(i);});
+    });
+  }
+
+  // Botão adicionar produto
+  html+=`<button class="add-item-btn" style="width:100%;margin-top:4px;padding:12px;font-size:.82rem;border-radius:12px;background:var(--grn-l);color:var(--grn2);border:2px dashed var(--grn);font-weight:700;cursor:pointer;" onclick="abrirAddProduto()">➕ Adicionar produto não listado</button>`;
+
+  // Print header (oculto na tela)
+  document.getElementById('printHeader').innerHTML=`<h1>🏭 GestFood — Plano de Produção</h1>
+    <p>${SETOR} · ${fmtData(hoje())} · Responsável: ${SESSAO.nome}</p>`;
+
+  el.innerHTML=html;
+  setFooter(`${conf}/${total} confirmados`,`${SETOR} · ${fmtData(hoje())}`,'finalizarPlano','✅ Finalizar Plano');
+}
+
+function htmlPlanoCard(item){
+  const tidx=todayIdx();
+  const sug=item.qtd_sugerida||0;
+  const prod=item.qtd_produzida||0;
+  const und=item.unidade||'kg';
+  const dom=isDomingo();
+  const bloqueado=dom&&SETOR==='CONFEITARIA/PASTELARIA'||
+    (dom&&SETOR==='PADARIA'&&!PAD_DOM_ALLOW.includes(normalizar(item.produto_nome)));
+  const urgente=CHK_REGS[item.produto_id]?.status==='critico';
+  const atencao2=CHK_REGS[item.produto_id]?.status==='atencao';
+  const prio=CHK_CONFIG.find(c=>c.produto_id===item.produto_id)?.prioritario;
+
+  // Card class
+  let cls='';
+  if(item.confirmado)cls='confirmado';
+  else if(urgente&&prio)cls='urg-prio';
+  else if(atencao2&&prio)cls='atc-prio';
+  else if(urgente)cls='urg';
+  else if(atencao2)cls='atc';
+  if(bloqueado)cls='bloqueado';
+
+  // Badges
+  let badges='';
+  if(prio)badges+='<span class="pc-badge">⭐</span>';
+  if(urgente)badges+='<span class="pc-badge">🔴</span>';
+  else if(atencao2)badges+='<span class="pc-badge">🟡</span>';
+
+  // Week row — get meta from PROJ_BASE or METAS_BASE
+  const diasHtml=DIAS_LABEL.map((lbl,idx)=>{
+    const isHoje=idx===tidx;
+    const metaSet=getMeta(item,idx);
+    const bloqDom=idx===6&&(SETOR==='CONFEITARIA/PASTELARIA'||
+      (SETOR==='PADARIA'&&!PAD_DOM_ALLOW.includes(normalizar(item.produto_nome))));
+    if(isHoje){
+      const editado=prod>0&&prod!==sug;
+      return`<div class="pc-day hoje">
+        <span class="pc-day-lbl">${lbl}</span>
+        <input type="number" inputmode="decimal" class="pc-day-val" id="pdayinp-${item.produto_id}"
+          value="${prod>0?prod:''}" placeholder="${sug>0?sug:''}"
+          style="width:100%;border:none;background:transparent;text-align:center;font-size:.82rem;font-weight:700;color:${editado?'var(--blue)':'var(--grn2)'};outline:none;font-family:inherit;"
+          ${bloqueado?'disabled':''}
+          onchange="salvarQtyPlano('${item.produto_id}',this.value)">
+      </div>`;
+    }
+    return`<div class="pc-day ${bloqDom?'bloqueado':''}">
+      <span class="pc-day-lbl">${lbl}</span>
+      <span class="pc-day-val">${bloqDom?'—':metaSet>0?metaSet:'—'}</span>
+    </div>`;
+  }).join('');
+
+  const metaSemana=getMeta(item,-1); // -1 = soma semanal
+  const valHoje=prod>0?prod:sug;
+
+  return`<div class="plano-card ${cls}" id="pc-${item.produto_id}">
+    <div class="pc-top">
+      <div class="pc-badges">${badges}</div>
+      <div class="pc-nome">${item.produto_nome}</div>
+      <span class="pc-und">${und}</span>
+    </div>
+    ${urgente?`<div class="pc-alerta">⚠️ Estoque crítico no checklist</div>`:''}
+    ${atencao2&&!urgente?`<div class="pc-alerta" style="background:var(--amber-l);color:var(--amber);">⚠️ Estoque em atenção</div>`:''}
+    <div class="pc-week">${diasHtml}</div>
+    <div class="pc-footer">
+      <span class="pc-meta">Meta/sem: ${metaSemana>0?metaSemana+' '+und:'—'}</span>
+      ${!bloqueado?`<button class="pc-confirm-btn ${item.confirmado?'confirmed':''}" id="pcbtn-${item.produto_id}"
+        onclick="confirmarItemPlano('${item.produto_id}')">
+        ${item.confirmado?`✓ Confirmado`:`✅ Confirmar ${valHoje>0?valHoje+' '+und:''}`}
+      </button>`:'<span style="font-size:.68rem;color:var(--gray);">🔒 Bloqueado</span>'}
+    </div>
+  </div>`;
+}
+
+function getMeta(item,dayIdx){
+  // dayIdx=-1 → soma semanal
+  // Tentar projecao_base primeiro
+  const pj=PROJ_BASE.find(p=>p.produto_id===item.produto_id||normalizar(p.produto_nome)===normalizar(item.produto_nome));
+  const dias=['seg','ter','qua','qui','sex','sab','dom'];
+  if(pj){
+    if(dayIdx===-1)return(pj.meta_semanal||dias.reduce((a,d)=>a+(pj[d]||0),0));
+    return pj[dias[dayIdx]]||0;
+  }
+  // Fallback METAS_BASE
+  const setorlup=METAS_BASE[SETOR]||{};
+  const chave=Object.keys(setorlup).find(k=>normalizar(k)===normalizar(item.produto_nome)||normalizar(item.produto_nome).includes(normalizar(k)));
+  if(chave){
+    const arr=setorlup[chave];
+    if(dayIdx===-1)return arr.reduce((a,v)=>a+v,0);
+    return arr[dayIdx]||0;
+  }
+  return 0;
+}
+
+async function iniciarPlano(){
+  const btn=document.querySelector('#v-plano button');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Iniciando...';}
+  try{
+    const dia=todayIdx();
+    PROJ_BASE=await sbSelect('projecao_base',`select=*&setor=eq.${encodeURIComponent(SETOR)}`)||[];
+    const novo=await sbInsert('plano_producao',{
+      data:hoje(),setor:SETOR,
+      responsavel_id:SESSAO.id,responsavel_nome:SESSAO.nome,
+      status:'em_andamento',iniciado_em:new Date().toISOString()
+    });
+    PLANO_ATIVO=Array.isArray(novo)?novo[0]:novo;
+
+    const prods=CHK_CONFIG.filter(c=>c.setor===SETOR);
+    if(prods.length){
+      const itens=prods.map(c=>{
+        const sug=getMeta({produto_id:c.produto_id,produto_nome:c.produto_nome},dia);
+        return{plano_id:PLANO_ATIVO.id,produto_id:c.produto_id,produto_nome:c.produto_nome,
+          categoria:c.categoria||'Geral',setor:SETOR,unidade:c.unidade_checklist||'kg',
+          qtd_sugerida:sug,qtd_produzida:0,confirmado:false,registrado_em:new Date().toISOString()};
+      });
+      const ins=await sbInsert('plano_producao_itens',itens);
+      PLANO_ITENS={};
+      (Array.isArray(ins)?ins:[ins]).forEach(i=>{if(i&&i.produto_id)PLANO_ITENS[i.produto_id]=i;});
+    }
+    verificarPlanoHoje();
+    toast('✅ Plano iniciado!','ok');
+    renderPlano();
+  }catch(e){console.error(e);toast('❌ Erro: '+e.message,'er');if(btn){btn.disabled=false;btn.textContent='🚀 Iniciar Plano do Dia';}}
+}
+
+async function confirmarItemPlano(prodId){
+  const item=PLANO_ITENS[prodId];if(!item)return;
+  const inp=document.getElementById(`pdayinp-${prodId}`);
+  const val=parseFloat(inp?.value)||item.qtd_sugerida||0;
+  const nv=!item.confirmado;
+  const card=document.getElementById(`pc-${prodId}`);
+  const btn=document.getElementById(`pcbtn-${prodId}`);
+  if(card)card.classList.toggle('confirmado',nv);
+  if(btn){btn.className=`pc-confirm-btn ${nv?'confirmed':''}`;btn.textContent=nv?`✓ Confirmado`:`✅ Confirmar ${val>0?val+' '+item.unidade:''}`;}
+  PLANO_ITENS[prodId]={...item,confirmado:nv,qtd_produzida:val};
+  atualizarProgPlano();
+  try{await sbPatch('plano_producao_itens',`id=eq.${item.id}`,{confirmado:nv,qtd_produzida:val});}
+  catch(e){toast('❌ Erro','er');}
+}
+
+const _qtyT={};
+async function salvarQtyPlano(prodId,val){
+  const v=parseFloat(val)||0;
+  const item=PLANO_ITENS[prodId];if(!item)return;
+  const inp=document.getElementById(`pdayinp-${prodId}`);
+  const btn=document.getElementById(`pcbtn-${prodId}`);
+  if(inp){const editado=v!==item.qtd_sugerida;inp.style.color=editado?'var(--blue)':'var(--grn2)';}
+  if(btn&&!item.confirmado)btn.textContent=`✅ Confirmar ${v>0?v+' '+item.unidade:''}`;
+  PLANO_ITENS[prodId]={...item,qtd_produzida:v};
+  clearTimeout(_qtyT[prodId]);
+  _qtyT[prodId]=setTimeout(async()=>{
+    try{await sbPatch('plano_producao_itens',`id=eq.${item.id}`,{qtd_produzida:v});}
+    catch(e){toast('❌ Erro ao salvar','er');}
+  },800);
+}
+
+function atualizarProgPlano(){
+  const total=Object.values(PLANO_ITENS).length;
+  const conf=Object.values(PLANO_ITENS).filter(i=>i.confirmado).length;
+  const pct=total?Math.round((conf/total)*100):0;
+  const fill=document.getElementById('planoFill'),pctEl=document.getElementById('planoPct');
+  if(fill)fill.style.width=pct+'%';
+  if(pctEl)pctEl.textContent=`${conf}/${total} (${pct}%)`;
+  const ft=document.getElementById('footerTitle');
+  if(ft)ft.textContent=`${conf}/${total} confirmados`;
+}
+
+async function finalizarPlano(){
+  if(!PLANO_ATIVO)return;
+  const itens=Object.values(PLANO_ITENS);
+  const conf=itens.filter(i=>i.confirmado).length;
+  if(conf<itens.length){
+    const ok=await confirmar(`${itens.length-conf} item(ns) não confirmados.\nFinalizar mesmo assim?`,'Finalizar Plano','⚠️','Finalizar');
+    if(!ok)return;
+  }
+  try{
+    await sbPatch('plano_producao',`id=eq.${PLANO_ATIVO.id}`,{status:'finalizado',finalizado_em:new Date().toISOString()});
+    PLANO_ATIVO={...PLANO_ATIVO,status:'finalizado',finalizado_em:new Date().toISOString()};
+    verificarPlanoHoje();
+    toast('✅ Plano finalizado!','ok');
+    renderRelatorio();
+  }catch(e){toast('❌ Erro ao finalizar','er');}
+}
+
+function renderRelatorio(){
+  const itens=Object.values(PLANO_ITENS);
+  const conf=itens.filter(i=>i.confirmado&&Math.abs((i.qtd_produzida||0)-(i.qtd_sugerida||0))<0.1);
+  const ajust=itens.filter(i=>i.confirmado&&Math.abs((i.qtd_produzida||0)-(i.qtd_sugerida||0))>=0.1);
+  const nao=itens.filter(i=>!i.confirmado&&!(i.qtd_produzida>0));
+  const extra=itens.filter(i=>i.qtd_produzida>0&&!i.confirmado);
+  const totKg=itens.filter(i=>(i.unidade||'').toLowerCase()==='kg').reduce((a,i)=>a+(i.qtd_produzida||0),0);
+  const el=document.getElementById('planoContent');
+  el.innerHTML=`<div class="print-header" id="printHeader"><h1>🏭 GestFood — Plano de Produção</h1><p>${SETOR} · ${fmtData(hoje())} · Responsável: ${SESSAO.nome}</p></div>
+  <div class="rel-box">
+    <div class="rel-ico">✅</div>
+    <div class="rel-ttl">Plano Finalizado!</div>
+    <div class="rel-sub">${fmtData(PLANO_ATIVO.data)} · ${SETOR} · ${SESSAO.nome}</div>
+    <div class="rel-stats">
+      <div class="rel-stat"><span class="rel-stat-val" style="color:var(--grn)">${conf.length}</span><span class="rel-stat-lbl">✅ Conforme</span></div>
+      <div class="rel-stat"><span class="rel-stat-val" style="color:var(--blue)">${ajust.length}</span><span class="rel-stat-lbl">✏️ Ajustados</span></div>
+      <div class="rel-stat"><span class="rel-stat-val" style="color:var(--red)">${nao.length}</span><span class="rel-stat-lbl">❌ Não prod.</span></div>
+      <div class="rel-stat"><span class="rel-stat-val" style="color:var(--orange)">${extra.length}</span><span class="rel-stat-lbl">➕ Extras</span></div>
+    </div>
+    ${totKg>0?`<div class="rel-total">Total produzido: ${totKg.toFixed(1)} kg</div>`:''}
+    <div class="rel-btns">
+      <button class="rel-btn print" onclick="window.print()">🖨️ Imprimir</button>
+      <button class="rel-btn novo" onclick="PLANO_ATIVO=null;PLANO_ITENS={};renderPlano()">📋 Novo Plano</button>
+    </div>
+  </div>
+  <div style="background:var(--white);border-radius:14px;padding:14px;box-shadow:var(--sh);margin-top:10px;">
+    <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--gray);margin-bottom:10px;">Detalhamento</div>
+    ${itens.sort((a,b)=>a.produto_nome.localeCompare(b.produto_nome)).map(i=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:.8rem;gap:6px;">
+        <span style="flex:1;font-weight:500;">${i.produto_nome}</span>
+        <span style="color:var(--gray);font-size:.68rem;">Sug: ${i.qtd_sugerida||0} ${i.unidade}</span>
+        <span style="font-weight:700;color:${i.confirmado?'var(--grn)':'var(--gray)'};">${i.qtd_produzida>0?i.qtd_produzida+' '+i.unidade:'—'}</span>
+      </div>`).join('')}
+    <div style="margin-top:12px;padding-top:12px;border-top:2px solid var(--border);font-size:.72rem;color:var(--gray);text-align:right;">
+      Assinatura: _________________________ · ${SESSAO.nome}
+    </div>
+  </div>`;
+  document.getElementById('footerBar').style.display='none';
+}
+
+// ═══════════════════════════════════════════════
+// ADD PRODUTO
+// ═══════════════════════════════════════════════
+function abrirAddProduto(){
+  document.getElementById('addOv').classList.add('on');
+  document.getElementById('addBusca').value='';
+  filtrarAddProdutos();
+}
+function fecharAddOv(){document.getElementById('addOv').classList.remove('on');}
+document.getElementById('addOv').addEventListener('click',e=>{if(e.target===e.currentTarget)fecharAddOv();});
+
+function filtrarAddProdutos(){
+  const q=normalizar(document.getElementById('addBusca')?.value||'');
+  const setor=PRODUTOS_ALL.filter(p=>p.setor===SETOR);
+  const filtrado=q?setor.filter(p=>normalizar(p.nome).includes(q)):setor.slice(0,20);
+  const already=new Set(Object.values(PLANO_ITENS).map(i=>i.produto_id));
+  document.getElementById('addLista').innerHTML=filtrado.map(p=>`
+    <div class="add-item">
+      <div><div class="add-item-nm">${p.nome}</div><div class="add-item-und">${p.categoria||''} · ${p.unidade||'kg'}</div></div>
+      ${already.has(p.id)?'<span style="font-size:.68rem;color:var(--gray);">Já adicionado</span>':
+        `<button class="add-item-btn" onclick="addProdutoPlano('${p.id}','${p.nome.replace(/'/g,"\\'")}','${p.unidade||'kg'}','${p.categoria||'Geral'}')">Adicionar</button>`}
+    </div>`).join('')||`<div class="emp" style="padding:16px;"><p>Nenhum produto encontrado.</p></div>`;
+}
+
+async function addProdutoPlano(prodId,prodNome,und,cat){
+  fecharAddOv();
+  const item={plano_id:PLANO_ATIVO.id,produto_id:prodId,produto_nome:prodNome,
+    categoria:cat,setor:SETOR,unidade:und,qtd_sugerida:0,qtd_produzida:0,
+    confirmado:false,registrado_em:new Date().toISOString()};
+  try{
+    const ins=await sbInsert('plano_producao_itens',item);
+    PLANO_ITENS[prodId]=Array.isArray(ins)?ins[0]:ins;
+    toast(`✅ ${prodNome} adicionado`,'ok');
+    renderPlano();
+  }catch(e){toast('❌ Erro ao adicionar','er');}
+}
+
+// ═══════════════════════════════════════════════
+// HISTÓRICO
+// ═══════════════════════════════════════════════
+async function renderHistorico(){
+  const el=document.getElementById('histContent');
+  el.innerHTML=`<div class="emp"><div class="big">⏳</div><p>Carregando...</p></div>`;
+  const sf=document.getElementById('histSetorFilt')?.value||'';
+  const stf=document.getElementById('histStatusFilt')?.value||'';
+  let q='select=*&order=data.desc&limit=60';
+  if(!IS_ADMIN)q+=`&setor=eq.${encodeURIComponent(SETOR)}`;
+  else if(sf)q+=`&setor=eq.${encodeURIComponent(sf)}`;
+  if(stf)q+=`&status=eq.${stf}`;
+  try{
+    const lista=await sbSelect('plano_producao',q)||[];
+    if(!lista.length){el.innerHTML=`<div class="emp"><div class="big">📊</div><p>Nenhum plano encontrado.</p></div>`;return;}
+    el.innerHTML=lista.map(p=>`
+      <div class="hist-item ${p.status}">
+        <div class="hist-top">
+          <div><div class="hist-data">${fmtData(p.data)}</div><div class="hist-meta">${p.setor} · ${p.responsavel_nome||'—'}</div></div>
+          <span class="hist-badge ${p.status}">${p.status==='finalizado'?'✅ Finalizado':'🔄 Em andamento'}</span>
+        </div>
+        <div class="hist-det" id="hdet-${p.id}"></div>
+        <button class="hist-toggle" onclick="toggleHist('${p.id}',this)">Ver itens ▼</button>
+      </div>`).join('');
+  }catch(e){el.innerHTML=`<div class="emp"><div class="big">❌</div><p>Erro ao carregar.</p></div>`;}
+}
+
+async function toggleHist(id,btn){
+  const det=document.getElementById(`hdet-${id}`);
+  if(!det)return;
+  if(det.classList.contains('on')){det.classList.remove('on');btn.textContent='Ver itens ▼';return;}
+  det.innerHTML=`<div style="font-size:.74rem;color:var(--gray);padding:8px 0;">Carregando...</div>`;
+  det.classList.add('on');btn.textContent='Fechar ▲';
+  try{
+    const itens=await sbSelect('plano_producao_itens',`select=*&plano_id=eq.${id}&order=categoria,produto_nome`)||[];
+    if(!itens.length){det.innerHTML=`<div style="font-size:.74rem;color:var(--gray);padding:8px 0;">Nenhum item.</div>`;return;}
+    det.innerHTML=itens.map(i=>`<div class="hist-det-item">
+      <span class="hist-det-nm">${i.produto_nome}</span>
+      <span style="display:flex;gap:8px;align-items:center;">
+        <span style="font-size:.65rem;color:var(--gray);">Sug: ${i.qtd_sugerida||0}</span>
+        <span style="font-weight:700;color:var(--grn);">${i.qtd_produzida>0?i.qtd_produzida+' '+i.unidade:'—'}</span>
+        ${i.confirmado?'<span style="color:var(--grn)">✓</span>':''}
+      </span>
+    </div>`).join('');
+  }catch(e){det.innerHTML=`<div style="font-size:.74rem;color:var(--red);padding:8px 0;">Erro.</div>`;}
+}
+
+// ═══════════════════════════════════════════════
+// FOOTER BAR
+// ═══════════════════════════════════════════════
+function setFooter(title,sub,fn,btnTxt){
+  const fb=document.getElementById('footerBar');
+  if(!btnTxt){fb.style.display='none';return;}
+  document.getElementById('footerTitle').textContent=title;
+  document.getElementById('footerSub').textContent=sub;
+  document.getElementById('footerBtn').textContent=btnTxt;
+  _footerFn=fn;fb.style.display='flex';
+}
+function footerAction(){if(_footerFn&&window[_footerFn])window[_footerFn]();}
+</script>
+</body>
+</html>
