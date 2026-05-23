@@ -340,15 +340,8 @@ input:focus,select:focus{border-color:var(--grn);background:#fff;}
       <div class="fg"><label>Mínimo</label><input type="number" id="mpMin" min="0" step="any" placeholder="0"></div>
       <div class="fg"><label>Máximo</label><input type="number" id="mpMax" min="0" step="any" placeholder="0"></div>
     </div>
-    <div class="r2" style="margin-top:8px;">
+    <div style="margin-top:8px;">
       <div class="fg"><label>Validade (dias)</label><input type="number" id="mpVal" min="1" step="1" placeholder="1"></div>
-      <div class="fg"><label>ABC</label>
-        <select id="mpAbc">
-          <option value="A">🔴 A</option>
-          <option value="B">🟡 B</option>
-          <option value="C" selected>🟢 C</option>
-        </select>
-      </div>
     </div>
     <div class="modal-btns">
       <button class="btn btn-gray" style="flex:1" onclick="fecharModalProd()">Cancelar</button>
@@ -460,6 +453,15 @@ input:focus,select:focus{border-color:var(--grn);background:#fff;}
       <select id="muRole">
         <option value="operador">Operador — só registros e histórico</option>
         <option value="admin">Admin — acesso total</option>
+      </select>
+    </div>
+    <div class="fg" style="margin-top:8px;"><label>Setor *</label>
+      <select id="muSetor">
+        <option value="">— Selecione o setor —</option>
+        <option value="PADARIA">Padaria</option>
+        <option value="CONFEITARIA">Confeitaria</option>
+        <option value="LANCHONETE">Lanchonete</option>
+        <option value="PASTELARIA">Pastelaria</option>
       </select>
     </div>
     <div class="modal-btns">
@@ -638,6 +640,7 @@ function abrirModalUsuario(id=null){
   document.getElementById('muNome').value='';
   document.getElementById('muPin').value='';
   document.getElementById('muRole').value='operador';
+  document.getElementById('muSetor').value='';
   document.getElementById('modalUsuarioTitulo').textContent='Novo usuário';
   if(id){
     const u=USUARIOS.find(x=>x.id===id);
@@ -646,6 +649,7 @@ function abrirModalUsuario(id=null){
     document.getElementById('muNome').value=u.nome;
     document.getElementById('muPin').placeholder='deixe vazio para manter';
     document.getElementById('muRole').value=u.role||'operador';
+    document.getElementById('muSetor').value=u.setor||'';
     document.getElementById('modalUsuarioTitulo').textContent='Editar usuário';
   }
   document.getElementById('modalUsuario').classList.add('on');
@@ -661,13 +665,15 @@ async function salvarUsuario(){
   const nome=document.getElementById('muNome').value.trim().toUpperCase();
   const pin=document.getElementById('muPin').value.trim();
   const role=document.getElementById('muRole').value;
+  const setor=document.getElementById('muSetor').value;
   if(!nome){toast('⚠️ Nome obrigatório','er');return;}
+  if(!setor){toast('⚠️ Setor obrigatório','er');return;}
   if(!id&&pin.length!==4){toast('⚠️ PIN deve ter 4 dígitos','er');return;}
   if(pin&&pin.length!==4){toast('⚠️ PIN deve ter 4 dígitos','er');return;}
   if(pin&&!/^\d{4}$/.test(pin)){toast('⚠️ PIN deve ser numérico','er');return;}
   try{
     if(id){
-      const data={nome,role};
+      const data={nome,role,setor};
       if(pin)data.pin=pin;
       await sbUpdate('usuarios',id,data);
       const idx=USUARIOS.findIndex(u=>u.id===id);
@@ -677,7 +683,7 @@ async function salvarUsuario(){
       const r=await fetch(`${SUPA_URL}/rest/v1/usuarios`,{
         method:'POST',
         headers:{...H,'Prefer':'return=representation'},
-        body:JSON.stringify({nome,pin,role,ativo:true})
+        body:JSON.stringify({nome,pin,role,setor,ativo:true})
       });
       if(!r.ok)throw new Error(await r.text());
       const [novo]=await r.json();
@@ -836,7 +842,6 @@ function editarProd(id){
   document.getElementById('mpMin').value=p.min_estoque||0;
   document.getElementById('mpMax').value=p.max_estoque||0;
   document.getElementById('mpVal').value=p.validade||1;
-  document.getElementById('mpAbc').value=p.abc||'C';
   document.getElementById('mpUnd').value=(p.unidade||'kg').toLowerCase();
   _preencherSetorSelect('mpSetor',p.setor);
   document.getElementById('modalProd').classList.add('on');
@@ -870,9 +875,8 @@ async function salvarProd(){
   const min=parseFloat(document.getElementById('mpMin').value)||0;
   const max=parseFloat(document.getElementById('mpMax').value)||0;
   const val=parseInt(document.getElementById('mpVal').value)||1;
-  const abc=document.getElementById('mpAbc').value;
   const id=_editId||(cod||Date.now().toString());
-  const dados={id,nome,cod,setor,unidade:und,min_estoque:min,max_estoque:max,validade:val,abc,ativo:true,categoria:''};
+  const dados={id,nome,cod,setor,unidade:und,min_estoque:min,max_estoque:max,validade:val,ativo:true,categoria:''};
   try{
     await sbUpsert('produtos',dados);
     if(_editId){
@@ -921,7 +925,7 @@ async function salvarProd(){
 
     // Upsert projecao_base — só admin
     if(IS_ADMIN){
-      await _salvarMetaProd(id, nome, setor, und, abc);
+      await _salvarMetaProd(id, nome, setor, und);
     }
 
     fecharModalProd();renderProds();
@@ -1009,7 +1013,6 @@ async function salvarEmbalagem() {
   if (!nome) { toast('⚠️ Nome obrigatório','er'); return; }
   if (gram <= 0) { toast('⚠️ Gramatura deve ser maior que 0','er'); return; }
   if (!_embProdId) return;
-  if (_EMBS.length >= 2) { toast('⚠️ Máximo 2 embalagens por produto','wa'); return; }
   const prod = PRODS.find(p => p.id === _embProdId);
   try {
     // Descobrir próxima ordem (ignora erro se tabela não existe ainda — vai cair no catch abaixo)
@@ -1183,7 +1186,9 @@ function _calcMetaSem() {
 }
 
 // Upsert projecao_base (chamado pelo salvarProd)
-async function _salvarMetaProd(prodId, prodNome, setor, unidade, categoria) {
+async function _salvarMetaProd(prodId, prodNome, setor, unidade) {
+  // categoria não é mais derivada do ABC legado — usa 'OUTROS' como default
+  var categoria = 'OUTROS';
   const vals = {};
   _META_DIAS.forEach((d, i) => {
     const el = document.getElementById(_META_IDS[i]);

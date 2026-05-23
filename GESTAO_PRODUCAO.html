@@ -2320,7 +2320,7 @@ function _renderResumo(conf, total) {
       ${_buildAvisoConfigMin()}
       ${_buildSugestaoProducao()}
       <button class="btn-prim" onclick="goTab('producao')">📅 Ver Produção →</button>
-      <button class="btn-sec btn-print" onclick="imprimirChecklist()">🖨️ Imprimir Resumo</button>
+      <button class="btn-sec btn-print" onclick="imprimirSugestaoProducao()">🖨️ Imprimir Sugestão</button>
       <button class="btn-sec" onclick="novoChecklist()">🔄 Novo Checklist</button>
     </div>`;
 }
@@ -5140,6 +5140,49 @@ function imprimirChecklist() {
   window.print();
 }
 
+function imprimirSugestaoProducao() {
+  var hoje = new Date();
+  var dia = String(hoje.getDate()).padStart(2,'0');
+  var mes = String(hoje.getMonth()+1).padStart(2,'0');
+  var ano = hoje.getFullYear();
+  var dataFmt = dia + '/' + mes + '/' + ano;
+  var setorNm = SETOR === 'PADARIA' ? 'Padaria' : 'Confeitaria/Pastelaria';
+
+  var sugestaoHtml = _buildSugestaoProducao();
+
+  if (!sugestaoHtml) {
+    toast('✅ Nenhuma sugestão de produção no momento!', 'ok');
+    return;
+  }
+
+  var styleTag = '<style>'
+    + 'body{font-family:sans-serif;padding:16px;color:#1a1a1a;}'
+    + '.print-titulo{font-size:18px;font-weight:800;color:#1B4332;margin-bottom:2px;}'
+    + '.print-sub{font-size:12px;color:#555;margin-bottom:16px;}'
+    + '.sug-card{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:12px;}'
+    + '.sug-ttl{font-size:13px;font-weight:700;color:#1B4332;margin-bottom:10px;}'
+    + '.sug-row{display:flex;align-items:center;gap:8px;padding:7px 0;'
+    +   'border-bottom:1px solid #f0f0f0;}'
+    + '.sug-row:last-child{border-bottom:none;}'
+    + '.urg-dot{font-size:16px;flex-shrink:0;}'
+    + '.sug-nm{flex:1;font-size:13px;font-weight:500;display:flex;align-items:center;gap:6px;}'
+    + '.sug-qty{font-size:13px;font-weight:700;color:#1B4332;white-space:nowrap;}'
+    + '.abc-badge{display:inline-flex;align-items:center;justify-content:center;'
+    +   'min-width:20px;height:20px;border-radius:4px;font-size:11px;font-weight:700;padding:0 4px;}'
+    + '.abc-badge.A{background:#FDECEA;color:#C0392B;}'
+    + '.abc-badge.B{background:#FEF3C7;color:#D97706;}'
+    + '.abc-badge.C{background:#F4F4F2;color:#6B7280;}'
+    + '.rodape{font-size:10px;color:#999;margin-top:12px;text-align:center;}'
+    + '</style>';
+
+  var bodyHtml = '<div class="print-titulo">📋 Sugestão de Produção</div>'
+    + '<div class="print-sub">' + setorNm + ' · ' + dataFmt + '</div>'
+    + sugestaoHtml
+    + '<div class="rodape">GestFood — Supermercado MG</div>';
+
+  abrirPrintModal(styleTag + bodyHtml);
+}
+
 function exportarExcel() {
   if (!HIST_DADOS || !HIST_DADOS.length) {
     toast('⚠️ Nenhum dado para exportar', 'wa');
@@ -5974,14 +6017,13 @@ function getLoteProduto(produtoNome, setor, diaSemana, dataISO) {
   // CASO 1: produto TEM meta cadastrada e ESTE DIA tem meta > 0
   if (pbMatch && metaCheia > 0) {
 
-    // ═══ REDISTRIBUIÇÃO AUTOMÁTICA DA META SEMANAL (Opção A — divisão igual) ═══
+    // ═══ DISTRIBUIÇÃO FIXA DA META SEMANAL ═══
     // Sistema divide a meta semanal em partes iguais entre todos os dias úteis.
-    // Quando padeiro produz menos/mais num dia, os dias restantes redistribuem
-    // o saldo de forma uniforme.
+    // Cada dia tem sua cota fixa. NÃO compensa dias perdidos — se um dia
+    // anterior não foi produzido, a meta de hoje continua igual.
     //
-    // Fórmula:
-    //   - Para HOJE: (meta_semanal − produzido_acumulado) ÷ dias_restantes_inclusive_hoje
-    //   - Para outros dias: meta_semanal ÷ total_dias_uteis
+    // Fórmula única (todos os dias, inclusive hoje):
+    //   meta_semanal ÷ total_dias_uteis
     //
     // NÃO respeita a distribuição cadastrada (seg=2, sáb=4). Trata todos iguais.
     // A sazonalidade futura vai trazer a possibilidade de respeitar a distribuição.
@@ -5997,98 +6039,21 @@ function getLoteProduto(produtoNome, setor, diaSemana, dataISO) {
       if (Number(pbMatch[d]) > 0) diasUteisTotal++;
     });
 
-    // Verificar se dataISO é HOJE no fuso local
-    const _hojeISO = (function() {
-      const d = new Date();
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      return y + '-' + m + '-' + dd;
-    })();
-
-    // Se NÃO é hoje (passado ou futuro), retorna média igual
-    if (dataISO !== _hojeISO) {
-      const qtdMedia = diasUteisTotal > 0 ? _arred(metaSemanal / diasUteisTotal) : 0;
-      return {
-        qtd: qtdMedia,
-        mediaDia: qtdMedia,
-        sazonalidade: 1,
-        loteBase: qtdMedia,
-        cap: 0,
-        regra: null,
-        categoria: (pbMatch.categoria || '—').toUpperCase(),
-        observacao: 'Meta sem ' + metaSemanal + ' ÷ ' + diasUteisTotal + ' dias = ' + qtdMedia,
-        diasProducao: _diasIdx.map(function(d, i) { return Number(pbMatch[d]) > 0 ? i : -1; }).filter(function(i) { return i >= 0; })
-      };
-    }
-
-    // É HOJE — aplica redistribuição considerando produção real anterior
-
-    // 1. Identificar produto
-    const prodAtual = TODOS_PRODS.find(function(pp) {
-      return _normProdNome(pp.nome) === _normProdNome(produtoNome);
-    });
-    const prodId = prodAtual ? prodAtual.id : null;
-
-    // 2. Calcular início da semana (segunda)
-    const dt = new Date(dataISO + 'T12:00:00');
-    const dow = dt.getDay(); // 0=dom, 1=seg, ... 6=sab
-    const diasParaSeg = dow === 0 ? -6 : (1 - dow);
-    const segDt = new Date(dt);
-    segDt.setDate(dt.getDate() + diasParaSeg);
-    const _toISO = function(d) { return d.toISOString().slice(0,10); };
-
-    // 3. Somar produção real ANTERIOR ao dia de hoje (segunda até ontem)
-    let produzidoSemana = 0;
-    if (prodId && typeof PROD_ITENS !== 'undefined') {
-      for (let i = 0; i < 7; i++) {
-        const checkDt = new Date(segDt);
-        checkDt.setDate(segDt.getDate() + i);
-        const checkISO = _toISO(checkDt);
-        if (checkISO === dataISO) continue; // pula o dia atual
-        if (checkISO > dataISO) continue;   // pula dias futuros
-        const key = prodId + '_' + checkISO;
-        const item = PROD_ITENS[key];
-        if (item && item.status === 'confirmado') {
-          produzidoSemana += Number(item.qtd_produzida) || 0;
-        }
-      }
-    }
-
-    // 5. Contar dias de produção restantes (incluindo hoje, descontando os já passados)
-    let diasRestantes = 0;
-    const hojeIdx = dow === 0 ? 6 : (dow - 1); // 0=seg, 6=dom
-    for (let i = hojeIdx; i < 7; i++) {
-      // mapear i (0=seg) para chave do projecao_base
-      const idxToDow = (i + 1) % 7;
-      const dayKey = _diasIdx[idxToDow];
-      if (Number(pbMatch[dayKey]) > 0) diasRestantes++;
-    }
-
-    // 6. Fórmula final: sugestão = restante ÷ dias_restantes
-    let qtd;
-    let observacao;
-    if (diasRestantes > 0) {
-      const restante = Math.max(0, metaSemanal - produzidoSemana);
-      qtd = restante / diasRestantes;
-      qtd = _arred(qtd);  // arredonda para 1 casa decimal (evita 0.6000000000000001)
-      observacao = 'Meta sem ' + metaSemanal + ' − produzido ' + produzidoSemana
-                 + ' = ' + restante + ' ÷ ' + diasRestantes + ' dias = ' + qtd;
-    } else {
-      qtd = metaCheia;
-      observacao = 'Meta do dia (cálculo de redistribuição não aplicável)';
-    }
-
+    // DISTRIBUIÇÃO FIXA — mesma cota para todos os dias incluindo hoje
+    // Decisão: sem compensação de dias perdidos. Cada dia tem sua cota fixa.
+    const qtdMedia = diasUteisTotal > 0 ? _arred(metaSemanal / diasUteisTotal) : 0;
     return {
-      qtd,
-      mediaDia:     metaCheia,
+      qtd: qtdMedia,
+      mediaDia: qtdMedia,
       sazonalidade: 1,
-      loteBase:     metaCheia,
-      cap:          0,
-      regra:        null,
-      categoria:    (pbMatch.categoria || '—').toUpperCase(),
-      observacao:   observacao,
-      diasProducao: _diasIdx.map(function(d, i) { return Number(pbMatch[d]) > 0 ? i : -1; }).filter(function(i) { return i >= 0; })
+      loteBase: qtdMedia,
+      cap: 0,
+      regra: null,
+      categoria: (pbMatch.categoria || '—').toUpperCase(),
+      observacao: 'Meta sem ' + metaSemanal + ' ÷ ' + diasUteisTotal + ' dias = ' + qtdMedia,
+      diasProducao: _diasIdx.map(function(d, i) {
+        return Number(pbMatch[d]) > 0 ? i : -1;
+      }).filter(function(i) { return i >= 0; })
     };
   }
 
