@@ -410,6 +410,17 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
 
 <script>
 // ═══════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════
+// Formata número em padrão brasileiro (vírgula como decimal, ponto como milhar)
+function fmtBR(n, dec) {
+  return (Number(n) || 0).toLocaleString('pt-BR', {
+    minimumFractionDigits: dec,
+    maximumFractionDigits: dec
+  });
+}
+
+// ═══════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════
 const SUPA_URL='https://rjkseydseuotdkavskss.supabase.co';
@@ -564,8 +575,8 @@ function renderInsumos(){
       +'<div class="ins-unit">'+(ins.unidade_compra||'')+(ins.fornecedor?' · '+ins.fornecedor:'')+'</div>'
       +'</div>'
       +'<div style="text-align:right">'
-      +'<div class="ins-preco">R$ '+custoKg.toFixed(4)+'/kg</div>'
-      +'<div class="ins-unit">Emb: R$ '+(ins.preco_embalagem||0).toFixed(2)+'</div>'
+      +'<div class="ins-preco">R$ '+fmtBR(custoKg, 3)+'/kg</div>'
+      +'<div class="ins-unit">Emb: R$ '+fmtBR(ins.preco_embalagem||0, 2)+'</div>'
       +'</div>'
       +'<div class="ins-actions">'
       +'<button class="btn-icon" style="background:var(--blue-l);color:var(--blue)" onclick="editarInsumo(\''+ins.id+'\')">✏️</button>'
@@ -614,7 +625,7 @@ function atualizarCustoPreview(){
   const el=document.getElementById('custoPreviw');
   if(qtd>0&&preco>0){
     const custo=preco/qtd;
-    document.getElementById('custoKgVal').textContent='R$ '+custo.toFixed(4)+'/kg ou und';
+    document.getElementById('custoKgVal').textContent='R$ '+fmtBR(custo, 3)+'/kg ou und';
     el.style.display='block';
   }else{
     el.style.display='none';
@@ -713,7 +724,7 @@ function renderFichas(){
   }
   el.innerHTML=lista.map(function(f){
     const c=calcCMV(f);
-    const cmvStr=c.cmv!==null?(c.cmv*100).toFixed(1)+'%':'—';
+    const cmvStr=c.cmv!==null?fmtBR(c.cmv*100, 1)+'%':'—';
     const cmvColor2=cmvColor(c.cmv);
     const itens=FICHA_ITENS[f.id]||[];
     return '<div class="ficha-card">'
@@ -747,10 +758,10 @@ function renderFichaBody(f,c,itens){
     const custoItem=qtdBruta*custoKg;
     return '<tr>'
       +'<td>'+it.insumo_nome+'</td>'
-      +'<td class="r">'+(parseFloat(it.qtd_liquida)||0).toFixed(3)+' '+it.unidade+'</td>'
-      +'<td class="r">'+(parseFloat(it.fator_correcao)||1).toFixed(2)+'</td>'
-      +'<td class="r">'+qtdBruta.toFixed(3)+' '+it.unidade+'</td>'
-      +'<td class="r">R$ '+custoItem.toFixed(2)+'</td>'
+      +'<td class="r">'+fmtBR(parseFloat(it.qtd_liquida)||0, 3)+' '+it.unidade+'</td>'
+      +'<td class="r">'+fmtBR(parseFloat(it.fator_correcao)||1, 2)+'</td>'
+      +'<td class="r">'+fmtBR(qtdBruta, 3)+' '+it.unidade+'</td>'
+      +'<td class="r">R$ '+fmtBR(custoItem, 2)+'</td>'
       +'</tr>';
   }).join('');
 
@@ -762,13 +773,13 @@ function renderFichaBody(f,c,itens){
     const pSugerido=custoKg>0?custoKg/m:0;
     const isAtual=pVenda>0&&Math.abs(pVenda-pSugerido)<2;
     return '<div class="preco-col'+(isAtual?' atual':'')+'">'
-      +'<div class="preco-col-label">CMV '+(m*100).toFixed(0)+'%</div>'
-      +'<div class="preco-col-val">'+(pSugerido>0?'R$ '+pSugerido.toFixed(2):'—')+'</div>'
+      +'<div class="preco-col-label">CMV '+fmtBR(m*100, 0)+'%</div>'
+      +'<div class="preco-col-val">'+(pSugerido>0?'R$ '+fmtBR(pSugerido, 2):'—')+'</div>'
       +'</div>';
   }).join('');
 
-  const cmvAtual=c.cmv!==null?(c.cmv*100).toFixed(1)+'%':'—';
-  const margemAtual=c.margem!==null?(c.margem*100).toFixed(1)+'%':'—';
+  const cmvAtual=c.cmv!==null?fmtBR(c.cmv*100, 1)+'%':'—';
+  const margemAtual=c.margem!==null?fmtBR(c.margem*100, 1)+'%':'—';
   const barWidth=c.cmv!==null?Math.min(c.cmv*100,100):0;
   const barClass=cmvClass(c.cmv);
 
@@ -777,14 +788,14 @@ function renderFichaBody(f,c,itens){
     +'<tbody>'+rows+'</tbody>'
     +'<tfoot><tr>'
     +'<td colspan="3">Total</td>'
-    +'<td class="r">'+c.pesoBrutoTotal.toFixed(3)+' kg</td>'
-    +'<td class="r">R$ '+c.custoTotal.toFixed(2)+'</td>'
+    +'<td class="r">'+fmtBR(c.pesoBrutoTotal, 3)+' kg</td>'
+    +'<td class="r">R$ '+fmtBR(c.custoTotal, 2)+'</td>'
     +'</tr></tfoot>'
     +'</table>'
     +'<div style="margin-top:10px;font-size:.75rem;color:var(--gray);">'
-    +'FA (cocção): '+(parseFloat(f.fator_coccao)||1).toFixed(4)+' · '
-    +'Rendimento: '+c.rendimento.toFixed(3)+' kg · '
-    +'Custo/kg: R$ '+c.custoKgFinal.toFixed(4)
+    +'FA (cocção): '+fmtBR(parseFloat(f.fator_coccao)||1, 4)+' · '
+    +'Rendimento: '+fmtBR(c.rendimento, 3)+' kg · '
+    +'Custo/kg: R$ '+fmtBR(c.custoKgFinal, 3)
     +'</div>'
     +'<div style="margin-top:6px;">'
     +'<div style="display:flex;justify-content:space-between;font-size:.75rem;font-weight:600;">'
@@ -930,10 +941,10 @@ function atualizarPreviewCMV(){
   if(custoTotal>0){
     div.style.display='block';
     document.getElementById('previewKpis').innerHTML=
-      '<div class="kpi-card"><div class="kpi-label">Custo total</div><div class="kpi-val">R$ '+custoTotal.toFixed(2)+'</div></div>'
-      +'<div class="kpi-card"><div class="kpi-label">Custo/kg</div><div class="kpi-val">R$ '+custoKg.toFixed(4)+'</div></div>'
-      +'<div class="kpi-card"><div class="kpi-label">CMV</div><div class="kpi-val" style="color:'+(cmv!==null?cmvColor(cmv):var_brown)+'">'+(cmv!==null?(cmv*100).toFixed(1)+'%':'—')+'</div></div>'
-      +'<div class="kpi-card"><div class="kpi-label">Margem</div><div class="kpi-val">'+(margem!==null?(margem*100).toFixed(1)+'%':'—')+'</div></div>';
+      '<div class="kpi-card"><div class="kpi-label">Custo total</div><div class="kpi-val">R$ '+fmtBR(custoTotal, 2)+'</div></div>'
+      +'<div class="kpi-card"><div class="kpi-label">Custo/kg</div><div class="kpi-val">R$ '+fmtBR(custoKg, 3)+'</div></div>'
+      +'<div class="kpi-card"><div class="kpi-label">CMV</div><div class="kpi-val" style="color:'+(cmv!==null?cmvColor(cmv):var_brown)+'">'+(cmv!==null?fmtBR(cmv*100, 1)+'%':'—')+'</div></div>'
+      +'<div class="kpi-card"><div class="kpi-label">Margem</div><div class="kpi-val">'+(margem!==null?fmtBR(margem*100, 1)+'%':'—')+'</div></div>';
   }else{
     div.style.display='none';
   }
@@ -1033,7 +1044,7 @@ function renderCMV(){
   // KPIs
   document.getElementById('cmvKpis').innerHTML=
     '<div class="kpi-card"><div class="kpi-label">CMV Geral</div>'
-    +'<div class="kpi-val" style="color:'+(cmvGeral!==null?cmvColor(cmvGeral):var_brown)+'">'+(cmvGeral!==null?(cmvGeral*100).toFixed(1)+'%':'—')+'</div>'
+    +'<div class="kpi-val" style="color:'+(cmvGeral!==null?cmvColor(cmvGeral):var_brown)+'">'+(cmvGeral!==null?fmtBR(cmvGeral*100, 1)+'%':'—')+'</div>'
     +'<div class="kpi-sub">'+(filtroCMV==='TODOS'?'Todos setores':filtroCMV)+'</div></div>'
     +'<div class="kpi-card"><div class="kpi-label">Fichas com CMV</div>'
     +'<div class="kpi-val">'+count+'</div>'
@@ -1051,8 +1062,8 @@ function renderCMV(){
   }
   el.innerHTML=cmvItems.map(function(x){
     const f=x.f;const c=x.c;
-    const cmvStr=c.cmv!==null?(c.cmv*100).toFixed(1)+'%':'—';
-    const margemStr=c.margem!==null?(c.margem*100).toFixed(1)+'%':'—';
+    const cmvStr=c.cmv!==null?fmtBR(c.cmv*100, 1)+'%':'—';
+    const margemStr=c.margem!==null?fmtBR(c.margem*100, 1)+'%':'—';
     const barWidth=c.cmv!==null?Math.min(c.cmv*100,100):0;
     const barClass=cmvClass(c.cmv);
     const cor=cmvColor(c.cmv);
@@ -1070,8 +1081,8 @@ function renderCMV(){
       +'</div>'
       +'<div class="cmv-bar"><div class="cmv-fill cmv-'+barClass+'" style="width:'+barWidth+'%"></div></div>'
       +'<div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--gray);margin-top:5px;">'
-      +'<span>Custo/kg: R$ '+c.custoKgFinal.toFixed(2)+'</span>'
-      +'<span>Venda: R$ '+(c.preco||0).toFixed(2)+'/kg</span>'
+      +'<span>Custo/kg: R$ '+fmtBR(c.custoKgFinal, 2)+'</span>'
+      +'<span>Venda: R$ '+fmtBR(c.preco||0, 2)+'/kg</span>'
       +'</div>'
       +'</div></div>';
   }).join('');
@@ -1094,12 +1105,12 @@ function imprimirFicha(id){
     const custoItem=qtdBruta*custoKg;
     return '<tr>'
       +'<td>'+it.insumo_nome+'</td>'
-      +'<td style="text-align:center">'+(parseFloat(it.qtd_liquida)||0).toFixed(3)+'</td>'
-      +'<td style="text-align:center">'+(parseFloat(it.fator_correcao)||1).toFixed(2)+'</td>'
-      +'<td style="text-align:center">'+qtdBruta.toFixed(3)+'</td>'
+      +'<td style="text-align:center">'+fmtBR(parseFloat(it.qtd_liquida)||0, 3)+'</td>'
+      +'<td style="text-align:center">'+fmtBR(parseFloat(it.fator_correcao)||1, 2)+'</td>'
+      +'<td style="text-align:center">'+fmtBR(qtdBruta, 3)+'</td>'
       +'<td style="text-align:center">'+it.unidade+'</td>'
-      +'<td style="text-align:right">R$ '+custoKg.toFixed(4)+'</td>'
-      +'<td style="text-align:right">R$ '+custoItem.toFixed(2)+'</td>'
+      +'<td style="text-align:right">R$ '+fmtBR(custoKg, 3)+'</td>'
+      +'<td style="text-align:right">R$ '+fmtBR(custoItem, 2)+'</td>'
       +'</tr>';
   }).join('');
   const html='<style>'
@@ -1128,18 +1139,18 @@ function imprimirFicha(id){
     +'<tbody>'+rows+'</tbody>'
     +'<tfoot><tr>'
     +'<td colspan="3"><strong>TOTAL</strong></td>'
-    +'<td style="text-align:center"><strong>'+c.pesoBrutoTotal.toFixed(3)+' kg</strong></td>'
+    +'<td style="text-align:center"><strong>'+fmtBR(c.pesoBrutoTotal, 3)+' kg</strong></td>'
     +'<td></td>'
     +'<td></td>'
-    +'<td style="text-align:right"><strong>R$ '+c.custoTotal.toFixed(2)+'</strong></td>'
+    +'<td style="text-align:right"><strong>R$ '+fmtBR(c.custoTotal, 2)+'</strong></td>'
     +'</tr></tfoot>'
     +'</table>'
     +'<div class="kpi-row">'
-    +'<div class="kpi"><div class="kpi-v">'+c.rendimento.toFixed(3)+' kg</div><div class="kpi-l">Rendimento (FA: '+(parseFloat(f.fator_coccao)||1).toFixed(4)+')</div></div>'
-    +'<div class="kpi"><div class="kpi-v">R$ '+c.custoKgFinal.toFixed(4)+'</div><div class="kpi-l">Custo por kg</div></div>'
-    +'<div class="kpi"><div class="kpi-v">R$ '+(c.preco||0).toFixed(2)+'</div><div class="kpi-l">Preço de venda</div></div>'
-    +'<div class="kpi"><div class="kpi-v" style="color:'+(c.cmv!==null?cmvColor(c.cmv):'#111')+'">'+(c.cmv!==null?(c.cmv*100).toFixed(1)+'%':'—')+'</div><div class="kpi-l">CMV</div></div>'
-    +'<div class="kpi"><div class="kpi-v">'+(c.margem!==null?(c.margem*100).toFixed(1)+'%':'—')+'</div><div class="kpi-l">Margem bruta</div></div>'
+    +'<div class="kpi"><div class="kpi-v">'+fmtBR(c.rendimento, 3)+' kg</div><div class="kpi-l">Rendimento (FA: '+fmtBR(parseFloat(f.fator_coccao)||1, 4)+')</div></div>'
+    +'<div class="kpi"><div class="kpi-v">R$ '+fmtBR(c.custoKgFinal, 3)+'</div><div class="kpi-l">Custo por kg</div></div>'
+    +'<div class="kpi"><div class="kpi-v">R$ '+fmtBR(c.preco||0, 2)+'</div><div class="kpi-l">Preço de venda</div></div>'
+    +'<div class="kpi"><div class="kpi-v" style="color:'+(c.cmv!==null?cmvColor(c.cmv):'#111')+'">'+(c.cmv!==null?fmtBR(c.cmv*100, 1)+'%':'—')+'</div><div class="kpi-l">CMV</div></div>'
+    +'<div class="kpi"><div class="kpi-v">'+(c.margem!==null?fmtBR(c.margem*100, 1)+'%':'—')+'</div><div class="kpi-l">Margem bruta</div></div>'
     +'</div>'
     +(f.modo_preparo?'<div class="modo"><strong>Modo de preparo:</strong><br>'+f.modo_preparo+'</div>':'')
     +(f.equipamentos?'<div class="modo"><strong>Equipamentos:</strong> '+f.equipamentos+'</div>':'')
