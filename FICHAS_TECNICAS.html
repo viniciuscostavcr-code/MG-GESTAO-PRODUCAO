@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1B4332">
+<title>GestFood — Fichas Técnicas</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-gestfood-180.png">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F7F5;--white:#fff;--border:#E8E8E4;
+  --brown:#1C1C1A;--gray:#6B7280;--gray-l:#F4F4F2;
+  --grn:#2D6A4F;--grn2:#1B4332;--grn-l:#EAF4EF;
+  --red:#C0392B;--red-l:#FDECEA;
+  --orange:#E67E22;--orange-l:#FEF3EC;
+  --blue:#185FA5;--blue-l:#EEF6FF;
+  --yellow:#D97706;--yellow-l:#FEF3C7;
+  --sh:0 2px 12px rgba(0,0,0,.08);
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);overflow:hidden;}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--grn2);color:#fff;flex-shrink:0;}
+.topbar-logo{width:30px;height:30px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:900;color:#fff;flex-shrink:0;}
+.topbar-title{font-size:.95rem;font-weight:700;letter-spacing:-.3px;}
+.topbar-title span{font-weight:300;color:#A7D9BC;}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.btn-hub{padding:6px 12px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#fff;font-size:.75rem;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;}
+.user-badge{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;color:#fff;flex-shrink:0;}
+
+/* TABS */
+.tabs{display:flex;background:#fff;border-bottom:1px solid var(--border);flex-shrink:0;}
+.tab{flex:1;padding:12px 8px;font-size:.75rem;font-weight:600;color:var(--gray);cursor:pointer;border:none;background:none;font-family:inherit;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;}
+.tab.on{color:var(--grn);border-bottom-color:var(--grn);}
+
+/* LAYOUT */
+#app{height:100%;display:flex;flex-direction:column;}
+.tab-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;}
+.tab-pane{display:none;}
+.tab-pane.on{display:block;}
+
+/* CARDS */
+.card{background:#fff;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:12px;overflow:hidden;}
+.card-header{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;cursor:pointer;}
+.card-header-info{flex:1;}
+.card-nome{font-size:.88rem;font-weight:700;color:var(--brown);}
+.card-sub{font-size:.72rem;color:var(--gray);margin-top:2px;}
+.card-body{padding:14px;}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;}
+.badge-grn{background:var(--grn-l);color:var(--grn2);}
+.badge-red{background:var(--red-l);color:var(--red);}
+.badge-orange{background:var(--orange-l);color:var(--orange);}
+.badge-yellow{background:var(--yellow-l);color:var(--yellow);}
+.badge-blue{background:var(--blue-l);color:var(--blue);}
+.badge-gray{background:var(--gray-l);color:var(--gray);}
+
+/* CMV INDICATOR */
+.cmv-bar{height:6px;border-radius:3px;background:var(--border);margin-top:6px;overflow:hidden;}
+.cmv-fill{height:100%;border-radius:3px;transition:width .3s;}
+.cmv-ok{background:#1D9E75;}
+.cmv-warn{background:var(--yellow);}
+.cmv-bad{background:var(--red);}
+
+/* KPI GRID */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.kpi-card{background:#fff;border-radius:var(--radius);border:1px solid var(--border);padding:12px;}
+.kpi-label{font-size:.65rem;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.kpi-val{font-size:1.2rem;font-weight:800;color:var(--brown);}
+.kpi-sub{font-size:.7rem;color:var(--gray);margin-top:2px;}
+
+/* TABELA INGREDIENTES */
+.ing-table{width:100%;border-collapse:collapse;font-size:.78rem;}
+.ing-table th{padding:6px 8px;text-align:left;font-size:.65rem;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);}
+.ing-table td{padding:7px 8px;border-bottom:1px solid var(--border);color:var(--brown);}
+.ing-table tr:last-child td{border-bottom:none;}
+.ing-table .r{text-align:right;font-family:monospace;}
+.ing-table tfoot td{font-weight:700;color:var(--grn2);background:var(--grn-l);}
+
+/* FORMAÇÃO DE PREÇO */
+.preco-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px;}
+.preco-col{background:var(--gray-l);border-radius:8px;padding:8px;text-align:center;}
+.preco-col.atual{background:var(--grn-l);border:1.5px solid var(--grn);}
+.preco-col-label{font-size:.6rem;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;}
+.preco-col-val{font-size:.88rem;font-weight:800;color:var(--brown);margin-top:3px;}
+.preco-col.atual .preco-col-label{color:var(--grn);}
+.preco-col.atual .preco-col-val{color:var(--grn2);}
+
+/* FORMULÁRIOS */
+.fg{margin-bottom:12px;}
+.fg label{display:block;font-size:.72rem;font-weight:600;color:var(--gray);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px;}
+.fg input,.fg select,.fg textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:.88rem;font-family:inherit;color:var(--brown);background:#fff;outline:none;transition:.15s;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--grn);}
+.fg textarea{resize:vertical;min-height:80px;}
+.fg-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.fg-row3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;}
+
+/* BOTÕES */
+.btn{padding:10px 16px;border:none;border-radius:10px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;min-height:40px;}
+.btn-grn{background:var(--grn);color:#fff;}
+.btn-grn:active{transform:scale(.98);}
+.btn-sec{background:var(--gray-l);color:var(--brown);}
+.btn-red{background:var(--red-l);color:var(--red);}
+.btn-sm{padding:6px 12px;font-size:.75rem;min-height:32px;}
+.btn-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+.btn-fab{position:fixed;bottom:20px;right:20px;width:52px;height:52px;border-radius:50%;background:var(--grn);color:#fff;border:none;font-size:1.4rem;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.2);z-index:100;display:flex;align-items:center;justify-content:center;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:flex-end;justify-content:center;}
+.modal-overlay.hidden{display:none;}
+.modal-box{background:#fff;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;}
+.modal-title{font-size:1rem;font-weight:800;color:var(--brown);margin-bottom:16px;}
+.modal-btns{display:flex;gap:8px;margin-top:16px;}
+
+/* MODAL FULLSCREEN */
+.modal-full{position:fixed;inset:0;background:#fff;z-index:300;overflow-y:auto;display:flex;flex-direction:column;}
+.modal-full.hidden{display:none!important;}
+.modal-full-header{background:var(--grn2);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;flex-shrink:0;}
+.modal-full-title{font-size:.95rem;font-weight:700;flex:1;}
+.modal-full-body{padding:16px;flex:1;overflow-y:auto;}
+
+/* PRINT MODAL */
+#printModal{position:fixed;inset:0;background:#fff;z-index:400;overflow-y:auto;display:none;flex-direction:column;}
+.print-header{position:sticky;top:0;background:var(--grn2);color:#fff;padding:10px 16px;display:flex;gap:8px;justify-content:space-between;z-index:10;}
+.print-header button{padding:8px 14px;border:none;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;min-height:40px;font-family:inherit;}
+.btn-back-print{background:#fff;color:var(--grn2);}
+.btn-do-print{background:var(--grn);color:#fff;}
+.print-content{padding:20px;flex:1;}
+@media print{
+  body>*:not(#printModal){display:none!important;}
+  .print-header{display:none!important;}
+  #printModal{position:static;overflow:visible;}
+}
+
+/* TOAST */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--brown);color:#fff;padding:10px 20px;border-radius:30px;font-size:.82rem;font-weight:600;z-index:500;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+
+/* SETOR TABS */
+.setor-tabs{display:flex;gap:6px;margin-bottom:14px;}
+.setor-tab{padding:7px 14px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:.75rem;font-weight:600;color:var(--gray);cursor:pointer;font-family:inherit;transition:.15s;}
+.setor-tab.on{background:var(--grn);color:#fff;border-color:var(--grn);}
+
+/* SEARCH */
+.search-wrap{position:relative;margin-bottom:12px;}
+.search-wrap input{width:100%;padding:10px 12px 10px 36px;border:1.5px solid var(--border);border-radius:10px;font-size:.88rem;font-family:inherit;outline:none;}
+.search-wrap input:focus{border-color:var(--grn);}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--gray);font-size:.9rem;}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:48px 20px;color:var(--gray);}
+.empty-ico{font-size:2.5rem;margin-bottom:12px;}
+.empty p{font-size:.85rem;line-height:1.5;}
+
+/* INSUMO CARD */
+.ins-card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+.ins-nome{flex:1;font-size:.85rem;font-weight:600;color:var(--brown);}
+.ins-preco{font-size:.82rem;font-weight:700;color:var(--grn2);font-family:monospace;}
+.ins-unit{font-size:.7rem;color:var(--gray);}
+.ins-actions{display:flex;gap:4px;}
+.btn-icon{width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;}
+
+/* FICHA CARD */
+.ficha-card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;}
+.ficha-card-header{padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;}
+.ficha-card-nome{flex:1;}
+.ficha-card-nome h3{font-size:.88rem;font-weight:700;color:var(--brown);}
+.ficha-card-nome p{font-size:.7rem;color:var(--gray);margin-top:2px;}
+.ficha-cmv{text-align:right;}
+.ficha-cmv-val{font-size:.88rem;font-weight:800;}
+.ficha-cmv-label{font-size:.65rem;color:var(--gray);}
+.ficha-card-body{padding:14px;border-top:1px solid var(--border);display:none;}
+.ficha-card-body.open{display:block;}
+
+/* SEÇÃO INGREDIENTES NO MODAL */
+.ing-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:6px;align-items:center;margin-bottom:8px;}
+.ing-row input,.ing-row select{padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:.8rem;font-family:inherit;outline:none;}
+.ing-row input:focus,.ing-row select:focus{border-color:var(--grn);}
+.btn-rm{background:var(--red-l);color:var(--red);border:none;border-radius:8px;width:30px;height:34px;cursor:pointer;font-size:.85rem;}
+
+/* LOADING */
+.loading{text-align:center;padding:40px;color:var(--gray);}
+.spin{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--grn);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* MOBILE */
+@media(max-width:480px){
+  .kpi-grid{grid-template-columns:1fr 1fr;}
+  .preco-grid{grid-template-columns:1fr 1fr;}
+  .fg-row{grid-template-columns:1fr;}
+  .fg-row3{grid-template-columns:1fr 1fr;}
+  .ing-row{grid-template-columns:1fr 1fr 1fr auto;grid-template-rows:auto auto;}
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-logo">G</div>
+    <div class="topbar-title">Gest<span>Food</span> — Fichas Técnicas</div>
+    <div class="topbar-right">
+      <a href="GESTFOOD_INDEX.html" class="btn-hub">← Hub</a>
+      <div class="user-badge" id="userBadge"></div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab on" onclick="mudarTab('insumos',this)">📦 Insumos</button>
+    <button class="tab" onclick="mudarTab('fichas',this)">📋 Fichas</button>
+    <button class="tab" onclick="mudarTab('cmv',this)">📊 CMV</button>
+  </div>
+
+  <!-- CONTEÚDO -->
+  <div class="tab-content">
+
+    <!-- TAB INSUMOS -->
+    <div class="tab-pane on" id="tab-insumos">
+      <div class="setor-tabs">
+        <button class="setor-tab on" onclick="filtrarInsumos('TODOS',this)">Todos</button>
+        <button class="setor-tab" onclick="filtrarInsumos('PADARIA',this)">Padaria</button>
+        <button class="setor-tab" onclick="filtrarInsumos('CONFEITARIA',this)">Confeitaria</button>
+      </div>
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Buscar insumo..." oninput="buscarInsumos(this.value)">
+      </div>
+      <div id="listaInsumos"><div class="loading"><div class="spin"></div>Carregando...</div></div>
+    </div>
+
+    <!-- TAB FICHAS -->
+    <div class="tab-pane" id="tab-fichas">
+      <div class="setor-tabs">
+        <button class="setor-tab on" onclick="filtrarFichas('TODOS',this)">Todos</button>
+        <button class="setor-tab" onclick="filtrarFichas('PADARIA',this)">Padaria</button>
+        <button class="setor-tab" onclick="filtrarFichas('CONFEITARIA',this)">Confeitaria</button>
+      </div>
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Buscar ficha técnica..." oninput="buscarFichas(this.value)">
+      </div>
+      <div id="listaFichas"><div class="loading"><div class="spin"></div>Carregando...</div></div>
+    </div>
+
+    <!-- TAB CMV -->
+    <div class="tab-pane" id="tab-cmv">
+      <div class="setor-tabs">
+        <button class="setor-tab on" onclick="filtrarCMV('TODOS',this)">Todos</button>
+        <button class="setor-tab" onclick="filtrarCMV('PADARIA',this)">Padaria</button>
+        <button class="setor-tab" onclick="filtrarCMV('CONFEITARIA',this)">Confeitaria</button>
+      </div>
+      <div class="kpi-grid" id="cmvKpis"></div>
+      <div id="listaCMV"><div class="loading"><div class="spin"></div>Carregando...</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="btn-fab" id="fabBtn" onclick="abrirModal()">+</button>
+
+<!-- MODAL INSUMO -->
+<div class="modal-overlay hidden" id="modalInsumo">
+  <div class="modal-box">
+    <div class="modal-title" id="modalInsumoTitulo">Novo Insumo</div>
+    <input type="hidden" id="insId">
+    <div class="fg">
+      <label>Nome do insumo *</label>
+      <input type="text" id="insNome" placeholder="ex: Farinha de Trigo">
+    </div>
+    <div class="fg-row">
+      <div class="fg">
+        <label>Setor</label>
+        <select id="insSetor">
+          <option value="">Geral (todos)</option>
+          <option value="PADARIA">Padaria</option>
+          <option value="CONFEITARIA">Confeitaria</option>
+          <option value="LANCHONETE">Lanchonete</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Fornecedor</label>
+        <input type="text" id="insFornecedor" placeholder="Opcional">
+      </div>
+    </div>
+    <div class="fg-row3">
+      <div class="fg">
+        <label>Embalagem de compra *</label>
+        <input type="text" id="insUnidadeCompra" placeholder="ex: Saco 25kg, Caixa 30und">
+      </div>
+      <div class="fg">
+        <label>Qtd (kg ou und)</label>
+        <input type="number" id="insQtdEmbalagem" step="0.001" placeholder="25">
+      </div>
+      <div class="fg">
+        <label>Preço embalagem R$</label>
+        <input type="number" id="insPrecoEmbalagem" step="0.01" placeholder="0,00">
+      </div>
+    </div>
+    <div class="fg" id="custoPreviw" style="background:var(--grn-l);padding:10px;border-radius:8px;font-size:.82rem;font-weight:600;color:var(--grn2);display:none;">
+      Custo por kg/und: <span id="custoKgVal">—</span>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-sec" style="flex:1" onclick="fecharModal('modalInsumo')">Cancelar</button>
+      <button class="btn btn-grn" style="flex:2" onclick="salvarInsumo()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FICHA TÉCNICA -->
+<div class="modal-full hidden" id="modalFicha">
+  <div class="modal-full-header">
+    <button style="background:none;border:none;color:#fff;font-size:1rem;cursor:pointer;padding:4px;" onclick="fecharModalFull()">←</button>
+    <div class="modal-full-title" id="modalFichaTitulo">Nova Ficha Técnica</div>
+    <button class="btn btn-grn btn-sm" onclick="salvarFicha()">💾 Salvar</button>
+  </div>
+  <div class="modal-full-body">
+    <input type="hidden" id="fichaId">
+    <div class="fg-row">
+      <div class="fg">
+        <label>Nome do produto *</label>
+        <input type="text" id="fichaNome" placeholder="ex: Bolo de Macaxeira">
+      </div>
+      <div class="fg">
+        <label>Setor *</label>
+        <select id="fichaSetor">
+          <option value="CONFEITARIA">Confeitaria</option>
+          <option value="PADARIA">Padaria</option>
+          <option value="LANCHONETE">Lanchonete</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg-row">
+      <div class="fg">
+        <label>Grupo / Categoria</label>
+        <input type="text" id="fichaGrupo" placeholder="ex: Bolo Junino">
+      </div>
+      <div class="fg">
+        <label>Indicação</label>
+        <input type="text" id="fichaIndicacao" placeholder="ex: Sobremesa">
+      </div>
+    </div>
+    <div class="fg-row3">
+      <div class="fg">
+        <label>Rendimento final (kg) *</label>
+        <input type="number" id="fichaRendimento" step="0.001" placeholder="8.89">
+      </div>
+      <div class="fg">
+        <label>Rendimento (und)</label>
+        <input type="number" id="fichaRendimentoUnid" step="1" placeholder="0">
+      </div>
+      <div class="fg">
+        <label>Tempo preparo (min)</label>
+        <input type="number" id="fichaTempo" step="1" placeholder="30">
+      </div>
+    </div>
+    <div class="fg-row">
+      <div class="fg">
+        <label>Fator de cocção (FA) *</label>
+        <input type="number" id="fichaFA" step="0.0001" placeholder="0.85" value="1">
+        <small style="color:var(--gray);font-size:.7rem;margin-top:3px;display:block;">Peso final ÷ Peso bruto total. Ex: bolo perde 15% no forno → FA = 0.85</small>
+      </div>
+      <div class="fg">
+        <label>Preço de venda (R$/kg)</label>
+        <input type="number" id="fichaPrecoVenda" step="0.01" placeholder="24.90">
+      </div>
+    </div>
+    <div class="fg">
+      <label>Equipamentos necessários</label>
+      <input type="text" id="fichaEquipamentos" placeholder="ex: Forno a gás, Batedeira, Balança">
+    </div>
+    <div class="fg">
+      <label>Modo de preparo</label>
+      <textarea id="fichaModo" placeholder="Descreva o passo a passo do preparo..."></textarea>
+    </div>
+
+    <!-- INGREDIENTES -->
+    <div style="font-size:.82rem;font-weight:700;color:var(--brown);margin-bottom:10px;margin-top:6px;">
+      📦 Ingredientes
+    </div>
+    <div id="listaIngredientesModal"></div>
+    <button class="btn btn-sec btn-sm" onclick="addIngredienteLinha()" style="margin-top:4px;">+ Adicionar ingrediente</button>
+
+    <!-- PREVIEW CMV -->
+    <div id="previewCMV" style="margin-top:16px;background:var(--grn-l);border-radius:10px;padding:12px;display:none;">
+      <div style="font-size:.75rem;font-weight:700;color:var(--grn2);margin-bottom:8px;">📊 Preview do CMV</div>
+      <div class="kpi-grid" style="margin-bottom:0;" id="previewKpis"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PRINT MODAL -->
+<div id="printModal" style="display:none;flex-direction:column;">
+  <div class="print-header">
+    <button class="btn-back-print" onclick="fecharPrint()">← Voltar</button>
+    <button class="btn-do-print" onclick="window.print()">🖨️ Imprimir</button>
+  </div>
+  <div class="print-content" id="printContent"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════
+const SUPA_URL='https://rjkseydseuotdkavskss.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqa3NleWRzZXVvdGRrYXZza3NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTE4OTAsImV4cCI6MjA4Nzc4Nzg5MH0.wEzZ9sZhXJhu0jjNx2OeW7RacGi8djUj-9r9u1-8KYY';
+const SH={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'};
+const SES_KEY='gf_session';
+
+// ═══════════════════════════════════════
+// SESSÃO
+// ═══════════════════════════════════════
+const GF_USER=(function(){
+  try{
+    const s=JSON.parse(localStorage.getItem(SES_KEY)||'null');
+    if(!s||!s.nome||(Date.now()-(s.loggedAt||0))>8*60*60*1000){
+      localStorage.removeItem(SES_KEY);
+      window.location.replace('LOGIN.html');
+      return null;
+    }
+    return s;
+  }catch(e){window.location.replace('LOGIN.html');return null;}
+})();
+if(!GF_USER)throw new Error('sem sessão');
+
+// Badge usuário
+(function(){
+  const b=document.getElementById('userBadge');
+  const ini=(GF_USER.nome||'?').trim().split(/\s+/).slice(0,2).map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);
+  b.textContent=ini;
+  b.style.background=GF_USER.cor||'#2D6A4F';
+})();
+
+// ═══════════════════════════════════════
+// ESTADO
+// ═══════════════════════════════════════
+let INSUMOS=[];
+let FICHAS=[];
+let FICHA_ITENS={};
+let filtroInsumos='TODOS';
+let filtroFichas='TODOS';
+let filtroCMV='TODOS';
+let buscaInsumos='';
+let buscaFichas='';
+let tabAtual='insumos';
+let ingredientesModal=[];
+
+// ═══════════════════════════════════════
+// SUPABASE HELPERS
+// ═══════════════════════════════════════
+async function sbGet(tabela,params){
+  const qs=params?'?'+params:'';
+  const r=await fetch(SUPA_URL+'/rest/v1/'+tabela+qs,{headers:SH});
+  if(!r.ok)throw new Error(await r.text());
+  return r.json();
+}
+async function sbPost(tabela,body){
+  const r=await fetch(SUPA_URL+'/rest/v1/'+tabela,{
+    method:'POST',headers:{...SH,'Prefer':'return=representation'},body:JSON.stringify(body)
+  });
+  if(!r.ok)throw new Error(await r.text());
+  return r.json();
+}
+async function sbPatch(tabela,id,body){
+  const r=await fetch(SUPA_URL+'/rest/v1/'+tabela+'?id=eq.'+id,{
+    method:'PATCH',headers:{...SH,'Prefer':'return=representation'},body:JSON.stringify(body)
+  });
+  if(!r.ok)throw new Error(await r.text());
+  return r.json();
+}
+async function sbDelete(tabela,filtro){
+  const r=await fetch(SUPA_URL+'/rest/v1/'+tabela+'?'+filtro,{
+    method:'DELETE',headers:SH
+  });
+  if(!r.ok)throw new Error(await r.text());
+}
+
+// ═══════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════
+function toast(msg,tipo){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.style.background=tipo==='er'?'#C0392B':tipo==='ok'?'#2D6A4F':'#1C1C1A';
+  t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},2500);
+}
+
+// ═══════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════
+function mudarTab(nome,el){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on');});
+  document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('on');});
+  el.classList.add('on');
+  document.getElementById('tab-'+nome).classList.add('on');
+  tabAtual=nome;
+  document.getElementById('fabBtn').style.display=nome==='cmv'?'none':'flex';
+}
+
+// ═══════════════════════════════════════
+// CARREGAR DADOS
+// ═══════════════════════════════════════
+async function carregarTudo(){
+  try{
+    INSUMOS=await sbGet('insumos','select=*&ativo=eq.true&order=nome.asc');
+    FICHAS=await sbGet('fichas_tecnicas','select=*&ativo=eq.true&order=produto_nome.asc');
+    // Carregar itens de todas as fichas
+    if(FICHAS.length){
+      const ids=FICHAS.map(function(f){return f.id;}).join(',');
+      const itens=await sbGet('ficha_itens','select=*&ficha_id=in.('+ids+')&order=ordem.asc');
+      FICHA_ITENS={};
+      itens.forEach(function(it){
+        if(!FICHA_ITENS[it.ficha_id])FICHA_ITENS[it.ficha_id]=[];
+        FICHA_ITENS[it.ficha_id].push(it);
+      });
+    }
+    renderInsumos();
+    renderFichas();
+    renderCMV();
+  }catch(e){
+    toast('❌ Erro ao carregar dados','er');
+    console.error(e);
+  }
+}
+
+// ═══════════════════════════════════════
+// INSUMOS
+// ═══════════════════════════════════════
+function filtrarInsumos(setor,el){
+  document.querySelectorAll('#tab-insumos .setor-tab').forEach(function(t){t.classList.remove('on');});
+  el.classList.add('on');
+  filtroInsumos=setor;
+  renderInsumos();
+}
+function buscarInsumos(val){buscaInsumos=val.toLowerCase();renderInsumos();}
+
+function renderInsumos(){
+  let lista=INSUMOS.filter(function(i){
+    if(filtroInsumos!=='TODOS'&&i.setor&&i.setor!==filtroInsumos)return false;
+    if(buscaInsumos&&!i.nome.toLowerCase().includes(buscaInsumos))return false;
+    return true;
+  });
+  const el=document.getElementById('listaInsumos');
+  if(!lista.length){
+    el.innerHTML='<div class="empty"><div class="empty-ico">📦</div><p>Nenhum insumo encontrado.<br>Toque no + para adicionar.</p></div>';
+    return;
+  }
+  el.innerHTML=lista.map(function(ins){
+    const custoKg=ins.custo_kg_l||0;
+    return '<div class="ins-card">'
+      +'<div style="flex:1">'
+      +'<div class="ins-nome">'+ins.nome+'</div>'
+      +'<div class="ins-unit">'+(ins.unidade_compra||'')+(ins.fornecedor?' · '+ins.fornecedor:'')+'</div>'
+      +'</div>'
+      +'<div style="text-align:right">'
+      +'<div class="ins-preco">R$ '+custoKg.toFixed(4)+'/kg</div>'
+      +'<div class="ins-unit">Emb: R$ '+(ins.preco_embalagem||0).toFixed(2)+'</div>'
+      +'</div>'
+      +'<div class="ins-actions">'
+      +'<button class="btn-icon" style="background:var(--blue-l);color:var(--blue)" onclick="editarInsumo(\''+ins.id+'\')">✏️</button>'
+      +'<button class="btn-icon" style="background:var(--red-l);color:var(--red)" onclick="confirmarExcluirInsumo(\''+ins.id+'\',\''+ins.nome+'\')">🗑️</button>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function abrirModal(){
+  if(tabAtual==='insumos')abrirModalInsumo();
+  else if(tabAtual==='fichas')abrirModalFicha();
+}
+
+function abrirModalInsumo(id){
+  document.getElementById('insId').value='';
+  document.getElementById('insNome').value='';
+  document.getElementById('insSetor').value='';
+  document.getElementById('insFornecedor').value='';
+  document.getElementById('insUnidadeCompra').value='';
+  document.getElementById('insQtdEmbalagem').value='';
+  document.getElementById('insPrecoEmbalagem').value='';
+  document.getElementById('custoPreviw').style.display='none';
+  document.getElementById('modalInsumoTitulo').textContent='Novo Insumo';
+  if(id){
+    const ins=INSUMOS.find(function(i){return i.id===id;});
+    if(!ins)return;
+    document.getElementById('insId').value=ins.id;
+    document.getElementById('insNome').value=ins.nome;
+    document.getElementById('insSetor').value=ins.setor||'';
+    document.getElementById('insFornecedor').value=ins.fornecedor||'';
+    document.getElementById('insUnidadeCompra').value=ins.unidade_compra||'';
+    document.getElementById('insQtdEmbalagem').value=ins.qtd_embalagem||'';
+    document.getElementById('insPrecoEmbalagem').value=ins.preco_embalagem||'';
+    document.getElementById('modalInsumoTitulo').textContent='Editar Insumo';
+    atualizarCustoPreview();
+  }
+  document.getElementById('modalInsumo').classList.remove('hidden');
+}
+
+function editarInsumo(id){abrirModalInsumo(id);}
+
+function atualizarCustoPreview(){
+  const qtd=parseFloat(document.getElementById('insQtdEmbalagem').value)||0;
+  const preco=parseFloat(document.getElementById('insPrecoEmbalagem').value)||0;
+  const el=document.getElementById('custoPreviw');
+  if(qtd>0&&preco>0){
+    const custo=preco/qtd;
+    document.getElementById('custoKgVal').textContent='R$ '+custo.toFixed(4)+'/kg ou und';
+    el.style.display='block';
+  }else{
+    el.style.display='none';
+  }
+}
+
+// Adicionar event listeners para preview ao vivo
+document.getElementById('insQtdEmbalagem').addEventListener('input',atualizarCustoPreview);
+document.getElementById('insPrecoEmbalagem').addEventListener('input',atualizarCustoPreview);
+
+async function salvarInsumo(){
+  const id=document.getElementById('insId').value;
+  const nome=document.getElementById('insNome').value.trim().toUpperCase();
+  const setor=document.getElementById('insSetor').value;
+  const fornecedor=document.getElementById('insFornecedor').value.trim();
+  const unidade_compra=document.getElementById('insUnidadeCompra').value.trim();
+  const qtd_embalagem=parseFloat(document.getElementById('insQtdEmbalagem').value)||0;
+  const preco_embalagem=parseFloat(document.getElementById('insPrecoEmbalagem').value)||0;
+  if(!nome){toast('⚠️ Nome obrigatório','er');return;}
+  if(!unidade_compra){toast('⚠️ Embalagem obrigatória','er');return;}
+  if(qtd_embalagem<=0){toast('⚠️ Quantidade inválida','er');return;}
+  const body={nome,setor:setor||null,fornecedor:fornecedor||null,unidade_compra,qtd_embalagem,preco_embalagem,ativo:true,atualizado_em:new Date().toISOString()};
+  try{
+    if(id){await sbPatch('insumos',id,body);}
+    else{await sbPost('insumos',body);}
+    fecharModal('modalInsumo');
+    toast('✅ Insumo salvo!','ok');
+    await carregarTudo();
+  }catch(e){toast('❌ Erro ao salvar','er');console.error(e);}
+}
+
+async function confirmarExcluirInsumo(id,nome){
+  if(!confirm('Excluir insumo "'+nome+'"?'))return;
+  try{
+    await sbPatch('insumos',id,{ativo:false});
+    toast('✅ Insumo removido','ok');
+    await carregarTudo();
+  }catch(e){toast('❌ Erro ao remover','er');}
+}
+
+// ═══════════════════════════════════════
+// FICHAS TÉCNICAS
+// ═══════════════════════════════════════
+function filtrarFichas(setor,el){
+  document.querySelectorAll('#tab-fichas .setor-tab').forEach(function(t){t.classList.remove('on');});
+  el.classList.add('on');
+  filtroFichas=setor;
+  renderFichas();
+}
+function buscarFichas(val){buscaFichas=val.toLowerCase();renderFichas();}
+
+function calcCMV(ficha){
+  const itens=FICHA_ITENS[ficha.id]||[];
+  let custoTotal=0;
+  let pesoBrutoTotal=0;
+  itens.forEach(function(it){
+    const ins=INSUMOS.find(function(i){return i.id===it.insumo_id;});
+    const custoKg=ins?parseFloat(ins.custo_kg_l)||0:0;
+    const qtdBruta=parseFloat(it.qtd_bruta)||parseFloat(it.qtd_liquida)||0;
+    pesoBrutoTotal+=qtdBruta;
+    custoTotal+=qtdBruta*custoKg;
+  });
+  const fa=parseFloat(ficha.fator_coccao)||1;
+  const rendCalc=pesoBrutoTotal*fa;
+  const rendimento=parseFloat(ficha.rendimento_kg)||rendCalc||1;
+  const custoKgFinal=rendimento>0?custoTotal/rendimento:0;
+  const preco=parseFloat(ficha.preco_venda_kg)||0;
+  const cmv=preco>0?custoKgFinal/preco:null;
+  const margem=cmv!==null?1-cmv:null;
+  return{custoTotal,pesoBrutoTotal,rendCalc,rendimento,custoKgFinal,cmv,margem,preco};
+}
+
+function cmvClass(cmv){
+  if(cmv===null)return 'gray';
+  if(cmv<=0.35)return 'ok';
+  if(cmv<=0.45)return 'warn';
+  return 'bad';
+}
+function cmvColor(cmv){
+  const cls=cmvClass(cmv);
+  if(cls==='ok')return '#1D9E75';
+  if(cls==='warn')return '#D97706';
+  return '#C0392B';
+}
+
+function renderFichas(){
+  let lista=FICHAS.filter(function(f){
+    if(filtroFichas!=='TODOS'&&f.setor!==filtroFichas)return false;
+    if(buscaFichas&&!f.produto_nome.toLowerCase().includes(buscaFichas))return false;
+    return true;
+  });
+  const el=document.getElementById('listaFichas');
+  if(!lista.length){
+    el.innerHTML='<div class="empty"><div class="empty-ico">📋</div><p>Nenhuma ficha técnica.<br>Toque no + para criar.</p></div>';
+    return;
+  }
+  el.innerHTML=lista.map(function(f){
+    const c=calcCMV(f);
+    const cmvStr=c.cmv!==null?(c.cmv*100).toFixed(1)+'%':'—';
+    const cmvColor2=cmvColor(c.cmv);
+    const itens=FICHA_ITENS[f.id]||[];
+    return '<div class="ficha-card">'
+      +'<div class="ficha-card-header" onclick="toggleFicha(\'fc-'+f.id+'\')">'
+      +'<div class="ficha-card-nome">'
+      +'<h3>'+f.produto_nome+'</h3>'
+      +'<p>'+(f.grupo||'')+(f.setor?' · '+f.setor:'')+'</p>'
+      +'</div>'
+      +'<div class="ficha-cmv">'
+      +'<div class="ficha-cmv-val" style="color:'+cmvColor2+'">'+cmvStr+'</div>'
+      +'<div class="ficha-cmv-label">CMV</div>'
+      +'</div>'
+      +'</div>'
+      +'<div class="ficha-card-body" id="fc-'+f.id+'">'
+      +renderFichaBody(f,c,itens)
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function toggleFicha(id){
+  const el=document.getElementById(id);
+  if(el)el.classList.toggle('open');
+}
+
+function renderFichaBody(f,c,itens){
+  const rows=itens.map(function(it){
+    const ins=INSUMOS.find(function(i){return i.id===it.insumo_id;});
+    const custoKg=ins?parseFloat(ins.custo_kg_l)||0:0;
+    const qtdBruta=parseFloat(it.qtd_bruta)||0;
+    const custoItem=qtdBruta*custoKg;
+    return '<tr>'
+      +'<td>'+it.insumo_nome+'</td>'
+      +'<td class="r">'+(parseFloat(it.qtd_liquida)||0).toFixed(3)+' '+it.unidade+'</td>'
+      +'<td class="r">'+(parseFloat(it.fator_correcao)||1).toFixed(2)+'</td>'
+      +'<td class="r">'+qtdBruta.toFixed(3)+' '+it.unidade+'</td>'
+      +'<td class="r">R$ '+custoItem.toFixed(2)+'</td>'
+      +'</tr>';
+  }).join('');
+
+  // Formação de preço com diferentes metas de CMV
+  const custoKg=c.custoKgFinal;
+  const pVenda=c.preco;
+  const metas=[0.20,0.30,0.40,0.45];
+  const precoGrid=metas.map(function(m){
+    const pSugerido=custoKg>0?custoKg/m:0;
+    const isAtual=pVenda>0&&Math.abs(pVenda-pSugerido)<2;
+    return '<div class="preco-col'+(isAtual?' atual':'')+'">'
+      +'<div class="preco-col-label">CMV '+(m*100).toFixed(0)+'%</div>'
+      +'<div class="preco-col-val">'+(pSugerido>0?'R$ '+pSugerido.toFixed(2):'—')+'</div>'
+      +'</div>';
+  }).join('');
+
+  const cmvAtual=c.cmv!==null?(c.cmv*100).toFixed(1)+'%':'—';
+  const margemAtual=c.margem!==null?(c.margem*100).toFixed(1)+'%':'—';
+  const barWidth=c.cmv!==null?Math.min(c.cmv*100,100):0;
+  const barClass=cmvClass(c.cmv);
+
+  return '<table class="ing-table">'
+    +'<thead><tr><th>Ingrediente</th><th>Qtd Líq</th><th>FC</th><th>Qtd Bruta</th><th>Custo</th></tr></thead>'
+    +'<tbody>'+rows+'</tbody>'
+    +'<tfoot><tr>'
+    +'<td colspan="3">Total</td>'
+    +'<td class="r">'+c.pesoBrutoTotal.toFixed(3)+' kg</td>'
+    +'<td class="r">R$ '+c.custoTotal.toFixed(2)+'</td>'
+    +'</tr></tfoot>'
+    +'</table>'
+    +'<div style="margin-top:10px;font-size:.75rem;color:var(--gray);">'
+    +'FA (cocção): '+(parseFloat(f.fator_coccao)||1).toFixed(4)+' · '
+    +'Rendimento: '+c.rendimento.toFixed(3)+' kg · '
+    +'Custo/kg: R$ '+c.custoKgFinal.toFixed(4)
+    +'</div>'
+    +'<div style="margin-top:6px;">'
+    +'<div style="display:flex;justify-content:space-between;font-size:.75rem;font-weight:600;">'
+    +'<span>CMV atual: '+cmvAtual+'</span>'
+    +'<span>Margem: '+margemAtual+'</span>'
+    +'</div>'
+    +'<div class="cmv-bar"><div class="cmv-fill cmv-'+barClass+'" style="width:'+barWidth+'%"></div></div>'
+    +'</div>'
+    +'<div style="font-size:.72rem;font-weight:600;color:var(--gray);margin-top:10px;margin-bottom:4px;">FORMAÇÃO DE PREÇO</div>'
+    +'<div class="preco-grid">'+precoGrid+'</div>'
+    +'<div class="btn-row">'
+    +'<button class="btn btn-sec btn-sm" onclick="editarFicha(\''+f.id+'\')">✏️ Editar</button>'
+    +'<button class="btn btn-grn btn-sm" onclick="imprimirFicha(\''+f.id+'\')">🖨️ Imprimir</button>'
+    +'<button class="btn btn-red btn-sm" onclick="confirmarExcluirFicha(\''+f.id+'\',\''+f.produto_nome+'\')">🗑️</button>'
+    +'</div>';
+}
+
+// ═══════════════════════════════════════
+// MODAL FICHA
+// ═══════════════════════════════════════
+function abrirModalFicha(id){
+  ingredientesModal=[];
+  document.getElementById('fichaId').value='';
+  document.getElementById('fichaNome').value='';
+  document.getElementById('fichaSetor').value='CONFEITARIA';
+  document.getElementById('fichaGrupo').value='';
+  document.getElementById('fichaIndicacao').value='';
+  document.getElementById('fichaRendimento').value='';
+  document.getElementById('fichaRendimentoUnid').value='';
+  document.getElementById('fichaTempo').value='';
+  document.getElementById('fichaFA').value='1';
+  document.getElementById('fichaPrecoVenda').value='';
+  document.getElementById('fichaEquipamentos').value='';
+  document.getElementById('fichaModo').value='';
+  document.getElementById('modalFichaTitulo').textContent='Nova Ficha Técnica';
+  document.getElementById('previewCMV').style.display='none';
+  if(id){
+    const f=FICHAS.find(function(x){return x.id===id;});
+    if(!f)return;
+    document.getElementById('fichaId').value=f.id;
+    document.getElementById('fichaNome').value=f.produto_nome;
+    document.getElementById('fichaSetor').value=f.setor;
+    document.getElementById('fichaGrupo').value=f.grupo||'';
+    document.getElementById('fichaIndicacao').value=f.indicacao||'';
+    document.getElementById('fichaRendimento').value=f.rendimento_kg||'';
+    document.getElementById('fichaRendimentoUnid').value=f.rendimento_unid||'';
+    document.getElementById('fichaTempo').value=f.tempo_preparo_min||'';
+    document.getElementById('fichaFA').value=f.fator_coccao||1;
+    document.getElementById('fichaPrecoVenda').value=f.preco_venda_kg||'';
+    document.getElementById('fichaEquipamentos').value=f.equipamentos||'';
+    document.getElementById('fichaModo').value=f.modo_preparo||'';
+    document.getElementById('modalFichaTitulo').textContent='Editar Ficha';
+    ingredientesModal=(FICHA_ITENS[f.id]||[]).map(function(it){
+      return{insumo_id:it.insumo_id,insumo_nome:it.insumo_nome,qtd_liquida:it.qtd_liquida,fator_correcao:it.fator_correcao,unidade:it.unidade,ordem:it.ordem};
+    });
+  }
+  renderIngredientesModal();
+  document.getElementById('modalFicha').classList.remove('hidden');
+}
+
+function editarFicha(id){abrirModalFicha(id);}
+
+function fecharModalFull(){
+  document.getElementById('modalFicha').classList.add('hidden');
+}
+
+function addIngredienteLinha(){
+  ingredientesModal.push({insumo_id:'',insumo_nome:'',qtd_liquida:1,fator_correcao:1,unidade:'kg',ordem:ingredientesModal.length+1});
+  renderIngredientesModal();
+}
+
+function renderIngredientesModal(){
+  const opcoes=INSUMOS.map(function(ins){
+    return '<option value="'+ins.id+'">'+ins.nome+'</option>';
+  }).join('');
+  const rows=ingredientesModal.map(function(it,idx){
+    return '<div class="ing-row" id="ir-'+idx+'">'
+      +'<select onchange="selecionarInsumo('+idx+',this.value)" style="padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:.8rem;font-family:inherit;">'
+      +'<option value="">— Selecionar —</option>'
+      +opcoes
+      +'</select>'
+      +'<input type="number" placeholder="Qtd liq" step="0.001" value="'+(it.qtd_liquida||'')+'" oninput="atualizarIngrediente('+idx+',\'qtd_liquida\',this.value)" style="padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:.8rem;">'
+      +'<input type="number" placeholder="FC" step="0.0001" value="'+(it.fator_correcao||1)+'" oninput="atualizarIngrediente('+idx+',\'fator_correcao\',this.value)" style="padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:.8rem;">'
+      +'<select onchange="atualizarIngrediente('+idx+',\'unidade\',this.value)" style="padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:.8rem;font-family:inherit;">'
+      +'<option value="kg"'+(it.unidade==='kg'?' selected':'')+'>kg</option>'
+      +'<option value="g"'+(it.unidade==='g'?' selected':'')+'>g</option>'
+      +'<option value="l"'+(it.unidade==='l'?' selected':'')+'>L</option>'
+      +'<option value="ml"'+(it.unidade==='ml'?' selected':'')+'>ml</option>'
+      +'<option value="und"'+(it.unidade==='und'?' selected':'')+'>und</option>'
+      +'</select>'
+      +'<button class="btn-rm" onclick="removerIngrediente('+idx+')">✕</button>'
+      +'</div>';
+  }).join('');
+  const el=document.getElementById('listaIngredientesModal');
+  el.innerHTML=rows||'<p style="font-size:.78rem;color:var(--gray);text-align:center;padding:12px;">Nenhum ingrediente. Adicione abaixo.</p>';
+  // Restaurar selects
+  ingredientesModal.forEach(function(it,idx){
+    const sel=el.querySelectorAll('.ing-row')[idx];
+    if(!sel)return;
+    const insSel=sel.querySelector('select');
+    if(insSel&&it.insumo_id)insSel.value=it.insumo_id;
+  });
+}
+
+function selecionarInsumo(idx,insId){
+  const ins=INSUMOS.find(function(i){return i.id===insId;});
+  if(ins){
+    ingredientesModal[idx].insumo_id=ins.id;
+    ingredientesModal[idx].insumo_nome=ins.nome;
+  }
+  atualizarPreviewCMV();
+}
+
+function atualizarIngrediente(idx,campo,val){
+  ingredientesModal[idx][campo]=campo==='unidade'?val:parseFloat(val)||0;
+  atualizarPreviewCMV();
+}
+
+function removerIngrediente(idx){
+  ingredientesModal.splice(idx,1);
+  renderIngredientesModal();
+  atualizarPreviewCMV();
+}
+
+function atualizarPreviewCMV(){
+  const rendimento=parseFloat(document.getElementById('fichaRendimento').value)||0;
+  const fa=parseFloat(document.getElementById('fichaFA').value)||1;
+  const preco=parseFloat(document.getElementById('fichaPrecoVenda').value)||0;
+  let custoTotal=0,pesoBruto=0;
+  ingredientesModal.forEach(function(it){
+    const ins=INSUMOS.find(function(i){return i.id===it.insumo_id;});
+    if(!ins)return;
+    const custoKg=parseFloat(ins.custo_kg_l)||0;
+    const qtdBruta=(parseFloat(it.qtd_liquida)||0)*(parseFloat(it.fator_correcao)||1);
+    pesoBruto+=qtdBruta;
+    custoTotal+=qtdBruta*custoKg;
+  });
+  const rendFinal=rendimento>0?rendimento:pesoBruto*fa;
+  const custoKg=rendFinal>0?custoTotal/rendFinal:0;
+  const cmv=preco>0?custoKg/preco:null;
+  const margem=cmv!==null?1-cmv:null;
+  const div=document.getElementById('previewCMV');
+  if(custoTotal>0){
+    div.style.display='block';
+    document.getElementById('previewKpis').innerHTML=
+      '<div class="kpi-card"><div class="kpi-label">Custo total</div><div class="kpi-val">R$ '+custoTotal.toFixed(2)+'</div></div>'
+      +'<div class="kpi-card"><div class="kpi-label">Custo/kg</div><div class="kpi-val">R$ '+custoKg.toFixed(4)+'</div></div>'
+      +'<div class="kpi-card"><div class="kpi-label">CMV</div><div class="kpi-val" style="color:'+(cmv!==null?cmvColor(cmv):var_brown)+'">'+(cmv!==null?(cmv*100).toFixed(1)+'%':'—')+'</div></div>'
+      +'<div class="kpi-card"><div class="kpi-label">Margem</div><div class="kpi-val">'+(margem!==null?(margem*100).toFixed(1)+'%':'—')+'</div></div>';
+  }else{
+    div.style.display='none';
+  }
+}
+
+var var_brown='#1C1C1A';
+
+document.getElementById('fichaRendimento').addEventListener('input',atualizarPreviewCMV);
+document.getElementById('fichaFA').addEventListener('input',atualizarPreviewCMV);
+document.getElementById('fichaPrecoVenda').addEventListener('input',atualizarPreviewCMV);
+
+async function salvarFicha(){
+  const id=document.getElementById('fichaId').value;
+  const produto_nome=document.getElementById('fichaNome').value.trim().toUpperCase();
+  const setor=document.getElementById('fichaSetor').value;
+  const grupo=document.getElementById('fichaGrupo').value.trim();
+  const indicacao=document.getElementById('fichaIndicacao').value.trim();
+  const rendimento_kg=parseFloat(document.getElementById('fichaRendimento').value)||0;
+  const rendimento_unid=parseInt(document.getElementById('fichaRendimentoUnid').value)||0;
+  const tempo_preparo_min=parseInt(document.getElementById('fichaTempo').value)||0;
+  const fator_coccao=parseFloat(document.getElementById('fichaFA').value)||1;
+  const preco_venda_kg=parseFloat(document.getElementById('fichaPrecoVenda').value)||0;
+  const equipamentos=document.getElementById('fichaEquipamentos').value.trim();
+  const modo_preparo=document.getElementById('fichaModo').value.trim();
+  if(!produto_nome){toast('⚠️ Nome obrigatório','er');return;}
+  if(!setor){toast('⚠️ Setor obrigatório','er');return;}
+  if(rendimento_kg<=0){toast('⚠️ Rendimento obrigatório','er');return;}
+  const body={produto_nome,setor,grupo:grupo||null,indicacao:indicacao||null,rendimento_kg,rendimento_unid,tempo_preparo_min,fator_coccao,preco_venda_kg,equipamentos:equipamentos||null,modo_preparo:modo_preparo||null,ativo:true};
+  try{
+    let fichaId=id;
+    if(id){
+      await sbPatch('fichas_tecnicas',id,body);
+      // Apagar itens antigos
+      await sbDelete('ficha_itens','ficha_id=eq.'+id);
+    }else{
+      const res=await sbPost('fichas_tecnicas',body);
+      fichaId=res[0].id;
+    }
+    // Salvar ingredientes
+    for(let i=0;i<ingredientesModal.length;i++){
+      const it=ingredientesModal[i];
+      if(!it.insumo_id)continue;
+      const qtdBruta=(parseFloat(it.qtd_liquida)||0)*(parseFloat(it.fator_correcao)||1);
+      await sbPost('ficha_itens',{
+        ficha_id:fichaId,
+        insumo_id:it.insumo_id,
+        insumo_nome:it.insumo_nome,
+        qtd_liquida:parseFloat(it.qtd_liquida)||0,
+        fator_correcao:parseFloat(it.fator_correcao)||1,
+        unidade:it.unidade||'kg',
+        ordem:i+1
+      });
+    }
+    fecharModalFull();
+    toast('✅ Ficha salva!','ok');
+    await carregarTudo();
+  }catch(e){toast('❌ Erro ao salvar','er');console.error(e);}
+}
+
+async function confirmarExcluirFicha(id,nome){
+  if(!confirm('Excluir ficha "'+nome+'"?'))return;
+  try{
+    await sbPatch('fichas_tecnicas',id,{ativo:false});
+    toast('✅ Ficha removida','ok');
+    await carregarTudo();
+  }catch(e){toast('❌ Erro ao remover','er');}
+}
+
+// ═══════════════════════════════════════
+// CMV DASHBOARD
+// ═══════════════════════════════════════
+function filtrarCMV(setor,el){
+  document.querySelectorAll('#tab-cmv .setor-tab').forEach(function(t){t.classList.remove('on');});
+  el.classList.add('on');
+  filtroCMV=setor;
+  renderCMV();
+}
+
+function renderCMV(){
+  const lista=FICHAS.filter(function(f){
+    if(filtroCMV!=='TODOS'&&f.setor!==filtroCMV)return false;
+    return true;
+  });
+  // KPIs consolidados
+  let totalFat=0,totalCusto=0,count=0;
+  const cmvItems=lista.map(function(f){
+    const c=calcCMV(f);
+    if(c.preco>0&&c.rendimento>0){
+      const fat=c.preco*c.rendimento;
+      totalFat+=fat;
+      totalCusto+=c.custoTotal;
+      count++;
+    }
+    return{f,c};
+  }).filter(function(x){return x.c.custoTotal>0;});
+  const cmvGeral=totalFat>0?totalCusto/totalFat:null;
+  // KPIs
+  document.getElementById('cmvKpis').innerHTML=
+    '<div class="kpi-card"><div class="kpi-label">CMV Geral</div>'
+    +'<div class="kpi-val" style="color:'+(cmvGeral!==null?cmvColor(cmvGeral):var_brown)+'">'+(cmvGeral!==null?(cmvGeral*100).toFixed(1)+'%':'—')+'</div>'
+    +'<div class="kpi-sub">'+(filtroCMV==='TODOS'?'Todos setores':filtroCMV)+'</div></div>'
+    +'<div class="kpi-card"><div class="kpi-label">Fichas com CMV</div>'
+    +'<div class="kpi-val">'+count+'</div>'
+    +'<div class="kpi-sub">de '+lista.length+' fichas</div></div>';
+  // Lista ordenada por CMV (pior primeiro)
+  cmvItems.sort(function(a,b){
+    const ca=a.c.cmv!==null?a.c.cmv:0;
+    const cb=b.c.cmv!==null?b.c.cmv:0;
+    return cb-ca;
+  });
+  const el=document.getElementById('listaCMV');
+  if(!cmvItems.length){
+    el.innerHTML='<div class="empty"><div class="empty-ico">📊</div><p>Crie fichas técnicas com preço de venda para ver o CMV.</p></div>';
+    return;
+  }
+  el.innerHTML=cmvItems.map(function(x){
+    const f=x.f;const c=x.c;
+    const cmvStr=c.cmv!==null?(c.cmv*100).toFixed(1)+'%':'—';
+    const margemStr=c.margem!==null?(c.margem*100).toFixed(1)+'%':'—';
+    const barWidth=c.cmv!==null?Math.min(c.cmv*100,100):0;
+    const barClass=cmvClass(c.cmv);
+    const cor=cmvColor(c.cmv);
+    return '<div class="card" style="margin-bottom:8px;">'
+      +'<div class="card-body">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'
+      +'<div style="flex:1">'
+      +'<div style="font-size:.85rem;font-weight:700;color:var(--brown);">'+f.produto_nome+'</div>'
+      +'<div style="font-size:.7rem;color:var(--gray);">'+f.setor+'</div>'
+      +'</div>'
+      +'<div style="text-align:right;">'
+      +'<div style="font-size:1rem;font-weight:800;color:'+cor+'">'+cmvStr+'</div>'
+      +'<div style="font-size:.7rem;color:var(--gray);">Margem: '+margemStr+'</div>'
+      +'</div>'
+      +'</div>'
+      +'<div class="cmv-bar"><div class="cmv-fill cmv-'+barClass+'" style="width:'+barWidth+'%"></div></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--gray);margin-top:5px;">'
+      +'<span>Custo/kg: R$ '+c.custoKgFinal.toFixed(2)+'</span>'
+      +'<span>Venda: R$ '+(c.preco||0).toFixed(2)+'/kg</span>'
+      +'</div>'
+      +'</div></div>';
+  }).join('');
+}
+
+// ═══════════════════════════════════════
+// IMPRIMIR FICHA
+// ═══════════════════════════════════════
+function imprimirFicha(id){
+  const f=FICHAS.find(function(x){return x.id===id;});
+  if(!f)return;
+  const itens=FICHA_ITENS[f.id]||[];
+  const c=calcCMV(f);
+  const hoje=new Date();
+  const dataStr=hoje.getDate().toString().padStart(2,'0')+'/'+(hoje.getMonth()+1).toString().padStart(2,'0')+'/'+hoje.getFullYear();
+  const rows=itens.map(function(it){
+    const ins=INSUMOS.find(function(i){return i.id===it.insumo_id;});
+    const custoKg=ins?parseFloat(ins.custo_kg_l)||0:0;
+    const qtdBruta=parseFloat(it.qtd_bruta)||0;
+    const custoItem=qtdBruta*custoKg;
+    return '<tr>'
+      +'<td>'+it.insumo_nome+'</td>'
+      +'<td style="text-align:center">'+(parseFloat(it.qtd_liquida)||0).toFixed(3)+'</td>'
+      +'<td style="text-align:center">'+(parseFloat(it.fator_correcao)||1).toFixed(2)+'</td>'
+      +'<td style="text-align:center">'+qtdBruta.toFixed(3)+'</td>'
+      +'<td style="text-align:center">'+it.unidade+'</td>'
+      +'<td style="text-align:right">R$ '+custoKg.toFixed(4)+'</td>'
+      +'<td style="text-align:right">R$ '+custoItem.toFixed(2)+'</td>'
+      +'</tr>';
+  }).join('');
+  const html='<style>'
+    +'body{font-family:sans-serif;padding:20px;font-size:13px;color:#111;}'
+    +'h1{font-size:18px;margin:0;color:#1B4332;}h2{font-size:14px;margin:4px 0;color:#2D6A4F;}'
+    +'.info{font-size:11px;color:#555;margin-bottom:12px;}'
+    +'table{width:100%;border-collapse:collapse;margin-top:10px;}'
+    +'th{background:#1B4332;color:#fff;padding:6px 8px;text-align:left;font-size:11px;}'
+    +'td{padding:5px 8px;border-bottom:1px solid #e0e0e0;font-size:12px;}'
+    +'tfoot td{font-weight:700;background:#EAF4EF;color:#1B4332;}'
+    +'.kpi-row{display:flex;gap:12px;margin-top:14px;}'
+    +'.kpi{flex:1;background:#f5f5f5;border-radius:8px;padding:10px;text-align:center;}'
+    +'.kpi-v{font-size:16px;font-weight:800;color:#1B4332;}'
+    +'.kpi-l{font-size:10px;color:#666;}'
+    +'.modo{margin-top:14px;padding:10px;background:#f9f9f9;border-radius:8px;font-size:12px;line-height:1.6;}'
+    +'</style>'
+    +'<h1>📋 Ficha Técnica de Custos</h1>'
+    +'<h2>'+f.produto_nome+'</h2>'
+    +'<div class="info">'
+    +(f.grupo?'Grupo: '+f.grupo+' · ':'')
+    +(f.setor?'Setor: '+f.setor+' · ':'')
+    +'Revisão: '+dataStr
+    +'</div>'
+    +'<table>'
+    +'<thead><tr><th>Ingrediente</th><th>Qtd Líq</th><th>FC</th><th>Qtd Bruta</th><th>Und</th><th>Custo/kg</th><th>Custo Total</th></tr></thead>'
+    +'<tbody>'+rows+'</tbody>'
+    +'<tfoot><tr>'
+    +'<td colspan="3"><strong>TOTAL</strong></td>'
+    +'<td style="text-align:center"><strong>'+c.pesoBrutoTotal.toFixed(3)+' kg</strong></td>'
+    +'<td></td>'
+    +'<td></td>'
+    +'<td style="text-align:right"><strong>R$ '+c.custoTotal.toFixed(2)+'</strong></td>'
+    +'</tr></tfoot>'
+    +'</table>'
+    +'<div class="kpi-row">'
+    +'<div class="kpi"><div class="kpi-v">'+c.rendimento.toFixed(3)+' kg</div><div class="kpi-l">Rendimento (FA: '+(parseFloat(f.fator_coccao)||1).toFixed(4)+')</div></div>'
+    +'<div class="kpi"><div class="kpi-v">R$ '+c.custoKgFinal.toFixed(4)+'</div><div class="kpi-l">Custo por kg</div></div>'
+    +'<div class="kpi"><div class="kpi-v">R$ '+(c.preco||0).toFixed(2)+'</div><div class="kpi-l">Preço de venda</div></div>'
+    +'<div class="kpi"><div class="kpi-v" style="color:'+(c.cmv!==null?cmvColor(c.cmv):'#111')+'">'+(c.cmv!==null?(c.cmv*100).toFixed(1)+'%':'—')+'</div><div class="kpi-l">CMV</div></div>'
+    +'<div class="kpi"><div class="kpi-v">'+(c.margem!==null?(c.margem*100).toFixed(1)+'%':'—')+'</div><div class="kpi-l">Margem bruta</div></div>'
+    +'</div>'
+    +(f.modo_preparo?'<div class="modo"><strong>Modo de preparo:</strong><br>'+f.modo_preparo+'</div>':'')
+    +(f.equipamentos?'<div class="modo"><strong>Equipamentos:</strong> '+f.equipamentos+'</div>':'')
+    +'<div style="font-size:10px;color:#aaa;text-align:center;margin-top:16px;">GestFood — Supermercado MG</div>';
+  document.getElementById('printContent').innerHTML=html;
+  document.getElementById('printModal').style.display='flex';
+}
+
+function fecharPrint(){
+  document.getElementById('printModal').style.display='none';
+  document.getElementById('printContent').innerHTML='';
+}
+
+// ═══════════════════════════════════════
+// MODAIS GENÉRICOS
+// ═══════════════════════════════════════
+function fecharModal(id){
+  document.getElementById(id).classList.add('hidden');
+}
+
+// Fechar ao clicar fora
+document.getElementById('modalInsumo').addEventListener('click',function(e){
+  if(e.target===this)fecharModal('modalInsumo');
+});
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+carregarTudo();
+</script>
+</body>
+</html>
