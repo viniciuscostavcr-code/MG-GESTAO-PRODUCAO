@@ -214,7 +214,8 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
   <!-- TABS -->
   <div class="tabs">
     <button class="tab on" onclick="mudarTab('insumos',this)">📦 Insumos</button>
-    <button class="tab" onclick="mudarTab('fichas',this)">📋 Fichas</button>
+    <button class="tab" onclick="mudarTab('fichas',this)">💰 FT Custos</button>
+    <button class="tab" onclick="mudarTab('producao',this)">🍳 FT Produção</button>
     <button class="tab" onclick="mudarTab('cmv',this)">📊 CMV</button>
   </div>
 
@@ -247,6 +248,20 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
         <input type="text" placeholder="Buscar ficha técnica..." oninput="buscarFichas(this.value)">
       </div>
       <div id="listaFichas"><div class="loading"><div class="spin"></div>Carregando...</div></div>
+    </div>
+
+    <!-- TAB FT PRODUÇÃO -->
+    <div class="tab-pane" id="tab-producao">
+      <div class="setor-tabs">
+        <button class="setor-tab on" onclick="filtrarProducao('TODOS',this)">Todos</button>
+        <button class="setor-tab" onclick="filtrarProducao('PADARIA',this)">Padaria</button>
+        <button class="setor-tab" onclick="filtrarProducao('CONFEITARIA',this)">Confeitaria</button>
+      </div>
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Buscar ficha de produção..." oninput="buscarProducao(this.value)">
+      </div>
+      <div id="listaProducao"><div class="loading"><div class="spin"></div>Carregando...</div></div>
     </div>
 
     <!-- TAB CMV -->
@@ -444,6 +459,22 @@ const GF_USER=(function(){
 })();
 if(!GF_USER)throw new Error('sem sessão');
 
+// ═══════════════════════════════════════
+// CONTROLE DE ACESSO POR ROLE
+// ═══════════════════════════════════════
+// Admin vê tudo; operador vê apenas FT Produção (receitas sem custos)
+var IS_ADMIN_FT = GF_USER.role === 'admin';
+if (!IS_ADMIN_FT) {
+  window.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.tab').forEach(function(t, i) {
+      if (i !== 2) t.style.display = 'none';
+    });
+    var fab = document.getElementById('fabBtn');
+    if (fab) fab.style.display = 'none';
+    mudarTab('producao', document.querySelectorAll('.tab')[2]);
+  });
+}
+
 // Badge usuário
 (function(){
   const b=document.getElementById('userBadge');
@@ -516,7 +547,7 @@ function mudarTab(nome,el){
   el.classList.add('on');
   document.getElementById('tab-'+nome).classList.add('on');
   tabAtual=nome;
-  document.getElementById('fabBtn').style.display=nome==='cmv'?'none':'flex';
+  document.getElementById('fabBtn').style.display=(nome==='cmv'||nome==='producao')?'none':'flex';
 }
 
 // ═══════════════════════════════════════
@@ -538,6 +569,7 @@ async function carregarTudo(){
     }
     renderInsumos();
     renderFichas();
+    renderProducao();
     renderCMV();
   }catch(e){
     toast('❌ Erro ao carregar dados','er');
@@ -575,7 +607,7 @@ function renderInsumos(){
       +'<div class="ins-unit">'+(ins.unidade_compra||'')+(ins.fornecedor?' · '+ins.fornecedor:'')+'</div>'
       +'</div>'
       +'<div style="text-align:right">'
-      +'<div class="ins-preco">R$ '+fmtBR(custoKg, 3)+'/kg</div>'
+      +'<div class="ins-preco">R$ '+fmtBR(custoKg, 2)+'/kg</div>'
       +'<div class="ins-unit">Emb: R$ '+fmtBR(ins.preco_embalagem||0, 2)+'</div>'
       +'</div>'
       +'<div class="ins-actions">'
@@ -625,7 +657,7 @@ function atualizarCustoPreview(){
   const el=document.getElementById('custoPreviw');
   if(qtd>0&&preco>0){
     const custo=preco/qtd;
-    document.getElementById('custoKgVal').textContent='R$ '+fmtBR(custo, 3)+'/kg ou und';
+    document.getElementById('custoKgVal').textContent='R$ '+fmtBR(custo, 2)+'/kg ou und';
     el.style.display='block';
   }else{
     el.style.display='none';
@@ -724,7 +756,7 @@ function renderFichas(){
   }
   el.innerHTML=lista.map(function(f){
     const c=calcCMV(f);
-    const cmvStr=c.cmv!==null?fmtBR(c.cmv*100, 1)+'%':'—';
+    const cmvStr=c.cmv!==null?fmtBR(c.cmv*100, 2)+'%':'—';
     const cmvColor2=cmvColor(c.cmv);
     const itens=FICHA_ITENS[f.id]||[];
     return '<div class="ficha-card">'
@@ -758,9 +790,9 @@ function renderFichaBody(f,c,itens){
     const custoItem=qtdBruta*custoKg;
     return '<tr>'
       +'<td>'+it.insumo_nome+'</td>'
-      +'<td class="r">'+fmtBR(parseFloat(it.qtd_liquida)||0, 3)+' '+it.unidade+'</td>'
+      +'<td class="r">'+fmtBR(parseFloat(it.qtd_liquida)||0, 2)+' '+it.unidade+'</td>'
       +'<td class="r">'+fmtBR(parseFloat(it.fator_correcao)||1, 2)+'</td>'
-      +'<td class="r">'+fmtBR(qtdBruta, 3)+' '+it.unidade+'</td>'
+      +'<td class="r">'+fmtBR(qtdBruta, 2)+' '+it.unidade+'</td>'
       +'<td class="r">R$ '+fmtBR(custoItem, 2)+'</td>'
       +'</tr>';
   }).join('');
@@ -778,8 +810,8 @@ function renderFichaBody(f,c,itens){
       +'</div>';
   }).join('');
 
-  const cmvAtual=c.cmv!==null?fmtBR(c.cmv*100, 1)+'%':'—';
-  const margemAtual=c.margem!==null?fmtBR(c.margem*100, 1)+'%':'—';
+  const cmvAtual=c.cmv!==null?fmtBR(c.cmv*100, 2)+'%':'—';
+  const margemAtual=c.margem!==null?fmtBR(c.margem*100, 2)+'%':'—';
   const barWidth=c.cmv!==null?Math.min(c.cmv*100,100):0;
   const barClass=cmvClass(c.cmv);
 
@@ -788,14 +820,14 @@ function renderFichaBody(f,c,itens){
     +'<tbody>'+rows+'</tbody>'
     +'<tfoot><tr>'
     +'<td colspan="3">Total</td>'
-    +'<td class="r">'+fmtBR(c.pesoBrutoTotal, 3)+' kg</td>'
+    +'<td class="r">'+fmtBR(c.pesoBrutoTotal, 2)+' kg</td>'
     +'<td class="r">R$ '+fmtBR(c.custoTotal, 2)+'</td>'
     +'</tr></tfoot>'
     +'</table>'
     +'<div style="margin-top:10px;font-size:.75rem;color:var(--gray);">'
-    +'FA (cocção): '+fmtBR(parseFloat(f.fator_coccao)||1, 4)+' · '
-    +'Rendimento: '+fmtBR(c.rendimento, 3)+' kg · '
-    +'Custo/kg: R$ '+fmtBR(c.custoKgFinal, 3)
+    +'FA (cocção): '+fmtBR(parseFloat(f.fator_coccao)||1, 2)+' · '
+    +'Rendimento: '+fmtBR(c.rendimento, 2)+' kg · '
+    +'Custo/kg: R$ '+fmtBR(c.custoKgFinal, 2)
     +'</div>'
     +'<div style="margin-top:6px;">'
     +'<div style="display:flex;justify-content:space-between;font-size:.75rem;font-weight:600;">'
@@ -811,6 +843,148 @@ function renderFichaBody(f,c,itens){
     +'<button class="btn btn-grn btn-sm" onclick="imprimirFicha(\''+f.id+'\')">🖨️ Imprimir</button>'
     +'<button class="btn btn-red btn-sm" onclick="confirmarExcluirFicha(\''+f.id+'\',\''+f.produto_nome+'\')">🗑️</button>'
     +'</div>';
+}
+
+// ═══════════════════════════════════════
+// FT PRODUÇÃO (visão sem custos — receita pura)
+// ═══════════════════════════════════════
+let filtroProducao = 'TODOS';
+let buscaProducao  = '';
+
+function filtrarProducao(setor, el) {
+  document.querySelectorAll('#tab-producao .setor-tab')
+    .forEach(function(t){ t.classList.remove('on'); });
+  el.classList.add('on');
+  filtroProducao = setor;
+  renderProducao();
+}
+
+function buscarProducao(val) {
+  buscaProducao = (val || '').toLowerCase();
+  renderProducao();
+}
+
+function renderProducao() {
+  var lista = FICHAS.filter(function(f) {
+    if (filtroProducao !== 'TODOS' && f.setor !== filtroProducao) return false;
+    if (buscaProducao && !(f.produto_nome||'').toLowerCase().includes(buscaProducao)) return false;
+    return true;
+  });
+  var el = document.getElementById('listaProducao');
+  if (!el) return;
+  if (!lista.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-ico">🍳</div>'
+      + '<p>Nenhuma ficha de produção.<br>Crie fichas na aba FT Custos.</p></div>';
+    return;
+  }
+  el.innerHTML = lista.map(function(f) {
+    var itens = FICHA_ITENS[f.id] || [];
+    var rows = itens.map(function(it) {
+      var qtdBruta = parseFloat(it.qtd_bruta) || 0;
+      return '<tr>'
+        + '<td>' + (it.insumo_nome || '') + '</td>'
+        + '<td style="text-align:center">' + fmtBR(parseFloat(it.qtd_liquida)||0, 2) + ' ' + (it.unidade||'') + '</td>'
+        + '<td style="text-align:center">' + fmtBR(parseFloat(it.fator_correcao)||1, 2) + '</td>'
+        + '<td style="text-align:center">' + fmtBR(qtdBruta, 2) + ' ' + (it.unidade||'') + '</td>'
+        + '</tr>';
+    }).join('');
+
+    var equipamentosHtml = '';
+    if (f.equipamentos) {
+      equipamentosHtml = '<div style="margin-top:6px;font-size:.75rem;color:var(--gray);">'
+        + '<strong>Equipamentos:</strong> ' + f.equipamentos + '</div>';
+    }
+    var modoPreparoHtml = '';
+    if (f.modo_preparo) {
+      modoPreparoHtml = '<div style="margin-top:8px;padding:10px;background:var(--gray-l);'
+        + 'border-radius:8px;font-size:.78rem;line-height:1.6;color:var(--brown);">'
+        + '<strong>Modo de preparo:</strong><br>' + f.modo_preparo + '</div>';
+    }
+    var tempoStr = f.tempo_preparo_min ? ' · Preparo: ' + f.tempo_preparo_min + ' min' : '';
+
+    return '<div class="ficha-card">'
+      + '<div class="ficha-card-header" onclick="toggleFicha(\'fp-' + f.id + '\')">'
+      +   '<div class="ficha-card-nome">'
+      +     '<h3>' + (f.produto_nome || '') + '</h3>'
+      +     '<p>' + (f.grupo || '') + (f.setor ? ' · ' + f.setor : '') + '</p>'
+      +   '</div>'
+      +   '<div style="font-size:.72rem;color:var(--gray);">' + fmtBR(f.rendimento_kg, 2) + ' kg</div>'
+      + '</div>'
+      + '<div class="ficha-card-body" id="fp-' + f.id + '">'
+      +   '<table class="ing-table">'
+      +     '<thead><tr>'
+      +       '<th>Ingrediente</th><th>Qtd Líquida</th><th>FC</th><th>Qtd Bruta</th>'
+      +     '</tr></thead>'
+      +     '<tbody>' + rows + '</tbody>'
+      +   '</table>'
+      +   '<div style="margin-top:8px;font-size:.75rem;color:var(--gray);">'
+      +     'Rendimento: ' + fmtBR(f.rendimento_kg, 2) + ' kg' + tempoStr
+      +   '</div>'
+      +   equipamentosHtml
+      +   modoPreparoHtml
+      +   '<div class="btn-row">'
+      +     '<button class="btn btn-grn btn-sm" onclick="imprimirFichaProducao(\'' + f.id + '\')">🖨️ Imprimir</button>'
+      +   '</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function imprimirFichaProducao(id) {
+  var f = FICHAS.find(function(x){ return x.id === id; });
+  if (!f) return;
+  var itens = FICHA_ITENS[f.id] || [];
+  var hoje = new Date();
+  var dataStr = String(hoje.getDate()).padStart(2,'0')
+    + '/' + String(hoje.getMonth()+1).padStart(2,'0')
+    + '/' + hoje.getFullYear();
+
+  var rows = itens.map(function(it) {
+    var qtdBruta = parseFloat(it.qtd_bruta) || 0;
+    return '<tr>'
+      + '<td>' + (it.insumo_nome || '') + '</td>'
+      + '<td style="text-align:center">' + fmtBR(parseFloat(it.qtd_liquida)||0, 2) + ' ' + (it.unidade||'') + '</td>'
+      + '<td style="text-align:center">' + fmtBR(parseFloat(it.fator_correcao)||1, 2) + '</td>'
+      + '<td style="text-align:center">' + fmtBR(qtdBruta, 2) + ' ' + (it.unidade||'') + '</td>'
+      + '</tr>';
+  }).join('');
+
+  var grupoStr = f.grupo ? 'Grupo: ' + f.grupo + ' · ' : '';
+  var setorStr = f.setor ? 'Setor: ' + f.setor + ' · ' : '';
+  var preparoStr = f.tempo_preparo_min ? ' · Preparo: ' + f.tempo_preparo_min + ' min' : '';
+  var equipHtml = f.equipamentos
+    ? '<div class="info"><strong>Equipamentos:</strong> ' + f.equipamentos + '</div>'
+    : '';
+  var unidStr = f.rendimento_unid ? ' · ' + f.rendimento_unid + ' unidades' : '';
+  var modoHtml = f.modo_preparo
+    ? '<div class="modo"><strong>Modo de preparo:</strong><br>' + f.modo_preparo + '</div>'
+    : '';
+
+  var html = '<style>'
+    + 'body{font-family:sans-serif;padding:20px;font-size:13px;color:#111;}'
+    + 'h1{font-size:18px;margin:0;color:#1B4332;}'
+    + 'h2{font-size:14px;margin:4px 0;color:#2D6A4F;}'
+    + '.info{font-size:11px;color:#555;margin-bottom:12px;}'
+    + 'table{width:100%;border-collapse:collapse;margin-top:10px;}'
+    + 'th{background:#1B4332;color:#fff;padding:6px 8px;text-align:left;font-size:11px;}'
+    + 'td{padding:5px 8px;border-bottom:1px solid #e0e0e0;font-size:12px;}'
+    + '.modo{margin-top:14px;padding:10px;background:#f9f9f9;border-radius:8px;font-size:12px;line-height:1.6;}'
+    + '.rend{margin-top:10px;padding:8px 12px;background:#EAF4EF;border-radius:8px;font-size:12px;font-weight:700;color:#1B4332;}'
+    + '</style>'
+    + '<h1>🍳 Ficha de Produção</h1>'
+    + '<h2>' + (f.produto_nome || '') + '</h2>'
+    + '<div class="info">' + grupoStr + setorStr + 'Data: ' + dataStr + preparoStr + '</div>'
+    + equipHtml
+    + '<table>'
+    +   '<thead><tr><th>Ingrediente</th><th>Qtd Líquida</th><th>FC</th><th>Qtd Bruta</th></tr></thead>'
+    +   '<tbody>' + rows + '</tbody>'
+    + '</table>'
+    + '<div class="rend">Rendimento final: ' + fmtBR(f.rendimento_kg, 2) + ' kg' + unidStr + '</div>'
+    + modoHtml
+    + '<div style="font-size:10px;color:#aaa;text-align:center;margin-top:16px;">GestFood — Supermercado MG</div>';
+
+  document.getElementById('printContent').innerHTML = html;
+  document.getElementById('printModal').style.display = 'flex';
 }
 
 // ═══════════════════════════════════════
@@ -942,9 +1116,9 @@ function atualizarPreviewCMV(){
     div.style.display='block';
     document.getElementById('previewKpis').innerHTML=
       '<div class="kpi-card"><div class="kpi-label">Custo total</div><div class="kpi-val">R$ '+fmtBR(custoTotal, 2)+'</div></div>'
-      +'<div class="kpi-card"><div class="kpi-label">Custo/kg</div><div class="kpi-val">R$ '+fmtBR(custoKg, 3)+'</div></div>'
-      +'<div class="kpi-card"><div class="kpi-label">CMV</div><div class="kpi-val" style="color:'+(cmv!==null?cmvColor(cmv):var_brown)+'">'+(cmv!==null?fmtBR(cmv*100, 1)+'%':'—')+'</div></div>'
-      +'<div class="kpi-card"><div class="kpi-label">Margem</div><div class="kpi-val">'+(margem!==null?fmtBR(margem*100, 1)+'%':'—')+'</div></div>';
+      +'<div class="kpi-card"><div class="kpi-label">Custo/kg</div><div class="kpi-val">R$ '+fmtBR(custoKg, 2)+'</div></div>'
+      +'<div class="kpi-card"><div class="kpi-label">CMV</div><div class="kpi-val" style="color:'+(cmv!==null?cmvColor(cmv):var_brown)+'">'+(cmv!==null?fmtBR(cmv*100, 2)+'%':'—')+'</div></div>'
+      +'<div class="kpi-card"><div class="kpi-label">Margem</div><div class="kpi-val">'+(margem!==null?fmtBR(margem*100, 2)+'%':'—')+'</div></div>';
   }else{
     div.style.display='none';
   }
@@ -1044,7 +1218,7 @@ function renderCMV(){
   // KPIs
   document.getElementById('cmvKpis').innerHTML=
     '<div class="kpi-card"><div class="kpi-label">CMV Geral</div>'
-    +'<div class="kpi-val" style="color:'+(cmvGeral!==null?cmvColor(cmvGeral):var_brown)+'">'+(cmvGeral!==null?fmtBR(cmvGeral*100, 1)+'%':'—')+'</div>'
+    +'<div class="kpi-val" style="color:'+(cmvGeral!==null?cmvColor(cmvGeral):var_brown)+'">'+(cmvGeral!==null?fmtBR(cmvGeral*100, 2)+'%':'—')+'</div>'
     +'<div class="kpi-sub">'+(filtroCMV==='TODOS'?'Todos setores':filtroCMV)+'</div></div>'
     +'<div class="kpi-card"><div class="kpi-label">Fichas com CMV</div>'
     +'<div class="kpi-val">'+count+'</div>'
@@ -1062,8 +1236,8 @@ function renderCMV(){
   }
   el.innerHTML=cmvItems.map(function(x){
     const f=x.f;const c=x.c;
-    const cmvStr=c.cmv!==null?fmtBR(c.cmv*100, 1)+'%':'—';
-    const margemStr=c.margem!==null?fmtBR(c.margem*100, 1)+'%':'—';
+    const cmvStr=c.cmv!==null?fmtBR(c.cmv*100, 2)+'%':'—';
+    const margemStr=c.margem!==null?fmtBR(c.margem*100, 2)+'%':'—';
     const barWidth=c.cmv!==null?Math.min(c.cmv*100,100):0;
     const barClass=cmvClass(c.cmv);
     const cor=cmvColor(c.cmv);
@@ -1105,11 +1279,11 @@ function imprimirFicha(id){
     const custoItem=qtdBruta*custoKg;
     return '<tr>'
       +'<td>'+it.insumo_nome+'</td>'
-      +'<td style="text-align:center">'+fmtBR(parseFloat(it.qtd_liquida)||0, 3)+'</td>'
+      +'<td style="text-align:center">'+fmtBR(parseFloat(it.qtd_liquida)||0, 2)+'</td>'
       +'<td style="text-align:center">'+fmtBR(parseFloat(it.fator_correcao)||1, 2)+'</td>'
-      +'<td style="text-align:center">'+fmtBR(qtdBruta, 3)+'</td>'
+      +'<td style="text-align:center">'+fmtBR(qtdBruta, 2)+'</td>'
       +'<td style="text-align:center">'+it.unidade+'</td>'
-      +'<td style="text-align:right">R$ '+fmtBR(custoKg, 3)+'</td>'
+      +'<td style="text-align:right">R$ '+fmtBR(custoKg, 2)+'</td>'
       +'<td style="text-align:right">R$ '+fmtBR(custoItem, 2)+'</td>'
       +'</tr>';
   }).join('');
@@ -1139,18 +1313,18 @@ function imprimirFicha(id){
     +'<tbody>'+rows+'</tbody>'
     +'<tfoot><tr>'
     +'<td colspan="3"><strong>TOTAL</strong></td>'
-    +'<td style="text-align:center"><strong>'+fmtBR(c.pesoBrutoTotal, 3)+' kg</strong></td>'
+    +'<td style="text-align:center"><strong>'+fmtBR(c.pesoBrutoTotal, 2)+' kg</strong></td>'
     +'<td></td>'
     +'<td></td>'
     +'<td style="text-align:right"><strong>R$ '+fmtBR(c.custoTotal, 2)+'</strong></td>'
     +'</tr></tfoot>'
     +'</table>'
     +'<div class="kpi-row">'
-    +'<div class="kpi"><div class="kpi-v">'+fmtBR(c.rendimento, 3)+' kg</div><div class="kpi-l">Rendimento (FA: '+fmtBR(parseFloat(f.fator_coccao)||1, 4)+')</div></div>'
-    +'<div class="kpi"><div class="kpi-v">R$ '+fmtBR(c.custoKgFinal, 3)+'</div><div class="kpi-l">Custo por kg</div></div>'
+    +'<div class="kpi"><div class="kpi-v">'+fmtBR(c.rendimento, 2)+' kg</div><div class="kpi-l">Rendimento (FA: '+fmtBR(parseFloat(f.fator_coccao)||1, 2)+')</div></div>'
+    +'<div class="kpi"><div class="kpi-v">R$ '+fmtBR(c.custoKgFinal, 2)+'</div><div class="kpi-l">Custo por kg</div></div>'
     +'<div class="kpi"><div class="kpi-v">R$ '+fmtBR(c.preco||0, 2)+'</div><div class="kpi-l">Preço de venda</div></div>'
-    +'<div class="kpi"><div class="kpi-v" style="color:'+(c.cmv!==null?cmvColor(c.cmv):'#111')+'">'+(c.cmv!==null?fmtBR(c.cmv*100, 1)+'%':'—')+'</div><div class="kpi-l">CMV</div></div>'
-    +'<div class="kpi"><div class="kpi-v">'+(c.margem!==null?fmtBR(c.margem*100, 1)+'%':'—')+'</div><div class="kpi-l">Margem bruta</div></div>'
+    +'<div class="kpi"><div class="kpi-v" style="color:'+(c.cmv!==null?cmvColor(c.cmv):'#111')+'">'+(c.cmv!==null?fmtBR(c.cmv*100, 2)+'%':'—')+'</div><div class="kpi-l">CMV</div></div>'
+    +'<div class="kpi"><div class="kpi-v">'+(c.margem!==null?fmtBR(c.margem*100, 2)+'%':'—')+'</div><div class="kpi-l">Margem bruta</div></div>'
     +'</div>'
     +(f.modo_preparo?'<div class="modo"><strong>Modo de preparo:</strong><br>'+f.modo_preparo+'</div>':'')
     +(f.equipamentos?'<div class="modo"><strong>Equipamentos:</strong> '+f.equipamentos+'</div>':'')
