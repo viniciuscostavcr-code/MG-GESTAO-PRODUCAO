@@ -388,6 +388,19 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
       </div>
     </div>
     <div class="fg">
+      <label>Foto do produto</label>
+      <div id="fotoPreviewWrap" style="margin-bottom:8px;display:none;">
+        <img id="fotoPreview" style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;border:1.5px solid var(--border);">
+        <button type="button" onclick="removerFoto()" style="margin-top:6px;background:var(--red-l);color:var(--red);border:none;border-radius:8px;padding:6px 12px;font-size:.75rem;font-weight:600;cursor:pointer;font-family:inherit;">🗑️ Remover foto</button>
+      </div>
+      <div id="fotoPlaceholder" style="width:100%;height:120px;background:var(--gray-l);border-radius:10px;border:1.5px dashed var(--border);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;cursor:pointer;" onclick="document.getElementById('fichaFotoInput').click()">
+        <span style="font-size:1.5rem;">📷</span>
+        <span style="font-size:.75rem;color:var(--gray);font-weight:600;">Toque para adicionar foto</span>
+      </div>
+      <input type="file" id="fichaFotoInput" accept="image/*" style="display:none;" onchange="previewFoto(this)">
+      <input type="hidden" id="fichaFotoUrl">
+    </div>
+    <div class="fg">
       <label>Equipamentos necessários</label>
       <input type="text" id="fichaEquipamentos" placeholder="ex: Forno a gás, Batedeira, Balança">
     </div>
@@ -902,6 +915,10 @@ function renderProducao() {
     }
     var tempoStr = f.tempo_preparo_min ? ' · Preparo: ' + f.tempo_preparo_min + ' min' : '';
 
+    var fotoHtml = f.foto_url
+      ? '<img src="' + f.foto_url + '" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px;margin-bottom:10px;">'
+      : '<div style="width:100%;height:80px;background:var(--gray-l);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;font-size:.75rem;color:var(--gray);">📷 Sem foto</div>';
+
     return '<div class="ficha-card">'
       + '<div class="ficha-card-header" onclick="toggleFicha(\'fp-' + f.id + '\')">'
       +   '<div class="ficha-card-nome">'
@@ -911,6 +928,7 @@ function renderProducao() {
       +   '<div style="font-size:.72rem;color:var(--gray);">' + fmtBR(f.rendimento_kg, 2) + ' kg</div>'
       + '</div>'
       + '<div class="ficha-card-body" id="fp-' + f.id + '">'
+      +   fotoHtml
       +   '<table class="ing-table">'
       +     '<thead><tr>'
       +       '<th>Ingrediente</th><th>Qtd Líquida</th><th>FC</th><th>Qtd Bruta</th>'
@@ -973,6 +991,7 @@ function imprimirFichaProducao(id) {
     + '</style>'
     + '<h1>🍳 Ficha de Produção</h1>'
     + '<h2>' + (f.produto_nome || '') + '</h2>'
+    + (f.foto_url ? '<img src="' + f.foto_url + '" style="width:100%;max-height:200px;object-fit:cover;border-radius:8px;margin:10px 0;">' : '')
     + '<div class="info">' + grupoStr + setorStr + 'Data: ' + dataStr + preparoStr + '</div>'
     + equipHtml
     + '<table>'
@@ -1006,6 +1025,11 @@ function abrirModalFicha(id){
   document.getElementById('fichaModo').value='';
   document.getElementById('modalFichaTitulo').textContent='Nova Ficha Técnica';
   document.getElementById('previewCMV').style.display='none';
+  // Reset da foto (sempre, mesmo no modo "novo")
+  document.getElementById('fichaFotoUrl').value='';
+  document.getElementById('fichaFotoInput').value='';
+  document.getElementById('fotoPreviewWrap').style.display='none';
+  document.getElementById('fotoPlaceholder').style.display='flex';
   if(id){
     const f=FICHAS.find(function(x){return x.id===id;});
     if(!f)return;
@@ -1022,6 +1046,13 @@ function abrirModalFicha(id){
     document.getElementById('fichaEquipamentos').value=f.equipamentos||'';
     document.getElementById('fichaModo').value=f.modo_preparo||'';
     document.getElementById('modalFichaTitulo').textContent='Editar Ficha';
+    // Carregar foto existente (se houver)
+    if(f.foto_url){
+      document.getElementById('fotoPreview').src=f.foto_url;
+      document.getElementById('fichaFotoUrl').value=f.foto_url;
+      document.getElementById('fotoPreviewWrap').style.display='block';
+      document.getElementById('fotoPlaceholder').style.display='none';
+    }
     ingredientesModal=(FICHA_ITENS[f.id]||[]).map(function(it){
       return{insumo_id:it.insumo_id,insumo_nome:it.insumo_nome,qtd_liquida:it.qtd_liquida,fator_correcao:it.fator_correcao,unidade:it.unidade,ordem:it.ordem};
     });
@@ -1130,6 +1161,51 @@ document.getElementById('fichaRendimento').addEventListener('input',atualizarPre
 document.getElementById('fichaFA').addEventListener('input',atualizarPreviewCMV);
 document.getElementById('fichaPrecoVenda').addEventListener('input',atualizarPreviewCMV);
 
+// ═══════════════════════════════════════
+// FOTO DO PRODUTO (Supabase Storage)
+// ═══════════════════════════════════════
+function previewFoto(input) {
+  if (!input.files || !input.files[0]) return;
+  var file = input.files[0];
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    document.getElementById('fotoPreview').src = e.target.result;
+    document.getElementById('fotoPreviewWrap').style.display = 'block';
+    document.getElementById('fotoPlaceholder').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removerFoto() {
+  document.getElementById('fichaFotoInput').value = '';
+  document.getElementById('fichaFotoUrl').value = '';
+  document.getElementById('fotoPreviewWrap').style.display = 'none';
+  document.getElementById('fotoPlaceholder').style.display = 'flex';
+}
+
+async function uploadFoto(fichaId) {
+  var input = document.getElementById('fichaFotoInput');
+  if (!input.files || !input.files[0]) return null;
+  var file = input.files[0];
+  var ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  var path = 'fichas/' + fichaId + '.' + ext;
+  var r = await fetch(
+    SUPA_URL + '/storage/v1/object/fichas-fotos/' + path,
+    {
+      method: 'POST',
+      headers: {
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + SUPA_KEY,
+        'Content-Type': file.type,
+        'x-upsert': 'true'
+      },
+      body: file
+    }
+  );
+  if (!r.ok) return null;
+  return SUPA_URL + '/storage/v1/object/public/fichas-fotos/' + path;
+}
+
 async function salvarFicha(){
   const id=document.getElementById('fichaId').value;
   const produto_nome=document.getElementById('fichaNome').value.trim().toUpperCase();
@@ -1146,7 +1222,8 @@ async function salvarFicha(){
   if(!produto_nome){toast('⚠️ Nome obrigatório','er');return;}
   if(!setor){toast('⚠️ Setor obrigatório','er');return;}
   if(rendimento_kg<=0){toast('⚠️ Rendimento obrigatório','er');return;}
-  const body={produto_nome,setor,grupo:grupo||null,indicacao:indicacao||null,rendimento_kg,rendimento_unid,tempo_preparo_min,fator_coccao,preco_venda_kg,equipamentos:equipamentos||null,modo_preparo:modo_preparo||null,ativo:true};
+  const foto_url=document.getElementById('fichaFotoUrl').value||null;
+  const body={produto_nome,setor,grupo:grupo||null,indicacao:indicacao||null,rendimento_kg,rendimento_unid,tempo_preparo_min,fator_coccao,preco_venda_kg,equipamentos:equipamentos||null,modo_preparo:modo_preparo||null,foto_url,ativo:true};
   try{
     let fichaId=id;
     if(id){
@@ -1156,6 +1233,12 @@ async function salvarFicha(){
     }else{
       const res=await sbPost('fichas_tecnicas',body);
       fichaId=res[0].id;
+    }
+    // Upload de foto (se houver nova) — só executa se o usuário selecionou um arquivo
+    const novaFoto=await uploadFoto(fichaId);
+    if(novaFoto){
+      await sbPatch('fichas_tecnicas',fichaId,{foto_url:novaFoto});
+      body.foto_url=novaFoto;
     }
     // Salvar ingredientes
     for(let i=0;i<ingredientesModal.length;i++){
