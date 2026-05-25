@@ -550,6 +550,49 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
   body.auto-foco .foco-bar{display:flex;}
   body.auto-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:0!important;}
 }
+
+/* ── CHECKLIST EM MODO PAISAGEM (celular deitado) ── */
+/* Reduz padding/altura/fonte para caber mais produtos na tela */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* Cards de produto menores */
+  .prod-card{padding:8px 12px!important;margin-bottom:6px!important;min-height:36px!important;}
+  .prod-hdr{margin-bottom:3px!important;}
+  .prod-nm{font-size:.8rem!important;line-height:1.25!important;}
+
+  /* Input de quantidade menor */
+  .prod-inp{height:40px!important;padding:0 10px!important;font-size:1rem!important;}
+  .prod-inp-row{margin-bottom:4px!important;}
+  .prod-inp-lbl{font-size:.68rem!important;width:52px!important;}
+  .prod-inp-und{font-size:.68rem!important;width:30px!important;}
+
+  /* Embalagens compactas */
+  .emb-row{gap:4px!important;padding:2px 0!important;}
+  .emb-inp,.emb-gram-inp{height:36px!important;font-size:14px!important;}
+  .emb-tot{font-size:.72rem!important;padding:2px 0!important;}
+  .emb-section-lbl{font-size:.65rem!important;margin:2px 0!important;}
+
+  /* Search/header menor */
+  .ck-search-wrap{padding:6px 10px 0!important;}
+  .ck-search{height:38px!important;padding:0 10px!important;}
+  .ck-search input{font-size:.85rem!important;}
+
+  /* Filtros menores */
+  .ck-filters{padding:5px 10px 0!important;}
+  .ck-filt{padding:4px 10px!important;font-size:.7rem!important;}
+
+  /* Lista com menos padding */
+  .ck-list{padding:6px 10px!important;}
+
+  /* Botão Finalizar menor */
+  .btn-finalizar{padding:10px!important;font-size:.85rem!important;min-height:40px!important;}
+  .ck-footer-btn{padding:6px 10px 12px!important;}
+
+  /* Progress bar menor */
+  .ck-progress{padding:4px 10px 2px!important;bottom:48px!important;}
+
+  /* Botão "Produto não listado" da aba Produção em paisagem */
+  .phoje-add-btn{padding:8px!important;font-size:.78rem!important;}
+}
 .prod-tabela{border-collapse:collapse;min-width:700px;width:100%;font-size:.82rem;}
 .prod-tabela th{background:#1B4332;color:#fff;padding:10px 8px;text-align:center;white-space:nowrap;}
 /* Cabeçalho sticky (fixo ao rolar verticalmente) */
