@@ -584,6 +584,29 @@ async function carregarTudo(){
     renderFichas();
     renderProducao();
     renderCMV();
+
+    // Deep-link: ?prod=NOME → abre direto a aba FT Produção com a ficha aberta
+    var params = new URLSearchParams(window.location.search);
+    var prodParam = params.get('prod');
+    if (prodParam) {
+      var nomeBusca = decodeURIComponent(prodParam).toUpperCase();
+      var ficha = FICHAS.find(function(f) {
+        return (f.produto_nome || '').toUpperCase() === nomeBusca;
+      });
+      if (ficha) {
+        var tabProd = document.querySelectorAll('.tab')[2];
+        if (tabProd) mudarTab('producao', tabProd);
+        setTimeout(function() {
+          var el = document.getElementById('fp-' + ficha.id);
+          if (el) {
+            el.classList.add('open');
+            el.scrollIntoView({behavior:'smooth', block:'start'});
+          }
+        }, 300);
+      } else {
+        toast('⚠️ Ficha não encontrada: ' + nomeBusca, 'er');
+      }
+    }
   }catch(e){
     toast('❌ Erro ao carregar dados','er');
     console.error(e);

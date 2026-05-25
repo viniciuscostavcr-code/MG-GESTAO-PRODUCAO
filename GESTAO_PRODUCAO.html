@@ -3384,9 +3384,12 @@ function abrirDetalheProduto(prodId) {
   html += '<div style="font-size:.65rem;color:#6B7280;margin-top:1px;">'
     + escHtml(prod.nome) + '</div>';
   html += '</div>';
-  html += '<span style="font-size:.65rem;font-weight:700;'
+  html += '<button onclick="abrirFichaProd(\''
+    + escHtml(prod.nome).replace(/'/g, "\\'")
+    + '\')" style="font-size:.65rem;font-weight:700;'
     + 'background:#EAF4EF;color:#1B4332;padding:3px 9px;'
-    + 'border-radius:6px;">Em breve</span>';
+    + 'border-radius:6px;border:none;cursor:pointer;'
+    + 'font-family:inherit;">📋 Ficha</button>';
   html += '</div>';
 
   // Projeção semanal
@@ -3953,6 +3956,12 @@ async function finalizarHoje() {
 function voltarParaTabela() {
   PROD_VIEW = 'tabela';
   renderTabelaSemanal();
+}
+
+// Navega para a ficha técnica de produção do produto selecionado
+function abrirFichaProd(nomeProd) {
+  var nome = encodeURIComponent(nomeProd);
+  window.location.href = 'FICHAS_TECNICAS.html?prod=' + nome;
 }
 
 // ── Adicionar produto não listado ao Confirmar Hoje ──
