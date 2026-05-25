@@ -554,6 +554,14 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
 /* ── CHECKLIST EM MODO PAISAGEM (celular deitado) ── */
 /* Reduz padding/altura/fonte para caber mais produtos na tela */
 @media (orientation: landscape) and (max-height: 500px) {
+  /* 🔧 DEBUG: faixa vermelha no topo confirma que a media query está ativa */
+  body::before{
+    content:"📱 LANDSCAPE MODE ATIVO";
+    position:fixed;top:0;left:0;right:0;
+    background:#C0392B;color:#fff;
+    font-size:11px;font-weight:700;text-align:center;
+    padding:3px 0;z-index:99999;
+  }
   /* Cards de produto menores */
   .prod-card{padding:8px 12px!important;margin-bottom:6px!important;min-height:36px!important;}
   .prod-hdr{margin-bottom:3px!important;}
