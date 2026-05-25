@@ -551,55 +551,88 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
   body.auto-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:0!important;}
 }
 
-/* ── CHECKLIST EM MODO PAISAGEM (celular deitado) ── */
+/* ── CHECKLIST E "HOJE" EM MODO PAISAGEM (celular deitado) ── */
 /* Reduz padding/altura/fonte para caber mais produtos na tela */
 @media (orientation: landscape) and (max-height: 500px) {
-  /* 🔧 DEBUG: faixa vermelha no topo confirma que a media query está ativa */
-  body::before{
-    content:"📱 LANDSCAPE MODE ATIVO";
-    position:fixed;top:0;left:0;right:0;
-    background:#C0392B;color:#fff;
-    font-size:11px;font-weight:700;text-align:center;
-    padding:3px 0;z-index:99999;
-  }
-  /* Cards de produto menores */
+
+  /* ═══ CHECKLIST (.prod-card e .ck-*) ═══ */
   .prod-card{padding:8px 12px!important;margin-bottom:6px!important;min-height:36px!important;}
   .prod-hdr{margin-bottom:3px!important;}
   .prod-nm{font-size:.8rem!important;line-height:1.25!important;}
-
-  /* Input de quantidade menor */
   .prod-inp{height:40px!important;padding:0 10px!important;font-size:1rem!important;}
   .prod-inp-row{margin-bottom:4px!important;}
   .prod-inp-lbl{font-size:.68rem!important;width:52px!important;}
   .prod-inp-und{font-size:.68rem!important;width:30px!important;}
-
-  /* Embalagens compactas */
   .emb-row{gap:4px!important;padding:2px 0!important;}
   .emb-inp,.emb-gram-inp{height:36px!important;font-size:14px!important;}
   .emb-tot{font-size:.72rem!important;padding:2px 0!important;}
   .emb-section-lbl{font-size:.65rem!important;margin:2px 0!important;}
-
-  /* Search/header menor */
   .ck-search-wrap{padding:6px 10px 0!important;}
   .ck-search{height:38px!important;padding:0 10px!important;}
   .ck-search input{font-size:.85rem!important;}
-
-  /* Filtros menores */
   .ck-filters{padding:5px 10px 0!important;}
   .ck-filt{padding:4px 10px!important;font-size:.7rem!important;}
-
-  /* Lista com menos padding */
   .ck-list{padding:6px 10px!important;}
-
-  /* Botão Finalizar menor */
   .btn-finalizar{padding:10px!important;font-size:.85rem!important;min-height:40px!important;}
   .ck-footer-btn{padding:6px 10px 12px!important;}
-
-  /* Progress bar menor */
   .ck-progress{padding:4px 10px 2px!important;bottom:48px!important;}
 
-  /* Botão "Produto não listado" da aba Produção em paisagem */
-  .phoje-add-btn{padding:8px!important;font-size:.78rem!important;}
+  /* ═══ ABA "HOJE" (.phoje-*) ═══ */
+  /* Header compacto */
+  .phoje-hdr{padding:5px 10px!important;gap:6px!important;}
+  .phoje-back{font-size:1rem!important;padding:2px!important;}
+  .phoje-ttl-main{font-size:.78rem!important;}
+  .phoje-ttl-sub{font-size:.62rem!important;}
+  .phoje-prog{font-size:.68rem!important;}
+
+  /* Body / labels de seção */
+  .phoje-body{padding:5px 0 4px!important;}
+  .phoje-sec-lbl{font-size:.65rem!important;padding:4px 12px 1px!important;}
+
+  /* Avisos / banners */
+  .phoje-aviso{padding:6px 10px!important;font-size:.7rem!important;line-height:1.35!important;margin:0 10px 6px!important;}
+
+  /* Cards compactos */
+  .phoje-card{padding:8px 11px 7px!important;margin:0 10px 6px!important;border-radius:10px!important;}
+  .phoje-card-nm{font-size:.78rem!important;margin-bottom:2px!important;}
+  .phoje-abc{min-width:16px!important;height:16px!important;font-size:9px!important;padding:0 3px!important;}
+  .phoje-sug{font-size:.66rem!important;margin-bottom:2px!important;}
+  .phoje-alert{font-size:.64rem!important;margin-bottom:4px!important;}
+
+  /* Input do produto (menor mas mantém 16px pra não dar zoom no iOS) */
+  .phoje-inp-row{gap:6px!important;margin-bottom:5px!important;}
+  .phoje-inp{height:40px!important;padding:0 10px!important;font-size:16px!important;}
+  .phoje-inp-und{font-size:.66rem!important;}
+  .phoje-conf-btn{padding:7px!important;font-size:.72rem!important;border-radius:7px!important;}
+
+  /* Footer compacto */
+  .phoje-footer{padding:6px 10px 10px!important;}
+  .phoje-footer-resumo{font-size:.66rem!important;margin-bottom:5px!important;line-height:1.4!important;}
+  .btn-finalizar-hoje{padding:9px!important;font-size:.8rem!important;min-height:38px!important;}
+
+  /* Botão "Produto não listado" → vira ícone "+" flutuante pequeno em landscape */
+  .phoje-add-btn{
+    width:36px!important;
+    height:36px!important;
+    padding:0!important;
+    margin:0 0 6px auto!important;
+    border-radius:50%!important;
+    font-size:0!important;
+    border:1.5px solid var(--grn2)!important;
+    color:transparent!important;
+    background:#fff!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+  }
+  /* Substitui o texto "➕ Produto não listado" por um "+" verde grande */
+  .phoje-add-btn::before{
+    content:"+";
+    font-size:22px!important;
+    font-weight:700!important;
+    color:var(--grn2)!important;
+    line-height:1!important;
+  }
 }
 .prod-tabela{border-collapse:collapse;min-width:700px;width:100%;font-size:.82rem;}
 .prod-tabela th{background:#1B4332;color:#fff;padding:10px 8px;text-align:center;white-space:nowrap;}
