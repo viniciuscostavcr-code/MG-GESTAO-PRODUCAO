@@ -808,7 +808,7 @@ function renderProds(){
 }
 
 // ── EDITAR / NOVO PRODUTO ──
-function abrirNovoProd(){
+async function abrirNovoProd(){
   _editId=null;
   document.getElementById('modalProdTitulo').textContent='➕ Novo produto';
   document.getElementById('mpId').value='';
@@ -824,13 +824,14 @@ function abrirNovoProd(){
   // Sempre mostrar seção checklist com valores padrão
   document.getElementById('ckSection').style.display='block';
   _preencherCkSection(null);
-  // Seção meta (só admin)
+  // Seção meta (só admin) — _preencherMetaSection é async; tratamos erro pra
+  // não bloquear a abertura do modal em caso de falha de rede no celular
   if(IS_ADMIN){
     document.getElementById('metaSection').style.display='block';
-    _preencherMetaSection(null);
+    try{ await _preencherMetaSection(null); }catch(e){ console.warn('_preencherMetaSection falhou:', e); }
   }
   document.getElementById('modalProd').classList.add('on');
-  setTimeout(()=>document.getElementById('mpNome').focus(),80);
+  setTimeout(function(){ document.getElementById('mpNome').focus(); },80);
 }
 function editarProd(id){
   const p=PRODS.find(x=>x.id===id);if(!p)return;
