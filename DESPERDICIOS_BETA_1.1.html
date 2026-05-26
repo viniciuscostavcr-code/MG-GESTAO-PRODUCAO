@@ -1223,14 +1223,23 @@ function openMod(){
 function remQ(k){delete Q[k];upBar();openMod();render();}
 function closeMod(e){if(!e||e.target===document.getElementById('ov'))document.getElementById('ov').classList.remove('on');}
 
+// ═══ INFERIR UNIDADE A PARTIR DO NOME ═══
+// Usada nos exports CSV/PDF quando o registro não tem campo de unidade explícito.
+function inferirUnidade(nm){
+  nm=(nm||'').toUpperCase();
+  if(/COXINHA|PASTEL|ENROLADINHO|EMPADA|EMPADAO|CROISSANT|SANDUICHE|BURGER|HOT.?DOG|QUIBE|ESFIHA|RISOLE|CROQUETE|BOLINHA|TORTINHA|WRAP|MINI\s+P[AÃ]O|BOLO\s+FAT|FATIA|\bUND\b|\bUNIDADE\b|\bUNID\b|SALGADO\s+JOELHO|FOLHADO/.test(nm))return 'und';
+  return 'kg';
+}
+
 // ═══ EXPORTAR CSV (registro atual) ═══
 function expCSV(){
   const v=document.getElementById('iData').value,resp=document.getElementById('iResp').value,mot=document.getElementById('iMot').value;
   const dt=new Date(v+'T12:00:00');
-  let csv='PRODUTO;COD;SETOR;QUANTIDADE;MOTIVO;DATA;DIA SEMANA;RESPONSAVEL\n';
+  let csv='PRODUTO;COD;SETOR;QUANTIDADE;UNIDADE;MOTIVO;DATA;DIA SEMANA;RESPONSAVEL\n';
   Object.entries(Q).forEach(function(_e){const k=_e[0],qty=_e[1];
     const p=allProds().find(function(x){return pk(x)===k;})||{n:k,c:'',s:'?'};
-    csv+=p.n+';'+(p.c||'')+';'+p.s+';'+qty+';'+mot+';'+dt.toLocaleDateString('pt-BR')+';'+DIAS[dt.getDay()]+';'+resp+'\n';
+    var undExport=p.u||p.und||inferirUnidade(p.n);
+    csv+=p.n+';'+(p.c||'')+';'+p.s+';'+qty+';'+undExport+';'+mot+';'+dt.toLocaleDateString('pt-BR')+';'+DIAS[dt.getDay()]+';'+resp+'\n';
   });
   dl(csv,`desperdicios_${v}.csv`);toast('📥 CSV exportado!','ok');
 }
@@ -1245,8 +1254,11 @@ function expPDF(){
 
 // ═══ EXPORTAR TUDO CSV ═══
 function expTudoCSV(){
-  let csv='PRODUTO;COD;SETOR;QUANTIDADE;MOTIVO;DATA;DIA SEMANA;RESPONSAVEL\n';
-  histFiltrado().forEach(h=>h.regs.forEach(r=>{csv+=r.prod+';'+(r.cod||'')+';'+r.set+';'+r.qty+';'+r.mot+';'+(r.dataFmt||r.data)+';'+r.dia+';'+r.resp+'\n';}));
+  let csv='PRODUTO;COD;SETOR;QUANTIDADE;UNIDADE;MOTIVO;DATA;DIA SEMANA;RESPONSAVEL\n';
+  histFiltrado().forEach(h=>h.regs.forEach(r=>{
+    var undExp=r.u||r.und||inferirUnidade(r.prod);
+    csv+=r.prod+';'+(r.cod||'')+';'+r.set+';'+r.qty+';'+undExp+';'+r.mot+';'+(r.dataFmt||r.data)+';'+r.dia+';'+r.resp+'\n';
+  }));
   dl(csv,'historico_desperdicios.csv');toast('📥 Exportado!','ok');
 }
 
@@ -1290,7 +1302,7 @@ function expDashPDF(){
     const cor=setColors[d.set]||'#7B1E1E';
     return`<tr><td style="padding:5px 8px;font-size:10px;max-width:160px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${i+1}. ${n}</td>
       <td style="padding:5px 8px;"><div style="width:${pct}%;background:${cor};height:14px;border-radius:3px;min-width:4px;display:flex;align-items:center;padding-left:4px"><span style="font-size:8px;color:#fff;white-space:nowrap">${d.qty.toFixed(1)}</span></div></td>
-      <td style="padding:5px 8px;font-size:10px;font-weight:700;color:${cor};text-align:right">${d.qty.toFixed(3)}</td>
+      <td style="padding:5px 8px;font-size:10px;font-weight:700;color:${cor};text-align:right">${d.qty.toFixed(2)}</td>
       <td style="padding:5px 8px;"><span style="font-size:8px;background:${cor}22;color:${cor};padding:2px 6px;border-radius:4px;font-weight:700">${d.set}</span></td></tr>`;
   }).join('');
 
@@ -1306,7 +1318,7 @@ function expDashPDF(){
     ${ultimos14.map((d,i)=>i%2===0?`<text x="${pad+i*stepX}" y="${H-4}" text-anchor="middle" font-size="8" fill="#888">${new Date(d+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</text>`:'').join('')}`:'<text x="250" y="40" text-anchor="middle" font-size="12" fill="#888">Dados insuficientes</text>';
 
   // Motivos
-  const motRows=Object.entries(porMot).sort((a,b)=>b[1]-a[1]).map(([m,v])=>`<tr><td style="padding:4px 8px;font-size:10px">${m}</td><td style="padding:4px 8px;text-align:right;font-weight:700;font-size:10px">${v.toFixed(3)} kg</td><td style="padding:4px 8px;text-align:right;font-size:9px;color:#888">${(v/tot*100).toFixed(1)}%</td></tr>`).join('');
+  const motRows=Object.entries(porMot).sort((a,b)=>b[1]-a[1]).map(([m,v])=>`<tr><td style="padding:4px 8px;font-size:10px">${m}</td><td style="padding:4px 8px;text-align:right;font-weight:700;font-size:10px">${v.toFixed(2)}</td><td style="padding:4px 8px;text-align:right;font-size:9px;color:#888">${(v/tot*100).toFixed(1)}%</td></tr>`).join('');
 
   const setRows=D.sets.map(s=>`<tr><td style="padding:5px 8px;font-size:10px">${ICO[s]||''} ${s}</td><td style="padding:5px 8px;text-align:right;font-weight:700;font-size:10px;color:${setColors[s]||'#333'}">⚖️ ${(pSKg[s]||0).toFixed(3)} kg</td><td style="padding:5px 8px;text-align:right;font-weight:700;font-size:10px;color:#6A1B9A">📦 ${(pSUnd[s]||0).toFixed(0)} un</td><td style="padding:5px 8px;text-align:right;font-size:9px;color:#888">${((pS[s]||0)/tot*100).toFixed(1)}%</td></tr>`).join('');
 
@@ -1375,8 +1387,11 @@ function expTudoPDF(){
   let tot=0,pS={};
   hist.forEach(h=>h.regs.forEach(r=>{tot+=r.qty;pS[r.set]=(pS[r.set]||0)+r.qty;}));
   const w=window.open('','_blank');
-  const rows=hist.flatMap(h=>h.regs.map(r=>`<tr><td>${r.dataFmt||r.data}</td><td>${r.prod}</td><td>${r.set}</td><td style="text-align:right">${Number(r.qty).toFixed(3)}</td><td>${r.mot}</td><td>${r.resp}</td></tr>`)).join('');
-  const setRows=D.sets.map(s=>`<tr><td>${ICO[s]||'📦'} ${s}</td><td style="text-align:right"><b>${(pS[s]||0).toFixed(3)} kg</b></td></tr>`).join('');
+  const rows=hist.flatMap(h=>h.regs.map(function(r){
+    var und=r.u||r.und||inferirUnidade(r.prod);
+    return '<tr><td>'+(r.dataFmt||r.data)+'</td><td>'+r.prod+'</td><td>'+r.set+'</td><td style="text-align:right">'+Number(r.qty).toFixed(2)+'</td><td>'+und+'</td><td>'+r.mot+'</td><td>'+r.resp+'</td></tr>';
+  })).join('');
+  const setRows=D.sets.map(s=>`<tr><td>${ICO[s]||'📦'} ${s}</td><td style="text-align:right"><b>${(pS[s]||0).toFixed(2)}</b></td></tr>`).join('');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Relatório Desperdícios</title>
   <style>body{font-family:Arial,sans-serif;font-size:11px;color:#222;padding:20px;}
   h1{color:#7B1E1E;font-size:16px;margin-bottom:4px;}
@@ -1391,9 +1406,9 @@ function expTudoPDF(){
   <h1>🗑️ Relatório de Desperdícios — Supermercado MG</h1>
   <p style="color:#666;font-size:10px;">Gerado em: ${new Date().toLocaleString('pt-BR')} · Total de registros: ${hist.length} dias · ${hist.reduce((a,h)=>a+h.regs.length,0)} itens</p>
   <h2>📊 Resumo por Setor</h2>
-  <table><tr><th>Setor</th><th>Total (kg)</th></tr>${setRows}<tr class="tot"><td>🏪 TOTAL GERAL</td><td style="text-align:right">${tot.toFixed(3)} kg</td></tr></table>
+  <table><tr><th>Setor</th><th>Total</th></tr>${setRows}<tr class="tot"><td>🏪 TOTAL GERAL</td><td style="text-align:right">${tot.toFixed(2)}</td></tr></table>
   <h2>📋 Registros Detalhados</h2>
-  <table><tr><th>Data</th><th>Produto</th><th>Setor</th><th>Qtd (kg)</th><th>Motivo</th><th>Responsável</th></tr>${rows}</table>
+  <table><tr><th>Data</th><th>Produto</th><th>Setor</th><th>Qtd</th><th>Und</th><th>Motivo</th><th>Responsável</th></tr>${rows}</table>
   <div class="footer">Supermercado MG · Controle de Desperdícios BETA · ${new Date().toLocaleDateString('pt-BR')}</div>
   <a href="GESTFOOD_CONFIG.html" style="position:fixed;bottom:80px;left:16px;z-index:9998;display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #E8E8E4;border-radius:10px;padding:8px 13px;font-size:.72rem;font-weight:600;color:#6B7280;text-decoration:none;box-shadow:0 2px 12px rgba(0,0,0,.10);">⚙️ Config</a>
 </body></html>`);
@@ -1404,7 +1419,10 @@ function expTudoPDF(){
 
 function gerarPDF(titulo,resp,mot,itens){
   const w=window.open('','_blank');
-  const rows=itens.map(p=>`<tr><td>${p.n}</td><td>${p.c||'—'}</td><td>${p.s}</td><td style="text-align:right">${Number(p.qty).toFixed(3)}</td></tr>`).join('');
+  const rows=itens.map(function(p){
+    var und=p.u||p.und||inferirUnidade(p.n);
+    return '<tr><td>'+p.n+'</td><td>'+(p.c||'—')+'</td><td>'+p.s+'</td><td style="text-align:right">'+Number(p.qty).toFixed(2)+'</td><td>'+und+'</td></tr>';
+  }).join('');
   const tot=itens.reduce((a,p)=>a+p.qty,0);
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${titulo}</title>
   <style>body{font-family:Arial,sans-serif;font-size:11px;color:#222;padding:20px;}
@@ -1413,9 +1431,9 @@ function gerarPDF(titulo,resp,mot,itens){
   td{padding:5px 8px;border-bottom:1px solid #F5E6C0;}tr:nth-child(even){background:#FBF5EE;}
   .tot{background:#FAF0DC;font-weight:bold;}@media print{body{padding:0;}}</style></head><body>
   <h1>🗑️ ${titulo}</h1>
-  <p><b>Responsável:</b> ${resp} · <b>Motivo:</b> ${mot} · <b>Total:</b> ${tot.toFixed(3)} kg</p>
-  <table><tr><th>Produto</th><th>Cód</th><th>Setor</th><th>Qtd (kg)</th></tr>
-  ${rows}<tr class="tot"><td colspan="3"><b>TOTAL</b></td><td style="text-align:right"><b>${tot.toFixed(3)}</b></td></tr></table>
+  <p><b>Responsável:</b> ${resp} · <b>Motivo:</b> ${mot} · <b>Total:</b> ${tot.toFixed(2)}</p>
+  <table><tr><th>Produto</th><th>Cód</th><th>Setor</th><th>Qtd</th><th>Und</th></tr>
+  ${rows}<tr class="tot"><td colspan="3"><b>TOTAL</b></td><td style="text-align:right"><b>${tot.toFixed(2)}</b></td><td></td></tr></table>
   <p style="font-size:9px;color:#888;margin-top:16px;">Supermercado MG · ${new Date().toLocaleString('pt-BR')}</p>
   <a href="GESTFOOD_CONFIG.html" style="position:fixed;bottom:80px;left:16px;z-index:9998;display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #E8E8E4;border-radius:10px;padding:8px 13px;font-size:.72rem;font-weight:600;color:#6B7280;text-decoration:none;box-shadow:0 2px 12px rgba(0,0,0,.10);">⚙️ Config</a>
 </body></html>`);
