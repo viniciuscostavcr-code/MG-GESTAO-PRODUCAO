@@ -817,7 +817,7 @@ async function abrirNovoProd(){
   document.getElementById('mpMin').value='';
   document.getElementById('mpMax').value='';
   document.getElementById('mpVal').value='1';
-  document.getElementById('mpAbc').value='C';
+  // (campo mpAbc removido — não existe no HTML do modal, causava TypeError silencioso)
   _preencherSetorSelect('mpSetor','PADARIA');
   document.getElementById('mpUnd').value='kg';
   document.getElementById('embSection').style.display='none';
