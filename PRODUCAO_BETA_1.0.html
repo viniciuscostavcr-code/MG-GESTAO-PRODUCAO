@@ -139,6 +139,22 @@ select:focus,input:focus{border-color:var(--grn);background:#fff;}
 .hfilt-btn{border:none;border-radius:8px;padding:8px 12px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
 .hfilt-btn.ap{background:var(--grn2);color:#fff;}
 .hfilt-btn.cl{background:var(--gray-l);color:var(--brown);}
+/* Atalhos rápidos de período */
+.hfilt-quick{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.hfilt-quick-btn{background:#EAF4EF;color:#1B4332;border:1px solid #C6E6D4;border-radius:14px;padding:5px 12px;font-size:.72rem;font-weight:600;cursor:pointer;font-family:inherit;}
+.hfilt-quick-btn:active{background:#C6E6D4;}
+/* Print modal interno (substitui window.open para iOS Safari) */
+.print-modal{position:fixed;inset:0;background:#fff;z-index:9999;overflow-y:auto;display:none;flex-direction:column;}
+.print-modal-hdr{position:sticky;top:0;background:#1B4332;color:#fff;padding:12px 16px;display:flex;gap:8px;justify-content:space-between;z-index:10;}
+.print-modal-btn{padding:10px 16px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;min-height:44px;font-family:inherit;}
+.print-modal-btn.back{background:#fff;color:#1B4332;}
+.print-modal-btn.go{background:#2D6A4F;color:#fff;}
+.print-modal-body{flex:1;padding:20px;}
+@media print{
+  body > *:not(.print-modal){display:none!important;}
+  .print-modal-hdr{display:none!important;}
+  .print-modal{position:static;overflow:visible;}
+}
 .hfilt-info{background:var(--grn-l);border-radius:8px;padding:7px 12px;font-size:.75rem;font-weight:600;color:var(--grn2);margin-bottom:8px;}
 /* COMPARATIVO SEMANAL */
 .semana-set-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);}
@@ -321,6 +337,11 @@ input:checked+.tsl:before{transform:translateX(17px);}
         <button class="hfilt-btn cl" onclick="limparFiltro()">✕</button>
       </div>
     </div>
+    <div class="hfilt-quick">
+      <button class="hfilt-quick-btn" onclick="filtroEsteMes()">Este mês</button>
+      <button class="hfilt-quick-btn" onclick="filtroMesAnterior()">Mês anterior</button>
+      <button class="hfilt-quick-btn" onclick="filtroUltimos30()">Últimos 30 dias</button>
+    </div>
     <div id="histC"></div>
   </div>
   <!-- DASHBOARD -->
@@ -394,6 +415,9 @@ input:checked+.tsl:before{transform:translateX(17px);}
 </div>
 
 <script>
+// Normaliza vírgula decimal (BR) para ponto antes de parseFloat
+function parseDecBR(v){return parseFloat(String(v==null?'':v).replace(',','.'));}
+
 // ═══ SUPABASE ═══
 const SU='https://rjkseydseuotdkavskss.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqa3NleWRzZXVvdGRrYXZza3NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTE4OTAsImV4cCI6MjA4Nzc4Nzg5MH0.wEzZ9sZhXJhu0jjNx2OeW7RacGi8djUj-9r9u1-8KYY';
@@ -585,7 +609,7 @@ function render(){
         <span class="gtag" style="background:${fl?cor+'22':''};color:${fl?cor:'var(--grn)'}">${p.g}</span>
         <div class="pq">
           <button class="qb" onclick="adj('${k}',-1,event)">−</button>
-          <input class="qi ${v?'v':''}" type="number" min="0" step="${p.u==='UND'?'1':'0.1'}" value="${v}" placeholder="0" id="q${sid}" oninput="chg('${k}',this)" onfocus="this.select()">
+          <input class="qi ${v?'v':''}" type="text" inputmode="decimal" min="0" step="${p.u==='UND'?'1':'0.1'}" value="${v}" placeholder="0" id="q${sid}" oninput="chg('${k}',this)" onfocus="this.select()">
           <button class="qb" onclick="adj('${k}',1,event)">+</button>
         </div>
       </div>
@@ -594,7 +618,7 @@ function render(){
   upBar();
 }
 function chg(k,el){
-  const v=parseFloat(el.value);
+  const v=parseDecBR(el.value);
   if(!isNaN(v)&&v>0){Q[k]=v;el.classList.add('v');}else{delete Q[k];el.classList.remove('v');}
   const sid=k.replace(/[^a-z0-9]/gi,'_'),card=document.getElementById('c'+sid);
   if(card){card.classList.toggle('filled',!!Q[k]);const fp=card.querySelector('.pfoto');const p=allProds().find(x=>x._key===k);if(fp&&p)fp.style.borderColor=Q[k]?GC[p.g]||'var(--grn)':'var(--border)';}
@@ -603,7 +627,7 @@ function chg(k,el){
 function adj(k,d,e){
   e.stopPropagation();
   const sid=k.replace(/[^a-z0-9]/gi,'_'),el=document.getElementById('q'+sid),p=allProds().find(x=>x._key===k),step=p&&p.u==='UND'?1:0.5;
-  el.value=Math.max(0,parseFloat(((parseFloat(el.value)||0)+d*step).toFixed(1)))||'';chg(k,el);
+  el.value=Math.max(0,parseFloat(((parseDecBR(el.value)||0)+d*step).toFixed(1)))||'';chg(k,el);
 }
 function upBar(){
   const n=Object.keys(Q).length;
@@ -689,10 +713,11 @@ function renderHist(){
   const totRegs=lista.reduce((a,h)=>a+h.regs.length,0);
   const infoHtml=filtroAtivo?`<div class="hfilt-info">🔍 ${lista.length} dia${lista.length!==1?'s':''} · ${totRegs} registros encontrados</div>`:'';
   el.innerHTML=
-    `<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
-      <button class="hexp" style="flex:1;margin:0;" onclick="expTudo()">⬇️ Exportar CSV</button>
-      <button class="hexp" style="flex:1;margin:0;background:var(--grn);color:#fff;" onclick="expTudoPDF()">📄 Exportar PDF</button>
-    </div>`+
+    '<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">'
+    + '<button class="hexp" style="flex:1;margin:0;min-width:120px;" onclick="expTudo()">⬇️ CSV</button>'
+    + '<button class="hexp" style="flex:1;margin:0;min-width:120px;background:var(--grn);color:#fff;" onclick="expTudoPDF()">📄 PDF</button>'
+    + '<button class="hexp" style="flex:1;margin:0;min-width:120px;background:#1B4332;color:#fff;" onclick="expConsolidadoPDF()">📊 Consolidado</button>'
+    + '</div>'+
     infoHtml+
     lista.map(h=>{
       const dtFmt=h.dataFmt||fmtISO(h.data);
@@ -1126,6 +1151,125 @@ function toast(msg,t=''){const el=document.getElementById('tst');el.textContent=
   }
 })();
 
+// ═══ PRINT MODAL INTERNO (substitui window.open para iOS Safari) ═══
+function abrirPrintModal(html){
+  document.getElementById('printModalContent').innerHTML=html;
+  document.getElementById('printModal').style.display='flex';
+  window.scrollTo(0,0);
+}
+function fecharPrintModal(){
+  document.getElementById('printModal').style.display='none';
+  document.getElementById('printModalContent').innerHTML='';
+}
+function executarPrint(){window.print();}
+
+// ═══ ATALHOS RÁPIDOS DE PERÍODO ═══
+function _fmtISO(d){return d.toISOString().slice(0,10);}
+function filtroEsteMes(){
+  var d=new Date();
+  var de=new Date(d.getFullYear(),d.getMonth(),1);
+  var ate=new Date(d.getFullYear(),d.getMonth()+1,0);
+  document.getElementById('fDe').value=_fmtISO(de);
+  document.getElementById('fAte').value=_fmtISO(ate);
+  aplicarFiltro();
+}
+function filtroMesAnterior(){
+  var d=new Date();
+  var de=new Date(d.getFullYear(),d.getMonth()-1,1);
+  var ate=new Date(d.getFullYear(),d.getMonth(),0);
+  document.getElementById('fDe').value=_fmtISO(de);
+  document.getElementById('fAte').value=_fmtISO(ate);
+  aplicarFiltro();
+}
+function filtroUltimos30(){
+  var ate=new Date();
+  var de=new Date();de.setDate(de.getDate()-29);
+  document.getElementById('fDe').value=_fmtISO(de);
+  document.getElementById('fAte').value=_fmtISO(ate);
+  aplicarFiltro();
+}
+
+// ═══ PDF CONSOLIDADO (agrupado por produto) ═══
+function expConsolidadoPDF(){
+  var lista=histFiltrado();
+  if(!lista.length){toast('Sem dados para exportar','er');return;}
+
+  // Agrega por produto
+  var agg={};
+  var diasSet=new Set();
+  var nReg=0;
+  lista.forEach(function(h){
+    diasSet.add(h.data);
+    h.regs.forEach(function(r){
+      nReg++;
+      var key=r.prod+'|'+(r.und||'kg');
+      if(!agg[key]){
+        agg[key]={prod:r.prod,cod:r.cod||'',grp:r.grp||'—',und:r.und||'kg',total:0};
+      }
+      agg[key].total+=parseFloat(r.qty)||0;
+    });
+  });
+  var items=Object.values(agg).sort(function(a,b){return b.total-a.total;});
+
+  var totalGeral=items.reduce(function(a,it){return a+it.total;},0);
+
+  var dtDe=HFILT.de?fmtISO(HFILT.de):(lista[lista.length-1].dataFmt||fmtISO(lista[lista.length-1].data));
+  var dtAte=HFILT.ate?fmtISO(HFILT.ate):(lista[0].dataFmt||fmtISO(lista[0].data));
+
+  var rows=items.map(function(it){
+    return '<tr>'
+      +'<td>'+it.prod+'</td>'
+      +'<td style="text-align:center">'+it.cod+'</td>'
+      +'<td style="text-align:center">'+it.grp+'</td>'
+      +'<td style="text-align:center;font-weight:600;color:'+(it.und==='UND'?'#E67E22':'#C0392B')+';">'+it.und+'</td>'
+      +'<td style="text-align:right;font-weight:700;color:#1B4332;">'+it.total.toFixed(2)+'</td>'
+      +'</tr>';
+  }).join('');
+
+  var html='<style>'
+    +'body{font-family:Arial,sans-serif;padding:0;color:#1C1C1A;}'
+    +'h1{font-size:18px;color:#1B4332;margin:0 0 4px;}'
+    +'h2{font-size:13px;color:#2D6A4F;margin:14px 0 6px;border-bottom:2px solid #C6E6D4;padding-bottom:4px;}'
+    +'.info{font-size:11px;color:#555;margin-bottom:14px;}'
+    +'.kpis{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}'
+    +'.kpi{flex:1;min-width:120px;background:#EAF4EF;border-radius:8px;padding:10px;text-align:center;}'
+    +'.kpi-v{font-size:18px;font-weight:800;color:#1B4332;}'
+    +'.kpi-l{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}'
+    +'table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px;}'
+    +'th{background:#1B4332;color:#fff;padding:8px;text-align:left;font-size:11px;}'
+    +'td{padding:6px 8px;border-bottom:1px solid #eee;}'
+    +'.tot{background:#EAF4EF;font-weight:700;}'
+    +'</style>'
+    +'<h1>📊 Consolidado de Produção</h1>'
+    +'<div class="info">Período: '+dtDe+' até '+dtAte+' · Gerado em '+new Date().toLocaleString('pt-BR')+'</div>'
+    +'<div class="kpis">'
+    +'<div class="kpi"><div class="kpi-v">'+items.length+'</div><div class="kpi-l">Produtos</div></div>'
+    +'<div class="kpi"><div class="kpi-v">'+nReg+'</div><div class="kpi-l">Registros</div></div>'
+    +'<div class="kpi"><div class="kpi-v">'+diasSet.size+'</div><div class="kpi-l">Dias</div></div>'
+    +'<div class="kpi"><div class="kpi-v">'+totalGeral.toFixed(2)+'</div><div class="kpi-l">Total</div></div>'
+    +'</div>'
+    +'<h2>📋 Total por produto (maior → menor)</h2>'
+    +'<table>'
+    +'<thead><tr><th>Produto</th><th>Cód</th><th>Grupo</th><th>Und</th><th style="text-align:right">Total</th></tr></thead>'
+    +'<tbody>'+rows
+    +'<tr class="tot"><td colspan="4">TOTAL GERAL</td><td style="text-align:right">'+totalGeral.toFixed(2)+'</td></tr>'
+    +'</tbody></table>'
+    +'<div style="font-size:9px;color:#aaa;text-align:center;margin-top:14px;">GestFood — Supermercado MG</div>';
+
+  abrirPrintModal(html);
+  toast('📊 Consolidado gerado!','ok');
+}
+
 </script>
+
+<!-- PRINT MODAL INTERNO -->
+<div id="printModal" class="print-modal">
+  <div class="print-modal-hdr">
+    <button class="print-modal-btn back" onclick="fecharPrintModal()">← Voltar</button>
+    <button class="print-modal-btn go" onclick="executarPrint()">🖨️ Imprimir</button>
+  </div>
+  <div id="printModalContent" class="print-modal-body"></div>
+</div>
+
 </body>
 </html>

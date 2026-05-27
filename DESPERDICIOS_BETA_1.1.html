@@ -188,6 +188,22 @@ select:focus,input:focus{border-color:var(--grn);background:#fff;}
 .hfilt-btn{border:none;border-radius:8px;padding:8px 12px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
 .hfilt-btn.ap{background:var(--brown);color:#fff;}
 .hfilt-btn.cl{background:var(--gray-l);color:var(--brown);}
+/* Atalhos rápidos de período */
+.hfilt-quick{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;padding:0 8px;}
+.hfilt-quick-btn{background:#FDF2E9;color:#7B1E1E;border:1px solid #F5E0C8;border-radius:14px;padding:5px 12px;font-size:.72rem;font-weight:600;cursor:pointer;font-family:inherit;}
+.hfilt-quick-btn:active{background:#F5E0C8;}
+/* Print modal interno (substitui window.open para iOS Safari) */
+.print-modal{position:fixed;inset:0;background:#fff;z-index:9999;overflow-y:auto;display:none;flex-direction:column;}
+.print-modal-hdr{position:sticky;top:0;background:#7B1E1E;color:#fff;padding:12px 16px;display:flex;gap:8px;justify-content:space-between;z-index:10;}
+.print-modal-btn{padding:10px 16px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;min-height:44px;font-family:inherit;}
+.print-modal-btn.back{background:#fff;color:#7B1E1E;}
+.print-modal-btn.go{background:#A93226;color:#fff;}
+.print-modal-body{flex:1;padding:20px;}
+@media print{
+  body > *:not(.print-modal){display:none!important;}
+  .print-modal-hdr{display:none!important;}
+  .print-modal{position:static;overflow:visible;}
+}
 
 /* DASHBOARD */
 .dash-kpi{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
@@ -601,6 +617,11 @@ canvas{width:100%!important;max-height:200px;}
         <button class="hfilt-btn cl" onclick="limparFiltro()">✕</button>
       </div>
     </div>
+    <div class="hfilt-quick">
+      <button class="hfilt-quick-btn" onclick="filtroEsteMes()">Este mês</button>
+      <button class="hfilt-quick-btn" onclick="filtroMesAnterior()">Mês anterior</button>
+      <button class="hfilt-quick-btn" onclick="filtroUltimos30()">Últimos 30 dias</button>
+    </div>
     <div id="histC"></div>
   </div>
 
@@ -754,6 +775,9 @@ canvas{width:100%!important;max-height:200px;}
 </div>
 
 <script>
+// Normaliza vírgula decimal (BR) para ponto antes de parseFloat
+function parseDecBR(v){return parseFloat(String(v==null?'':v).replace(',','.'));}
+
 // ═══ SUPABASE CONFIG ═══
 const SUPA_URL='https://rjkseydseuotdkavskss.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqa3NleWRzZXVvdGRrYXZza3NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTE4OTAsImV4cCI6MjA4Nzc4Nzg5MH0.wEzZ9sZhXJhu0jjNx2OeW7RacGi8djUj-9r9u1-8KYY';
@@ -1001,7 +1025,7 @@ function renderAlertCfg(){
         <div class="alert-cfg-sub">Alerta quando desperdício diário atingir o limite</div>
       </div>
       <div class="alert-cfg-val">
-        <input type="number" min="0.5" max="999" step="0.5" value="${D.alertas[s]||5}"
+        <input type="text" inputmode="decimal" min="0.5" max="999" step="0.5" value="${D.alertas[s]||5}"
           onchange="setAlerta('${s}',this.value)" title="Limite em kg">
       </div>
     </div>`).join('');
@@ -1049,7 +1073,7 @@ function render(){
         <span class="stag ${p.s}">${p.s}</span>
         <div class="pq">
           <button class="qb" onclick="adj('${k}',-1,event)">−</button>
-          <input class="qi ${v?'v':''}" type="number" min="0" step="${_isUnd?'1':'0.1'}"
+          <input class="qi ${v?'v':''}" type="text" inputmode="decimal" min="0" step="${_isUnd?'1':'0.1'}"
             value="${v}" placeholder="0" id="q${sid}"
             oninput="chg('${k}',this)" onfocus="this.select()">
           <span class="qty-lbl">${_isUnd?'un':'kg'}</span>
@@ -1073,7 +1097,7 @@ function render(){
 
 function chg(k,el){
   const p=allProds().find(x=>pk(x)===k);
-  let v=parseFloat(el.value);
+  let v=parseDecBR(el.value);
   if(getU(p)==='und'&&!isNaN(v))v=Math.round(v);
   if(!isNaN(v)&&v>0){Q[k]=v;el.classList.add('v');}else{delete Q[k];el.classList.remove('v');}
   const sid=k.replace(/[^a-z0-9]/gi,'_');
@@ -1098,7 +1122,7 @@ function adj(k,d,e){
   const p=allProds().find(x=>pk(x)===k);
   const isUnd=getU(p)==='und';
   const step=isUnd?1:0.5;
-  const cur=parseFloat(el.value)||0;
+  const cur=parseDecBR(el.value)||0;
   const nv=Math.max(0,isUnd?Math.round(cur+d*step):parseFloat((cur+d*step).toFixed(1)));
   el.value=nv>0?nv:'';chg(k,el);
 }
@@ -1477,10 +1501,12 @@ function renderHist(){
   if(!list.length){el.innerHTML=`<div class="emp"><div class="big">🔍</div><p>Nenhum registro encontrado<br>com esses filtros.</p></div>`;return;}
   const totFilt=list.reduce((a,h)=>a+h.regs.reduce((b,r)=>b+r.qty,0),0);
   el.innerHTML=
-    `<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
-      <button class="hexp" style="flex:1;margin:0;" onclick="expTudoCSV()">⬇️ Exportar CSV</button>
-      <button class="hexp" style="flex:1;margin:0;background:var(--red);color:#fff;" onclick="expTudoPDF()">📄 Exportar PDF</button>
-    </div>
+    '<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">'
+    + '<button class="hexp" style="flex:1;margin:0;min-width:110px;" onclick="expTudoCSV()">⬇️ CSV</button>'
+    + '<button class="hexp" style="flex:1;margin:0;min-width:110px;background:var(--red);color:#fff;" onclick="expTudoPDF()">📄 PDF</button>'
+    + '<button class="hexp" style="flex:1;margin:0;min-width:110px;background:#7B1E1E;color:#fff;" onclick="expConsolidadoDesp()">📊 Consolidado</button>'
+    + '</div>'+
+    `
     <div style="background:var(--grn-l);border-radius:10px;padding:9px 12px;font-size:.78rem;font-weight:600;margin-bottom:10px;color:var(--grn2);">
       ${list.length} dia${list.length!==1?'s':''} · ${list.reduce((a,h)=>a+h.regs.length,0)} itens · ${totFilt.toFixed(3)} kg total
     </div>`+
@@ -2607,6 +2633,178 @@ function toast(msg,t=''){const el=document.getElementById('tst');el.textContent=
   }
 })();
 
+// ═══ PRINT MODAL INTERNO (substitui window.open para iOS Safari) ═══
+function abrirPrintModal(html){
+  document.getElementById('printModalContent').innerHTML=html;
+  document.getElementById('printModal').style.display='flex';
+  window.scrollTo(0,0);
+}
+function fecharPrintModal(){
+  document.getElementById('printModal').style.display='none';
+  document.getElementById('printModalContent').innerHTML='';
+}
+function executarPrint(){window.print();}
+
+// ═══ ATALHOS RÁPIDOS DE PERÍODO ═══
+function _fmtISOdesp(d){return d.toISOString().slice(0,10);}
+function filtroEsteMes(){
+  var d=new Date();
+  var de=new Date(d.getFullYear(),d.getMonth(),1);
+  var ate=new Date(d.getFullYear(),d.getMonth()+1,0);
+  document.getElementById('fDe').value=_fmtISOdesp(de);
+  document.getElementById('fAte').value=_fmtISOdesp(ate);
+  aplicarFiltro();
+}
+function filtroMesAnterior(){
+  var d=new Date();
+  var de=new Date(d.getFullYear(),d.getMonth()-1,1);
+  var ate=new Date(d.getFullYear(),d.getMonth(),0);
+  document.getElementById('fDe').value=_fmtISOdesp(de);
+  document.getElementById('fAte').value=_fmtISOdesp(ate);
+  aplicarFiltro();
+}
+function filtroUltimos30(){
+  var ate=new Date();
+  var de=new Date();de.setDate(de.getDate()-29);
+  document.getElementById('fDe').value=_fmtISOdesp(de);
+  document.getElementById('fAte').value=_fmtISOdesp(ate);
+  aplicarFiltro();
+}
+
+// ═══ CONSOLIDADO DE DESPERDÍCIOS (agrupado por produto/motivo/setor) ═══
+function expConsolidadoDesp(){
+  var lista=histFiltrado();
+  if(!lista.length){toast('Sem dados para exportar','er');return;}
+
+  // Agregações
+  var aggProd={};   // por produto+unidade
+  var aggMot={};    // por motivo
+  var aggSet={};    // por setor
+  var diasSet=new Set();
+  var totalItens=0;
+  var totalGeral=0;
+
+  lista.forEach(function(h){
+    diasSet.add(h.data);
+    h.regs.forEach(function(r){
+      totalItens++;
+      var qty=parseFloat(r.qty)||0;
+      totalGeral+=qty;
+      var und=r.u||r.und||inferirUnidade(r.prod);
+      // Por produto
+      var keyP=r.prod+'|'+und;
+      if(!aggProd[keyP]){
+        aggProd[keyP]={prod:r.prod,set:r.set,und:und,total:0,motivos:{}};
+      }
+      aggProd[keyP].total+=qty;
+      aggProd[keyP].motivos[r.mot]=(aggProd[keyP].motivos[r.mot]||0)+qty;
+      // Por motivo
+      aggMot[r.mot]=(aggMot[r.mot]||0)+qty;
+      // Por setor
+      aggSet[r.set]=(aggSet[r.set]||0)+qty;
+    });
+  });
+
+  // Ordena e formata cada agregação
+  var itemsProd=Object.values(aggProd).sort(function(a,b){return b.total-a.total;});
+  var itemsMot=Object.entries(aggMot).sort(function(a,b){return b[1]-a[1];});
+  var itemsSet=Object.entries(aggSet).sort(function(a,b){return b[1]-a[1];});
+
+  // Para cada produto, descobre motivo principal
+  function motPrincipal(motObj){
+    var maior=null,maxV=0;
+    Object.entries(motObj).forEach(function(e){
+      if(e[1]>maxV){maxV=e[1];maior=e[0];}
+    });
+    return maior||'—';
+  }
+
+  var dtDe=HFILT.de||(lista[lista.length-1].data||'');
+  var dtAte=HFILT.ate||(lista[0].data||'');
+  var dtDeFmt=dtDe?(dtDe.split('-').reverse().join('/')):'—';
+  var dtAteFmt=dtAte?(dtAte.split('-').reverse().join('/')):'—';
+
+  var rowsProd=itemsProd.map(function(it){
+    var undCor=it.und==='und'?'#E67E22':'#C0392B';
+    return '<tr>'
+      +'<td>'+it.prod+'</td>'
+      +'<td style="text-align:center">'+it.set+'</td>'
+      +'<td style="text-align:right;font-weight:700;color:#7B1E1E;">'+it.total.toFixed(2)+'</td>'
+      +'<td style="text-align:center;font-weight:600;color:'+undCor+';">'+it.und+'</td>'
+      +'<td style="font-size:10px;color:#666;">'+motPrincipal(it.motivos)+'</td>'
+      +'</tr>';
+  }).join('');
+
+  var rowsMot=itemsMot.map(function(e){
+    var pct=totalGeral>0?(e[1]/totalGeral*100).toFixed(1):'0.0';
+    return '<tr>'
+      +'<td>'+e[0]+'</td>'
+      +'<td style="text-align:right;font-weight:700;">'+e[1].toFixed(2)+'</td>'
+      +'<td style="text-align:right;color:#666;">'+pct+'%</td>'
+      +'</tr>';
+  }).join('');
+
+  var rowsSet=itemsSet.map(function(e){
+    return '<tr>'
+      +'<td>'+(ICO[e[0]]||'📦')+' '+e[0]+'</td>'
+      +'<td style="text-align:right;font-weight:700;">'+e[1].toFixed(2)+'</td>'
+      +'</tr>';
+  }).join('');
+
+  var html='<style>'
+    +'body{font-family:Arial,sans-serif;padding:0;color:#1C1C1A;}'
+    +'h1{font-size:18px;color:#7B1E1E;margin:0 0 4px;}'
+    +'h2{font-size:13px;color:#A93226;margin:14px 0 6px;border-bottom:2px solid #F5E0C8;padding-bottom:4px;}'
+    +'.info{font-size:11px;color:#555;margin-bottom:14px;}'
+    +'.kpis{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}'
+    +'.kpi{flex:1;min-width:110px;background:#FDF2E9;border-radius:8px;padding:10px;text-align:center;}'
+    +'.kpi-v{font-size:18px;font-weight:800;color:#7B1E1E;}'
+    +'.kpi-l{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}'
+    +'table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px;}'
+    +'th{background:#7B1E1E;color:#fff;padding:8px;text-align:left;font-size:11px;}'
+    +'td{padding:6px 8px;border-bottom:1px solid #eee;}'
+    +'.tot{background:#FDF2E9;font-weight:700;}'
+    +'</style>'
+    +'<h1>📊 Consolidado de Desperdícios</h1>'
+    +'<div class="info">Período: '+dtDeFmt+' até '+dtAteFmt+' · Gerado em '+new Date().toLocaleString('pt-BR')+'</div>'
+    +'<div class="kpis">'
+    +'<div class="kpi"><div class="kpi-v">'+totalGeral.toFixed(2)+'</div><div class="kpi-l">Total desperdiçado</div></div>'
+    +'<div class="kpi"><div class="kpi-v">'+totalItens+'</div><div class="kpi-l">Itens</div></div>'
+    +'<div class="kpi"><div class="kpi-v">'+itemsProd.length+'</div><div class="kpi-l">Produtos</div></div>'
+    +'<div class="kpi"><div class="kpi-v">'+diasSet.size+'</div><div class="kpi-l">Dias</div></div>'
+    +'</div>'
+    +'<h2>📋 Por produto (maior → menor)</h2>'
+    +'<table>'
+    +'<thead><tr><th>Produto</th><th>Setor</th><th style="text-align:right">Qtd</th><th>Und</th><th>Motivo principal</th></tr></thead>'
+    +'<tbody>'+rowsProd
+    +'<tr class="tot"><td colspan="2">TOTAL</td><td style="text-align:right">'+totalGeral.toFixed(2)+'</td><td colspan="2"></td></tr>'
+    +'</tbody></table>'
+    +'<h2>📌 Por motivo</h2>'
+    +'<table>'
+    +'<thead><tr><th>Motivo</th><th style="text-align:right">Qtd total</th><th style="text-align:right">% do total</th></tr></thead>'
+    +'<tbody>'+rowsMot+'</tbody></table>'
+    +'<h2>🏪 Por setor</h2>'
+    +'<table>'
+    +'<thead><tr><th>Setor</th><th style="text-align:right">Qtd total</th></tr></thead>'
+    +'<tbody>'+rowsSet
+    +'<tr class="tot"><td>TOTAL GERAL</td><td style="text-align:right">'+totalGeral.toFixed(2)+'</td></tr>'
+    +'</tbody></table>'
+    +'<div style="font-size:9px;color:#aaa;text-align:center;margin-top:14px;">GestFood — Supermercado MG · Desperdícios</div>';
+
+  abrirPrintModal(html);
+  toast('📊 Consolidado gerado!','ok');
+}
+
 </script>
+
+<!-- PRINT MODAL INTERNO -->
+<div id="printModal" class="print-modal">
+  <div class="print-modal-hdr">
+    <button class="print-modal-btn back" onclick="fecharPrintModal()">← Voltar</button>
+    <button class="print-modal-btn go" onclick="executarPrint()">🖨️ Imprimir</button>
+  </div>
+  <div id="printModalContent" class="print-modal-body"></div>
+</div>
+
 </body>
 </html>

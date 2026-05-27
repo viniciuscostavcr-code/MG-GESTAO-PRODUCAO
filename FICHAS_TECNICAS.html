@@ -312,11 +312,11 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
       </div>
       <div class="fg">
         <label>Qtd (kg ou und)</label>
-        <input type="number" id="insQtdEmbalagem" step="0.001" placeholder="25">
+        <input type="text" inputmode="decimal" id="insQtdEmbalagem" step="0.001" placeholder="25">
       </div>
       <div class="fg">
         <label>Preço embalagem R$</label>
-        <input type="number" id="insPrecoEmbalagem" step="0.01" placeholder="0,00">
+        <input type="text" inputmode="decimal" id="insPrecoEmbalagem" step="0.01" placeholder="0,00">
       </div>
     </div>
     <div class="fg" id="custoPreviw" style="background:var(--grn-l);padding:10px;border-radius:8px;font-size:.82rem;font-weight:600;color:var(--grn2);display:none;">
@@ -365,26 +365,26 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
     <div class="fg-row3">
       <div class="fg">
         <label>Rendimento final (kg) *</label>
-        <input type="number" id="fichaRendimento" step="0.001" placeholder="8.89">
+        <input type="text" inputmode="decimal" id="fichaRendimento" step="0.001" placeholder="8.89">
       </div>
       <div class="fg">
         <label>Rendimento (und)</label>
-        <input type="number" id="fichaRendimentoUnid" step="1" placeholder="0">
+        <input type="text" inputmode="decimal" id="fichaRendimentoUnid" step="1" placeholder="0">
       </div>
       <div class="fg">
         <label>Tempo preparo (min)</label>
-        <input type="number" id="fichaTempo" step="1" placeholder="30">
+        <input type="text" inputmode="decimal" id="fichaTempo" step="1" placeholder="30">
       </div>
     </div>
     <div class="fg-row">
       <div class="fg">
         <label>Fator de cocção (FA) *</label>
-        <input type="number" id="fichaFA" step="0.0001" placeholder="0.85" value="1">
+        <input type="text" inputmode="decimal" id="fichaFA" step="0.0001" placeholder="0.85" value="1">
         <small style="color:var(--gray);font-size:.7rem;margin-top:3px;display:block;">Peso final ÷ Peso bruto total. Ex: bolo perde 15% no forno → FA = 0.85</small>
       </div>
       <div class="fg">
         <label>Preço de venda (R$/kg)</label>
-        <input type="number" id="fichaPrecoVenda" step="0.01" placeholder="24.90">
+        <input type="text" inputmode="decimal" id="fichaPrecoVenda" step="0.01" placeholder="24.90">
       </div>
     </div>
     <div class="fg">
@@ -437,6 +437,9 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
 <div class="toast" id="toast"></div>
 
 <script>
+// Normaliza vírgula decimal (BR) para ponto antes de parseFloat
+function parseDecBR(v){return parseFloat(String(v==null?'':v).replace(',','.'));}
+
 // ═══════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════
@@ -688,8 +691,8 @@ function abrirModalInsumo(id){
 function editarInsumo(id){abrirModalInsumo(id);}
 
 function atualizarCustoPreview(){
-  const qtd=parseFloat(document.getElementById('insQtdEmbalagem').value)||0;
-  const preco=parseFloat(document.getElementById('insPrecoEmbalagem').value)||0;
+  const qtd=parseDecBR(document.getElementById('insQtdEmbalagem').value)||0;
+  const preco=parseDecBR(document.getElementById('insPrecoEmbalagem').value)||0;
   const el=document.getElementById('custoPreviw');
   if(qtd>0&&preco>0){
     const custo=preco/qtd;
@@ -710,8 +713,8 @@ async function salvarInsumo(){
   const setor=document.getElementById('insSetor').value;
   const fornecedor=document.getElementById('insFornecedor').value.trim();
   const unidade_compra=document.getElementById('insUnidadeCompra').value.trim();
-  const qtd_embalagem=parseFloat(document.getElementById('insQtdEmbalagem').value)||0;
-  const preco_embalagem=parseFloat(document.getElementById('insPrecoEmbalagem').value)||0;
+  const qtd_embalagem=parseDecBR(document.getElementById('insQtdEmbalagem').value)||0;
+  const preco_embalagem=parseDecBR(document.getElementById('insPrecoEmbalagem').value)||0;
   if(!nome){toast('⚠️ Nome obrigatório','er');return;}
   if(!unidade_compra){toast('⚠️ Embalagem obrigatória','er');return;}
   if(qtd_embalagem<=0){toast('⚠️ Quantidade inválida','er');return;}
@@ -1105,8 +1108,8 @@ function renderIngredientesModal(){
       +'<option value="">— Selecionar —</option>'
       +opcoes
       +'</select>'
-      +'<input type="number" placeholder="Qtd liq" step="0.001" value="'+(it.qtd_liquida||'')+'" oninput="atualizarIngrediente('+idx+',\'qtd_liquida\',this.value)" style="padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:.8rem;">'
-      +'<input type="number" placeholder="FC" step="0.0001" value="'+(it.fator_correcao||1)+'" oninput="atualizarIngrediente('+idx+',\'fator_correcao\',this.value)" style="padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:.8rem;">'
+      +'<input type="text" inputmode="decimal" placeholder="Qtd liq" step="0.001" value="'+(it.qtd_liquida||'')+'" oninput="atualizarIngrediente('+idx+',\'qtd_liquida\',this.value)" style="padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:.8rem;">'
+      +'<input type="text" inputmode="decimal" placeholder="FC" step="0.0001" value="'+(it.fator_correcao||1)+'" oninput="atualizarIngrediente('+idx+',\'fator_correcao\',this.value)" style="padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:.8rem;">'
       +'<select onchange="atualizarIngrediente('+idx+',\'unidade\',this.value)" style="padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:.8rem;font-family:inherit;">'
       +'<option value="kg"'+(it.unidade==='kg'?' selected':'')+'>kg</option>'
       +'<option value="g"'+(it.unidade==='g'?' selected':'')+'>g</option>'
@@ -1138,7 +1141,7 @@ function selecionarInsumo(idx,insId){
 }
 
 function atualizarIngrediente(idx,campo,val){
-  ingredientesModal[idx][campo]=campo==='unidade'?val:parseFloat(val)||0;
+  ingredientesModal[idx][campo]=campo==='unidade'?val:parseDecBR(val)||0;
   atualizarPreviewCMV();
 }
 
@@ -1149,9 +1152,9 @@ function removerIngrediente(idx){
 }
 
 function atualizarPreviewCMV(){
-  const rendimento=parseFloat(document.getElementById('fichaRendimento').value)||0;
-  const fa=parseFloat(document.getElementById('fichaFA').value)||1;
-  const preco=parseFloat(document.getElementById('fichaPrecoVenda').value)||0;
+  const rendimento=parseDecBR(document.getElementById('fichaRendimento').value)||0;
+  const fa=parseDecBR(document.getElementById('fichaFA').value)||1;
+  const preco=parseDecBR(document.getElementById('fichaPrecoVenda').value)||0;
   let custoTotal=0,pesoBruto=0;
   ingredientesModal.forEach(function(it){
     const ins=INSUMOS.find(function(i){return i.id===it.insumo_id;});
@@ -1235,11 +1238,11 @@ async function salvarFicha(){
   const setor=document.getElementById('fichaSetor').value;
   const grupo=document.getElementById('fichaGrupo').value.trim();
   const indicacao=document.getElementById('fichaIndicacao').value.trim();
-  const rendimento_kg=parseFloat(document.getElementById('fichaRendimento').value)||0;
-  const rendimento_unid=parseInt(document.getElementById('fichaRendimentoUnid').value)||0;
-  const tempo_preparo_min=parseInt(document.getElementById('fichaTempo').value)||0;
-  const fator_coccao=parseFloat(document.getElementById('fichaFA').value)||1;
-  const preco_venda_kg=parseFloat(document.getElementById('fichaPrecoVenda').value)||0;
+  const rendimento_kg=parseDecBR(document.getElementById('fichaRendimento').value)||0;
+  const rendimento_unid=parseInt(parseDecBR(document.getElementById('fichaRendimentoUnid').value))||0;
+  const tempo_preparo_min=parseInt(parseDecBR(document.getElementById('fichaTempo').value))||0;
+  const fator_coccao=parseDecBR(document.getElementById('fichaFA').value)||1;
+  const preco_venda_kg=parseDecBR(document.getElementById('fichaPrecoVenda').value)||0;
   const equipamentos=document.getElementById('fichaEquipamentos').value.trim();
   const modo_preparo=document.getElementById('fichaModo').value.trim();
   if(!produto_nome){toast('⚠️ Nome obrigatório','er');return;}

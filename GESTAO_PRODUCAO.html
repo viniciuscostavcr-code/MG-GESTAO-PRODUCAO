@@ -856,12 +856,12 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
     <div class="cfg-min-sub" id="cfgMinProdNm"></div>
     <div class="emb-modal-fg">
       <label class="emb-modal-lbl">Mínimo gôndola *</label>
-      <input class="emb-modal-inp" type="number" id="cfgMinVal" inputmode="decimal" min="0" step="0.1" placeholder="Ex: 20">
+      <input class="emb-modal-inp" type="text" id="cfgMinVal" inputmode="decimal" min="0" step="0.1" placeholder="Ex: 20">
     </div>
     <div id="cfgMinFrzWrap" style="display:none;">
       <div class="emb-modal-fg" style="margin-top:10px;">
         <label class="emb-modal-lbl">Mínimo freezer</label>
-        <input class="emb-modal-inp" type="number" id="cfgMinFrzVal" inputmode="decimal" min="0" step="0.1" placeholder="Ex: 10">
+        <input class="emb-modal-inp" type="text" id="cfgMinFrzVal" inputmode="decimal" min="0" step="0.1" placeholder="Ex: 10">
       </div>
     </div>
     <div class="emb-modal-btns">
@@ -882,7 +882,7 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
     </div>
     <div class="emb-modal-fg">
       <label class="emb-modal-lbl">Gramatura média (g) *</label>
-      <input class="emb-modal-inp" type="number" id="embModalGram" inputmode="numeric" min="1" step="1" placeholder="Ex: 500">
+      <input class="emb-modal-inp" type="text" id="embModalGram" inputmode="numeric" min="1" step="1" placeholder="Ex: 500">
     </div>
     <div class="emb-modal-btns">
       <button class="conf-cn" onclick="fecharModalAddEmb()">Cancelar</button>
@@ -900,7 +900,7 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
     <div class="mp-dias-row" id="mpDiasRow"></div>
     <div class="meta-pop-lbl">Meta semanal:</div>
     <div class="meta-pop-row">
-      <input class="meta-pop-inp" type="number" min="0" inputmode="numeric" id="mpMetaInp"
+      <input class="meta-pop-inp" type="text" min="0" inputmode="numeric" id="mpMetaInp"
         placeholder="0"
         onkeydown="if(event.key==='Enter'){event.preventDefault();_salvarMetaPop()}">
       <span class="meta-pop-und" id="mpUndLbl">kg</span>
@@ -919,7 +919,7 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
     <div class="plan-sub" id="planSub"></div>
     <div class="emb-modal-fg">
       <label class="emb-modal-lbl" id="planQtdLbl">Quantidade planejada *</label>
-      <input class="emb-modal-inp" type="number" id="planVal" inputmode="decimal" min="0" step="0.5" placeholder="Ex: 20">
+      <input class="emb-modal-inp" type="text" id="planVal" inputmode="decimal" min="0" step="0.5" placeholder="Ex: 20">
     </div>
     <div class="emb-modal-btns">
       <button class="conf-cn" onclick="fecharPlanModal()">Cancelar</button>
@@ -945,6 +945,9 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
 </div>
 
 <script>
+// Normaliza vírgula decimal (BR) para ponto antes de parseFloat
+function parseDecBR(v){return parseFloat(String(v==null?'':v).replace(',','.'));}
+
 // ══════════════════════════════════════════════════
 // SUPABASE
 // ══════════════════════════════════════════════════
@@ -1799,7 +1802,7 @@ function _buildProdCard(p) {
     if (temFreezer) {
       frzRow = `<div class="prod-inp-row">
         <span class="prod-inp-lbl">Freezer:</span>
-        <input class="prod-inp" type="number" inputmode="decimal" min="0" step="0.1"
+        <input class="prod-inp" type="text" inputmode="decimal" min="0" step="0.1"
           value="${qFrz}" placeholder="0" id="frz-${p.id}"
           oninput="onInput('${p.id}','freezer',this.value)" style="font-size:16px;">
         <span class="prod-inp-und">${escHtml(und)}</span>
@@ -1821,7 +1824,7 @@ function _buildProdCard(p) {
       stHtml = `<div id="status-${p.id}">${_semHtml(_getStatusGon(p.id))}</div>`;
     }
 
-    const inpGon = '<input class="prod-inp" type="number" inputmode="decimal" min="0" step="0.1"'
+    const inpGon = '<input class="prod-inp" type="text" inputmode="decimal" min="0" step="0.1"'
       +' value="'+(bloqueado?'0':qGon)+'" placeholder="0" id="gon-'+p.id+'"'
       +' '+(bloqueado?'disabled':'oninput="onInput(\''+p.id+'\',\'gondola\',this.value)"')+' style="font-size:16px;">';
     const inpRow = '<div class="prod-inp-row">'
@@ -1851,12 +1854,12 @@ function _buildProdCard(p) {
       const subTxt = qty !== '' ? `= ${kg.toFixed(1)}kg` : '= 0,0kg';
       return `<div class="emb-row">
         <span class="emb-nm">${escHtml(e.nome_embalagem)}</span>
-        <input class="emb-gram-inp" type="number" inputmode="decimal" min="1" step="1"
+        <input class="emb-gram-inp" type="text" inputmode="decimal" min="1" step="1"
           value="${gram}" title="Gramatura (g)"
           id="egram-${campo}-${p.id}-${e.id}"
           oninput="onEmbGramInput('${p.id}','${campo}','${e.id}',this.value)">
         <span class="emb-gram-suf">g ×</span>
-        <input class="emb-inp" type="number" inputmode="numeric" min="0" placeholder="0" step="1"
+        <input class="emb-inp" type="text" inputmode="numeric" min="0" placeholder="0" step="1"
           value="${qty}" placeholder="0"
           id="emb-${campo}-${p.id}-${e.id}"
           oninput="onEmbInput('${p.id}','${campo}','${e.id}',null,this.value)"
@@ -1941,7 +1944,7 @@ function onEmbGramInput(prodId, campo, embId, valor) {
 
   // Recalcula subtotal deste item
   const qEl = document.getElementById(`emb-${campo}-${prodId}-${embId}`);
-  const qty = qEl ? (parseInt(qEl.value)||0) : 0;
+  const qty = qEl ? (parseInt(parseDecBR(qEl.value))||0) : 0;
   const kg = qty * g / 1000;
   const subEl = document.getElementById(`esub-${campo}-${prodId}-${embId}`);
   if (subEl) subEl.textContent = qty > 0 ? `= ${kg.toFixed(1)}kg` : '= 0,0kg';
@@ -1952,7 +1955,7 @@ function onEmbGramInput(prodId, campo, embId, valor) {
   function _totSection(c) {
     return embs.reduce((s,e) => {
       const qI = document.getElementById(`emb-${c}-${prodId}-${e.id}`);
-      const q = qI ? (parseInt(qI.value)||0) : 0;
+      const q = qI ? (parseInt(parseDecBR(qI.value))||0) : 0;
       const gr = _gramOverrides[`${prodId}_${e.id}`] != null ? _gramOverrides[`${prodId}_${e.id}`] : (e.gramatura_g||0);
       return s + q * gr / 1000;
     }, 0);
@@ -2553,7 +2556,7 @@ async function salvarCfgMin() {
   }
 
   const valEl = document.getElementById('cfgMinVal');
-  const min = parseFloat(valEl ? valEl.value : '') || 0;
+  const min = parseDecBR(valEl ? valEl.value : '') || 0;
   if (min < 0) { toast('⚠️ Valor inválido', 'wa'); return; }
 
   // ── Validação: produto deve existir no catálogo ──
@@ -2567,7 +2570,7 @@ async function salvarCfgMin() {
   const cfgAtual = CK_CFG[_cfgMinProdId] || {};
   const temFreezer = SETOR === 'CONFEITARIA' ? false : !!cfgAtual.tem_freezer;
   const frzEl = document.getElementById('cfgMinFrzVal');
-  const minFrz = temFreezer ? (parseFloat(frzEl ? frzEl.value : '') || 0) : 0;
+  const minFrz = temFreezer ? (parseDecBR(frzEl ? frzEl.value : '') || 0) : 0;
 
   const payload = {
     produto_id: _cfgMinProdId,
@@ -3889,7 +3892,7 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
   <div class="phoje-sug">Sugestão: <strong>${lote.qtd}${und.toLowerCase()}</strong>${lote.sazonalidade!==1?' · sazon. ×'+lote.sazonalidade:''}</div>
   ${alertHtml}
   <div class="phoje-inp-row">
-    <input class="phoje-inp" type="number" inputmode="decimal" min="0" step="0.5"
+    <input class="phoje-inp" type="text" inputmode="decimal" min="0" step="0.5"
       id="phoje-inp-${p.id}"
       value="${valAtual}"
       placeholder="${lote.qtd||0}"
@@ -3946,7 +3949,7 @@ function onPhojeKey(e, prodId) {
     e.preventDefault();
     // Confirma automaticamente e pula para o próximo
     const inp = document.getElementById('phoje-inp-'+prodId);
-    const val = parseFloat(inp?.value)||0;
+    const val = parseDecBR(inp?.value)||0;
     confirmarItemHoje(prodId, val);
     _pularProximoPhojeInp(prodId);
   }
@@ -3970,7 +3973,7 @@ function _setupHojeKeyNav() {
 async function confirmarItemHoje(prodId, qtdSug) {
   const inp = document.getElementById('phoje-inp-'+prodId);
   const und = inp?.dataset?.und||'KG';
-  const val = inp ? (parseFloat(inp.value)||0) : (parseFloat(qtdSug)||0);
+  const val = inp ? (parseDecBR(inp.value)||0) : (parseFloat(qtdSug)||0);
   if (!PROD_HOJE_VALS[prodId]) PROD_HOJE_VALS[prodId] = {};
   PROD_HOJE_VALS[prodId].val  = val;
   PROD_HOJE_VALS[prodId].done = true;
@@ -4483,7 +4486,7 @@ function _renderHistTabela() {
 
     var prodCell = IS_ADMIN
       ? ('<span class="hist-qtd-val" id="hqv_' + it.id + '">' + (prod > 0 ? fmtPtBR(prod,1) : '—') + '</span>'
-        + '<input class="hist-qtd-inp" id="hqi_' + it.id + '" type="number" min="0" step="0.1"'
+        + '<input class="hist-qtd-inp" id="hqi_' + it.id + '" type="text" inputmode="decimal" min="0" step="0.1"'
         + ' value="' + prod + '" style="display:none;width:72px;padding:3px 6px;border:1.5px solid #2D6A4F;border-radius:6px;font-size:.8rem;font-family:inherit;"'
         + ' onblur="editarItem(\'' + it.id + '\',this.value)"'
         + ' onkeydown="if(event.key===\'Enter\')this.blur();if(event.key===\'Escape\')_cancelEditItem(\'' + it.id + '\',' + prod + ')">')
