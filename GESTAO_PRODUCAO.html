@@ -5146,7 +5146,7 @@ function _cancelEditItem(itemId, qtdOriginal) {
 
 async function editarItem(itemId, novaQtd) {
   if (!IS_ADMIN) return;
-  const qtd = parseFloat(novaQtd);
+  const qtd = parseFloat((novaQtd||'').toString().replace(',','.'));
   if (isNaN(qtd) || qtd < 0) {
     toast('⚠️ Quantidade inválida', 'wa');
     return;
@@ -5154,7 +5154,6 @@ async function editarItem(itemId, novaQtd) {
   try {
     await sbPatch('producao_itens', itemId, {
       qtd_produzida: qtd,
-      editado_por:   GF_USER.nome,
       atualizado_em: new Date().toISOString()
     });
     toast('✅ Quantidade atualizada', 'ok');
