@@ -1809,7 +1809,7 @@ function _buildProdCard(p) {
       </div>`;
     }
     const totalRow = temFreezer
-      ? `<div class="prod-total" id="tot-${p.id}">Total: ${((parseFloat(qGon)||0)+(parseFloat(qFrz)||0)).toFixed(1)} ${escHtml(und)}</div>`
+      ? `<div class="prod-total" id="tot-${p.id}">Total: ${((parseDecBR(qGon)||0)+(parseDecBR(qFrz)||0)).toFixed(1)} ${escHtml(und)}</div>`
       : '';
 
     // Semáforo(s)
@@ -1939,7 +1939,7 @@ function onInput(prodId, campo, valor) {
 
 // Handler para alteração de gramatura (atualiza override local e recalcula)
 function onEmbGramInput(prodId, campo, embId, valor) {
-  const g = Math.max(1, parseInt(valor)||1);
+  const g = Math.max(1, parseInt(parseDecBR(valor))||1);
   _gramOverrides[`${prodId}_${embId}`] = g;
 
   // Recalcula subtotal deste item
@@ -1990,7 +1990,7 @@ function onEmbInput(prodId, campo, embId, gramaturaG, valor) {
   if (!reg.embs_gon) reg.embs_gon = {};
   if (!reg.embs_frz) reg.embs_frz = {};
 
-  const qty = (valor === '' || valor == null) ? 0 : Math.max(0, parseInt(valor)||0);
+  const qty = (valor === '' || valor == null) ? 0 : Math.max(0, parseInt(parseDecBR(valor))||0);
   const embMap = campo === 'gondola' ? reg.embs_gon : reg.embs_frz;
   embMap[embId] = qty;
 
@@ -3933,12 +3933,12 @@ function _buildPhojeResumo(prods, hoje) {
 
 function onPhojeChange(prodId, val) {
   if (!PROD_HOJE_VALS[prodId]) PROD_HOJE_VALS[prodId] = {};
-  PROD_HOJE_VALS[prodId].val = parseFloat(val)||0;
+  PROD_HOJE_VALS[prodId].val = parseDecBR(val)||0;
   PROD_HOJE_VALS[prodId].done = false;
   const btn = document.getElementById('phoje-btn-'+prodId);
   const und = document.querySelector(`#phoje-inp-${prodId}`)?.dataset?.und||'kg';
   if (btn) {
-    const v = parseFloat(val)||0;
+    const v = parseDecBR(val)||0;
     btn.className='phoje-conf-btn';
     btn.textContent = '✅ Confirmar '+v+und.toLowerCase();
   }

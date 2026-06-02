@@ -1031,7 +1031,7 @@ function renderAlertCfg(){
     </div>`).join('');
 }
 async function setAlerta(s,v){
-  const n=parseFloat(v);if(isNaN(n)||n<=0)return;
+  const n=parseDecBR(v);if(isNaN(n)||n<=0)return;
   D.alertas[s]=n;await saveLocal();toast(`✅ Limite ${s}: ${n} kg`,'ok');renderAlerts();
 }
 
