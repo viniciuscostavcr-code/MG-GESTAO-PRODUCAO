@@ -900,7 +900,7 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
     <div class="mp-dias-row" id="mpDiasRow"></div>
     <div class="meta-pop-lbl">Meta semanal:</div>
     <div class="meta-pop-row">
-      <input class="meta-pop-inp" type="text" min="0" inputmode="numeric" id="mpMetaInp"
+      <input class="meta-pop-inp" type="text" min="0" inputmode="decimal" id="mpMetaInp"
         placeholder="0"
         onkeydown="if(event.key==='Enter'){event.preventDefault();_salvarMetaPop()}">
       <span class="meta-pop-und" id="mpUndLbl">kg</span>
@@ -3605,7 +3605,7 @@ function _fecharMetaPop() {
 
 async function _salvarMetaPop() {
   if (!_mpProdId) return;
-  const novoTotal = parseFloat(document.getElementById('mpMetaInp').value) || 0;
+  const novoTotal = parseDecBR(document.getElementById('mpMetaInp').value) || 0;
   const prod = TODOS_PRODS.find(p => p.id === _mpProdId);
   if (!prod) return;
 
@@ -3745,7 +3745,7 @@ function fecharPlanModal() {
 }
 async function salvarPlanItem() {
   if (!_planProdId || !_planDateISO) return;
-  const val = parseFloat(document.getElementById('planVal').value);
+  const val = parseDecBR(document.getElementById('planVal').value);
   if (isNaN(val) || val < 0) { toast('⚠️ Informe uma quantidade válida','wa'); return; }
 
   const fields = _planIsPas
@@ -4115,7 +4115,7 @@ function adicionarProdHoje() {
   if (btnSalvar) {
     btnSalvar.onclick = async () => {
       if (!_planProdId) { toast('⚠️ Selecione um produto','wa'); return; }
-      const val = parseFloat(document.getElementById('planVal').value);
+      const val = parseDecBR(document.getElementById('planVal').value);
       if (isNaN(val) || val < 0) { toast('⚠️ Informe a quantidade','wa'); return; }
 
       const ok = await _upsertProdItem(_planProdId, hoje, {
