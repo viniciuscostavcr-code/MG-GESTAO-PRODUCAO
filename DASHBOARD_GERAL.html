@@ -122,7 +122,12 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
 .cmv-ok{color:var(--grn);font-weight:700;}
 .cmv-warn{color:var(--yellow);font-weight:700;}
 .cmv-bad{color:var(--red);font-weight:700;}
-@media print{body>*:not(#printArea){display:none!important;}#printArea{display:block!important;}}
+@media print{
+  @page{margin:12mm;}
+  body>*:not(#printArea){display:none!important;}
+  #printArea{display:block!important;}
+  #printArea *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+}
 </style>
 </head>
 <body>
@@ -706,12 +711,13 @@ function imprimirDashboard(){
   h+='</div>';
 
   // Gráficos lado a lado
-  h+='<div style="display:flex;gap:16px;margin-bottom:8px;">';
+  h+='<div style="display:flex;gap:16px;margin-bottom:8px;page-break-inside:avoid;break-inside:avoid;">';
   h+='<div style="flex:1;border:1px solid #E8E8E4;border-radius:12px;padding:14px;"><div style="font-size:13px;font-weight:700;margin-bottom:8px;">🏭 Faturamento por Setor</div><img src="'+imgSetor+'" style="width:100%;"></div>';
   h+='<div style="flex:1;border:1px solid #E8E8E4;border-radius:12px;padding:14px;"><div style="font-size:13px;font-weight:700;margin-bottom:8px;">📈 Maio 25 vs 26</div><img src="'+imgComp+'" style="width:100%;"></div>';
   h+='</div>';
 
   // Comparativo tabela
+  h+='<div style="page-break-inside:avoid;break-inside:avoid;">';
   h+='<h2 style="color:#2D6A4F;font-size:15px;margin:20px 0 8px;">Comparativo 2025 vs 2026</h2>';
   h+='<table style="width:100%;border-collapse:collapse;font-size:13px;">';
   h+='<tr style="background:#1B4332;color:#fff;"><th style="padding:8px;text-align:left;">Indicador</th><th style="padding:8px;text-align:right;">Maio/25</th><th style="padding:8px;text-align:right;">Maio/26</th><th style="padding:8px;text-align:right;">Var.</th></tr>';
@@ -719,16 +725,19 @@ function imprimirDashboard(){
   h+='<tr><td style="padding:8px;border-bottom:1px solid #eee;">Lucro bruto</td><td style="padding:8px;text-align:right;border-bottom:1px solid #eee;">'+fmtR(v.luc25)+'</td><td style="padding:8px;text-align:right;border-bottom:1px solid #eee;"><b>'+fmtR(v.luc26)+'</b></td><td style="padding:8px;text-align:right;border-bottom:1px solid #eee;color:#2D6A4F;font-weight:700;">'+(varLuc>=0?'+':'')+varLuc.toFixed(1)+'%</td></tr>';
   h+='<tr><td style="padding:8px;">Margem</td><td style="padding:8px;text-align:right;">'+pct(v.margem25)+'</td><td style="padding:8px;text-align:right;"><b>'+pct(v.margem26)+'</b></td><td style="padding:8px;text-align:right;font-weight:700;">'+(v.margem26-v.margem25>=0?'+':'')+(v.margem26-v.margem25).toFixed(1)+'pp</td></tr>';
   h+='</table>';
+  h+='</div>';
 
-  // Vazamentos
+  // Vazamentos (bloco protegido contra quebra de página)
+  h+='<div style="page-break-inside:avoid;break-inside:avoid;">';
   h+='<h2 style="color:#C0392B;font-size:15px;margin:20px 0 8px;">Vazamentos de Dinheiro</h2>';
   h+='<div style="display:flex;gap:10px;margin-bottom:12px;">';
   h+=kpiCard('🔴 Ruptura (venda perdida)',fmtR(rupt),'por dias sem venda','#C0392B');
   h+=kpiCard('🟠 Desperdício (custo)',fmtR(custoDesp),'prejuízo real','#E67E22');
   h+=kpiCard('🟠 Desperdício (venda)',fmtR(desp.venda),'faturamento perdido','#E67E22');
   h+='</div>';
-  h+='<div style="border:1px solid #E8E8E4;border-radius:12px;padding:14px;margin-bottom:16px;page-break-inside:avoid;"><div style="font-size:13px;font-weight:700;margin-bottom:8px;">🔴 Top Rupturas — Venda Perdida</div><img src="'+imgRupt+'" style="width:100%;"></div>';
-  h+='<p style="font-size:12px;color:#444;line-height:1.5;background:#FDECEA;border-radius:8px;padding:12px;">A ruptura (venda perdida por falta de produto) é <b>'+(rupt/Math.max(custoDesp,1)).toFixed(0)+'x maior</b> que o custo do desperdício — é a maior oportunidade de recuperação de receita.</p>';
+  h+='<p style="font-size:12px;color:#444;line-height:1.5;background:#FDECEA;border-radius:8px;padding:12px;margin:0;">A ruptura (venda perdida por falta de produto) é <b>'+(rupt/Math.max(custoDesp,1)).toFixed(0)+'x maior</b> que o custo do desperdício — é a maior oportunidade de recuperação de receita.</p>';
+  h+='</div>';
+  h+='<div style="border:1px solid #E8E8E4;border-radius:12px;padding:14px;margin-top:16px;page-break-inside:avoid;break-inside:avoid;"><div style="font-size:13px;font-weight:700;margin-bottom:8px;">🔴 Top Rupturas — Venda Perdida</div><img src="'+imgRupt+'" style="width:100%;"></div>';
 
   h+='<p style="font-size:11px;color:#999;margin-top:20px;text-align:center;border-top:1px solid #eee;padding-top:12px;">GestFood — Sistema de Gestão de Produção · Gerado em '+dataStr+'</p>';
   h+='</div>';
