@@ -208,6 +208,51 @@ let PRODUCAO=[],DESPERDICIO=[];
 let setorVendas='TODOS';
 let charts={};
 
+// ── PREÇOS MANUAIS: produtos de outros setores (ex: lanchonete) que não estão no ABC padaria/confeitaria ──
+// Formato: 'NOME EXATO DO REGISTRO': { venda: preço de venda, custo: custo unitário }
+// Para adicionar: copie uma linha e ajuste o nome e os valores.
+const PRECOS_MANUAIS={
+  'COXINHA':{venda:5.90,custo:3.20}
+};
+
+// ── APELIDOS: nome usado na produção/desperdício → nome oficial no ABC (vendas) ──
+// Use quando o produto é vendido com nome diferente do que é produzido.
+// Formato: 'NOME NA PRODUÇÃO':'NOME OFICIAL NO ABC'
+const APELIDOS={
+  'MINI PIZZA UNIDADE':'PIZZA DA CASA PQ KG',
+  'MINI PIZZA':'PIZZA DA CASA PQ KG'
+};
+
+function normNome(s){
+  s=(s||'').toUpperCase();
+  // aplica apelido antes de normalizar (compara forma simples)
+  const sLimpo=s.replace(/\s+/g,' ').trim();
+  if(APELIDOS[sLimpo])s=APELIDOS[sLimpo];
+  s=s.normalize('NFKD').replace(/[\u0300-\u036f]/g,'');        // remove acento
+  s=s.replace(/CROASSANT/g,'CROISSANT').replace(/CROISSAINT/g,'CROISSANT'); // typos
+  s=s.replace(/\b(KG|UND|UN|UNID|UNIDADE)\b/g,'');             // remove unidade
+  s=s.replace(/\b(DE|DA|DO|DAS|DOS|COM|C)\b/g,'');             // remove conectores
+  return s.replace(/[^A-Z0-9]/g,'');                            // só alfanumérico
+}
+// Casa nome contra os produtos do ABC (exato normalizado, depois por conteúdo)
+function acharABC(nome){
+  const n=normNome(nome);
+  if(!n)return null;
+  let p=ABC.produtos.find(function(x){return normNome(x.n)===n;});
+  if(p)return p;
+  if(n.length>4)p=ABC.produtos.find(function(x){const a=normNome(x.n);return a.length>4&&(a.indexOf(n)>=0||n.indexOf(a)>=0);});
+  return p||null;
+}
+
+// Busca preço em 3 níveis: ABC (match inteligente) → lista manual → null
+function precoProduto(nome){
+  const p=acharABC(nome);
+  if(p&&p.qtd>0)return{ck:p.cus/p.qtd,vk:p.fat/p.qtd,classe:p.classe,fonte:'abc'};
+  const n=normNome(nome);
+  for(const k in PRECOS_MANUAIS){if(normNome(k)===n)return{ck:PRECOS_MANUAIS[k].custo||0,vk:PRECOS_MANUAIS[k].venda||0,classe:null,fonte:'manual'};}
+  return null;
+}
+
 function fmtR(v){return 'R$ '+(v||0).toLocaleString('pt-BR',{maximumFractionDigits:0});}
 function fmtR2(v){return 'R$ '+(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function fmtKg(v){return (v||0).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});}
@@ -269,18 +314,17 @@ function totaisVendas(){
   return{fat26,luc26,cus26,fat25,luc25,cmv26:fat26>0?cus26/fat26*100:0,margem26:fat26>0?luc26/fat26*100:0,margem25:fat25>0?luc25/fat25*100:0};
 }
 function estimarDesperdicio(){
-  let custo=0,venda=0;
+  let custo=0,venda=0,semPreco=0;
   DESPERDICIO.forEach(function(d){
-    const p=ABC.produtos.find(function(x){return x.n===d.produto;});
-    if(p&&p.qtd>0){
-      custo+=d.qty*(p.cus/p.qtd);
-      venda+=d.qty*(p.fat/p.qtd);
+    const pr=precoProduto(d.produto);
+    if(pr){
+      custo+=d.qty*pr.ck;
+      venda+=d.qty*pr.vk;
     }else{
-      custo+=d.qty*8;
-      venda+=d.qty*18;
+      semPreco++;
     }
   });
-  return{custo:custo,venda:venda};
+  return{custo:custo,venda:venda,semPreco:semPreco};
 }
 function estimarCustoDesperdicio(){return estimarDesperdicio().custo;}
 
@@ -370,6 +414,11 @@ function renderRuptura(){
   h+='<div class="kpi"><div class="kpi-label">% do faturamento</div><div class="kpi-val" style="color:var(--red)">'+pct(rupt/v.fat26*100)+'</div><div class="kpi-sub">poderia ter vendido +'+pct(rupt/v.fat26*100)+'</div></div>';
   h+='</div>';
 
+  h+='<div class="card" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div style="font-size:.8rem;font-weight:700;color:var(--brown);flex:1;min-width:140px">🖨️ Relatório de faltas</div>'
+    +'<button onclick="imprimirRuptura(\'equipe\')" style="padding:9px 14px;background:var(--grn);color:#fff;border:none;border-radius:9px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">👥 Versão Equipe</button>'
+    +'<button onclick="imprimirRuptura(\'gestor\')" style="padding:9px 14px;background:var(--grn2);color:#fff;border:none;border-radius:9px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">💼 Versão Gestor</button>'
+    +'</div>';
+
   h+='<div class="card"><div class="card-title">🔴 Top 12 Rupturas <span class="sub">maior venda perdida</span></div><div class="chart-box tall"><canvas id="chRuptura"></canvas></div></div>';
 
   // Lista detalhada por classe
@@ -390,6 +439,74 @@ function drawRupturaChart(){
   destroyChart('chRuptura');
   const el=document.getElementById('chRuptura');
   if(el)charts['chRuptura']=new Chart(el,{type:'bar',data:{labels:rupturas.map(function(p){return p.n.length>16?p.n.slice(0,16)+'…':p.n;}),datasets:[{data:rupturas.map(function(p){return p.perda;}),backgroundColor:CORES.red,borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return fmtR(c.parsed.x)+' perdido';}}}},scales:{x:{ticks:{font:{size:10},callback:function(v){return 'R$'+(v/1000)+'k';}}},y:{ticks:{font:{size:10}}}}}});
+}
+
+// ════════ IMPRIMIR RUPTURA (2 versões) ════════
+function imprimirRuptura(modo){
+  const v=totaisVendas();
+  const rupt=ABC.ruptura_total||0;
+  const dataStr=new Date().toLocaleDateString('pt-BR');
+  const ehGestor=(modo==='gestor');
+  // produtos em ruptura, ordenados por dias sem venda (foco operacional) ou perda (gestor)
+  let rupturas=ABC.produtos.filter(function(p){return p.fat>300&&p.ds>0;});
+  rupturas.sort(function(a,b){return ehGestor?(b.perda-a.perda):(b.ds-a.ds);});
+  rupturas=rupturas.slice(0,20);
+
+  function emoji(ds){return ds>10?'🔴':ds>5?'🟡':'🟢';}
+
+  let h='<div style="font-family:\'Plus Jakarta Sans\',sans-serif;color:#1C1C1A;max-width:760px;margin:0 auto;padding:24px;">';
+  // Cabeçalho
+  h+='<div style="display:flex;align-items:center;gap:12px;border-bottom:3px solid #C0392B;padding-bottom:14px;margin-bottom:18px;">'
+    +'<div style="width:42px;height:42px;background:#1B4332;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:18px;">G</div>'
+    +'<div><div style="font-size:19px;font-weight:800;color:#1B4332;">'+(ehGestor?'Relatório de Ruptura — Gestor':'Relatório de Faltas — Produção')+'</div>'
+    +'<div style="font-size:12px;color:#6B7280;">Supermercado MG · Padaria e Confeitaria · '+dataStr+'</div></div></div>';
+
+  if(ehGestor){
+    // KPIs financeiros
+    h+='<div style="display:flex;gap:10px;margin-bottom:16px;">';
+    h+='<div style="flex:1;background:#FDECEA;border-radius:10px;padding:12px;"><div style="font-size:10px;color:#C0392B;text-transform:uppercase;font-weight:700;">Venda perdida estimada</div><div style="font-size:20px;font-weight:800;color:#C0392B;">'+fmtR(rupt)+'</div></div>';
+    h+='<div style="flex:1;background:#F4F4F2;border-radius:10px;padding:12px;"><div style="font-size:10px;color:#6B7280;text-transform:uppercase;font-weight:700;">% do faturamento</div><div style="font-size:20px;font-weight:800;color:#1C1C1A;">'+pct(rupt/v.fat26*100)+'</div></div>';
+    h+='</div>';
+  }else{
+    h+='<div style="background:#FEF3E2;border-left:4px solid #E67E22;border-radius:0 8px 8px 0;padding:12px 14px;margin-bottom:16px;font-size:13px;color:#8B4513;line-height:1.5;">'
+      +'🎯 <b>Meta da semana:</b> nenhum produto classe <b>A</b> pode faltar. Priorize a produção dos itens marcados com 🔴.</div>';
+  }
+
+  // Tabela
+  h+='<table style="width:100%;border-collapse:collapse;font-size:12.5px;">';
+  h+='<tr style="background:#1B4332;color:#fff;"><th style="padding:8px;text-align:left;">Produto</th><th style="padding:8px;text-align:center;">Classe</th><th style="padding:8px;text-align:center;">Dias sem venda</th>';
+  if(ehGestor)h+='<th style="padding:8px;text-align:right;">Venda perdida</th>';
+  h+='</tr>';
+  rupturas.forEach(function(p,i){
+    const bg=i%2?'#FAFAF8':'#fff';
+    h+='<tr style="background:'+bg+';">';
+    h+='<td style="padding:7px 8px;border-bottom:1px solid #eee;font-weight:600;">'+emoji(p.ds)+' '+p.n+'</td>';
+    h+='<td style="padding:7px 8px;border-bottom:1px solid #eee;text-align:center;font-weight:700;color:'+(p.classe==='A'?'#C0392B':p.classe==='B'?'#D97706':'#888')+';">'+(p.classe||'C')+'</td>';
+    h+='<td style="padding:7px 8px;border-bottom:1px solid #eee;text-align:center;">'+p.ds+' dias</td>';
+    if(ehGestor)h+='<td style="padding:7px 8px;border-bottom:1px solid #eee;text-align:right;font-weight:700;color:#C0392B;">'+fmtR(p.perda)+'</td>';
+    h+='</tr>';
+  });
+  h+='</table>';
+
+  // Legenda + ação
+  h+='<div style="margin-top:16px;padding:12px;background:#F4F4F2;border-radius:8px;font-size:11.5px;color:#444;line-height:1.6;">'
+    +'<b>Legenda:</b> 🔴 faltou mais de 10 dias · 🟡 faltou 5-10 dias · 🟢 faltou menos de 5 dias<br>'
+    +'<b>Classe A</b> = produtos que mais vendem (prioridade máxima) · <b>B</b> = importantes · <b>C</b> = menor giro';
+  if(ehGestor)h+='<br><b>Venda perdida</b> = estimativa do faturamento não realizado por falta do produto na gôndola.';
+  h+='</div>';
+
+  // Campo de assinatura (versão equipe — vira ordem de serviço)
+  if(!ehGestor){
+    h+='<div style="margin-top:24px;display:flex;gap:30px;font-size:12px;color:#666;">'
+      +'<div style="flex:1;border-top:1px solid #999;padding-top:6px;text-align:center;">Responsável produção</div>'
+      +'<div style="flex:1;border-top:1px solid #999;padding-top:6px;text-align:center;">Conferido por</div></div>';
+  }
+
+  h+='<div style="font-size:10px;color:#999;margin-top:20px;text-align:center;border-top:1px solid #eee;padding-top:10px;">GestFood · '+(ehGestor?'Documento gerencial confidencial':'Relatório operacional')+' · '+dataStr+'</div>';
+  h+='</div>';
+
+  document.getElementById('printArea').innerHTML=h;
+  setTimeout(function(){window.print();},200);
 }
 
 // ════════ COMPARATIVO ════════
@@ -471,12 +588,12 @@ function renderGargalos(){
   if(!desp.length){h='<div class="empty"><div class="empty-ico">📭</div><p>Sem dados de desperdício de maio no Supabase.</p></div>';document.getElementById('gargalosBox').innerHTML=h;return;}
 
   // KPIs em R$
-  let despKg=0,despUnd=0,custoTot=0,vendaTot=0;
+  let despKg=0,despUnd=0,custoTot=0,vendaTot=0,semPreco=0;
   desp.forEach(function(d){
     if(d.und==='und')despUnd+=d.qty;else despKg+=d.qty;
-    const p=ABC.produtos.find(function(x){return x.n===d.produto;});
-    if(p&&p.qtd>0){custoTot+=d.qty*(p.cus/p.qtd);vendaTot+=d.qty*(p.fat/p.qtd);}
-    else{custoTot+=d.qty*8;vendaTot+=d.qty*18;}
+    const pr=precoProduto(d.produto);
+    if(pr){custoTot+=d.qty*pr.ck;vendaTot+=d.qty*pr.vk;}
+    else{semPreco++;}
   });
   const v=totaisVendas();
   h+='<div class="kpi-grid">';
@@ -485,6 +602,7 @@ function renderGargalos(){
   h+='<div class="kpi"><div class="kpi-label">Total desperdiçado</div><div class="kpi-val" style="font-size:1.15rem">'+fmtKg(despKg)+' kg</div><div class="kpi-sub">'+(despUnd>0?fmtN(despUnd)+' und · ':'')+desp.length+' registros</div></div>';
   h+='<div class="kpi"><div class="kpi-label">% do faturamento</div><div class="kpi-val" style="color:'+(vendaTot/v.fat26*100<=3?'var(--grn)':'var(--red)')+'">'+pct(vendaTot/v.fat26*100)+'</div><div class="kpi-sub">venda perdida ÷ faturamento</div></div>';
   h+='</div>';
+  if(semPreco>0)h+='<div class="insight warn">⚠️ '+semPreco+' registro(s) sem preço no ABC de maio (produto não vendido no período) — não entram no cálculo de custo/venda perdida para não distorcer os valores.</div>';
 
   // Tendência ao longo dos dias
   h+='<div class="card"><div class="card-title">📉 Tendência Diária <span class="sub">kg ao longo de maio</span></div><div class="chart-box"><canvas id="chTend"></canvas></div></div>';
@@ -495,7 +613,7 @@ function renderGargalos(){
 
   // Por setor
   const aggS={};
-  desp.forEach(function(d){const s=(d.setor||'OUTROS').toUpperCase();if(!aggS[s])aggS[s]={kg:0,custo:0};const p=ABC.produtos.find(function(x){return x.n===d.produto;});const ck=(p&&p.qtd>0)?p.cus/p.qtd:8;aggS[s].kg+=(d.und!=='und'?d.qty:0);aggS[s].custo+=d.qty*ck;});
+  desp.forEach(function(d){const s=(d.setor||'OUTROS').toUpperCase();if(!aggS[s])aggS[s]={kg:0,custo:0};const pr=precoProduto(d.produto);aggS[s].kg+=(d.und!=='und'?d.qty:0);if(pr)aggS[s].custo+=d.qty*pr.ck;});
   const sk=Object.keys(aggS).sort(function(a,b){return aggS[b].custo-aggS[a].custo;});
   h+='<div class="card"><div class="card-title">🏭 Por Setor</div>';
   const maxS=Math.max.apply(null,sk.map(function(k){return aggS[k].custo;}))||1;
@@ -504,17 +622,21 @@ function renderGargalos(){
 
   // Top produtos com custo + venda perdida + classe ABC
   const agg={};
-  desp.forEach(function(d){if(!agg[d.produto])agg[d.produto]={kg:0,und:0,un:d.und,custo:0,venda:0};const p=ABC.produtos.find(function(x){return x.n===d.produto;});const ck=(p&&p.qtd>0)?p.cus/p.qtd:8;const vk=(p&&p.qtd>0)?p.fat/p.qtd:18;if(d.und==='und')agg[d.produto].und+=d.qty;else agg[d.produto].kg+=d.qty;agg[d.produto].custo+=d.qty*ck;agg[d.produto].venda+=d.qty*vk;agg[d.produto].classe=p?p.classe:'C';});
-  const lista=Object.keys(agg).map(function(nm){return{nome:nm,kg:agg[nm].kg,und:agg[nm].und,un:agg[nm].un,custo:agg[nm].custo,venda:agg[nm].venda,classe:agg[nm].classe};}).sort(function(a,b){return b.custo-a.custo;}).slice(0,12);
-  h+='<div class="card"><div class="card-title">🗑️ Top 12 Desperdiçados <span class="sub">por custo</span></div>';
+  desp.forEach(function(d){if(!agg[d.produto])agg[d.produto]={kg:0,und:0,un:d.und,custo:0,venda:0,temPreco:false,fonte:''};const pr=precoProduto(d.produto);if(d.und==='und')agg[d.produto].und+=d.qty;else agg[d.produto].kg+=d.qty;if(pr){agg[d.produto].custo+=d.qty*pr.ck;agg[d.produto].venda+=d.qty*pr.vk;agg[d.produto].temPreco=true;agg[d.produto].classe=pr.classe;agg[d.produto].fonte=pr.fonte;}else{agg[d.produto].classe=null;}});
+  const lista=Object.keys(agg).map(function(nm){return{nome:nm,kg:agg[nm].kg,und:agg[nm].und,un:agg[nm].un,custo:agg[nm].custo,venda:agg[nm].venda,classe:agg[nm].classe,temPreco:agg[nm].temPreco,fonte:agg[nm].fonte};}).sort(function(a,b){return (b.kg+b.und)-(a.kg+a.und);}).slice(0,12);
+  h+='<div class="card"><div class="card-title">🗑️ Top 12 Desperdiçados <span class="sub">por quantidade</span></div>';
   lista.forEach(function(item,i){
     const q=item.un==='und'?fmtN(item.und)+' und':fmtKg(item.kg)+' kg';
+    const classeTag=item.classe?'<span class="classe-tag classe-'+item.classe+'">'+item.classe+'</span> ':'';
+    const fonteTag=item.fonte==='manual'?' <span style="font-size:.58rem;color:var(--blue)">(preço manual)</span>':'';
+    const vendaTxt=item.temPreco?'venda perdida '+fmtR(item.venda)+fonteTag:'sem preço cadastrado';
+    const custoTxt=item.temPreco?fmtR(item.custo):'—';
     h+='<div class="rank-item"><div class="rank-num bad">'+(i+1)+'</div>'
-      +'<div class="rank-nome"><span class="classe-tag classe-'+(item.classe||'C')+'">'+(item.classe||'C')+'</span> '+item.nome
-      +'<div class="rank-sub">'+q+' · venda perdida '+fmtR(item.venda)+'</div></div>'
-      +'<div class="rank-val" style="color:var(--red)">'+fmtR(item.custo)+'</div></div>';
+      +'<div class="rank-nome">'+classeTag+item.nome
+      +'<div class="rank-sub">'+q+' · '+vendaTxt+'</div></div>'
+      +'<div class="rank-val" style="color:var(--red)">'+custoTxt+'</div></div>';
   });
-  h+='<div class="insight alert" style="margin-top:10px;margin-bottom:0">💡 Produto classe <span class="classe-tag classe-A">A</span> no lixo é o mais grave: vende muito e ainda assim sobrou. Revise a produção dele.</div></div>';
+  h+='<div class="insight alert" style="margin-top:10px;margin-bottom:0">💡 "Sem preço cadastrado" = produto que não vendeu no ABC e não está na lista manual. Verifique o nome ou a unidade do registro.</div></div>';
 
   // Cruzamento produção vs desperdício
   h+=renderCruzamento();
@@ -532,16 +654,16 @@ function renderGargalos(){
 }
 
 function renderCruzamento(){
-  // Produziu muito e desperdiçou muito? (sobra)
-  const prodAgg={};
-  PRODUCAO.forEach(function(p){const nm=(p.produto_nome||'').toUpperCase();prodAgg[nm]=(prodAgg[nm]||0)+(parseFloat(p.qtd_produzida)||0);});
-  (ABC.padaria_prod&&ABC.padaria_prod.top||[]).forEach(function(item){const nm=item.n.toUpperCase();prodAgg[nm]=(prodAgg[nm]||0)+(item.kg||0)+(item.und||0);});
+  // Produziu muito e desperdiçou muito? (sobra) — casa nomes por normNome
+  const prodAgg={};const nomeOrig={};
+  PRODUCAO.forEach(function(p){const nm=normNome(p.produto_nome);if(!nm)return;prodAgg[nm]=(prodAgg[nm]||0)+(parseFloat(p.qtd_produzida)||0);nomeOrig[nm]=nomeOrig[nm]||p.produto_nome;});
+  (ABC.padaria_prod&&ABC.padaria_prod.top||[]).forEach(function(item){const nm=normNome(item.n);if(!nm)return;prodAgg[nm]=(prodAgg[nm]||0)+(item.kg||0)+(item.und||0);nomeOrig[nm]=nomeOrig[nm]||item.n;});
   const despAgg={};
-  DESPERDICIO.forEach(function(d){const nm=(d.produto||'').toUpperCase();despAgg[nm]=(despAgg[nm]||0)+d.qty;});
+  DESPERDICIO.forEach(function(d){const nm=normNome(d.produto);if(!nm)return;despAgg[nm]=(despAgg[nm]||0)+d.qty;nomeOrig[nm]=nomeOrig[nm]||d.produto;});
   const cruz=Object.keys(despAgg).map(function(nm){
     const prod=prodAgg[nm]||0;const desp=despAgg[nm];
     const taxa=prod>0?(desp/prod*100):null;
-    return{nome:nm,prod:prod,desp:desp,taxa:taxa};
+    return{nome:nomeOrig[nm]||nm,prod:prod,desp:desp,taxa:taxa};
   }).filter(function(x){return x.taxa!==null&&x.taxa>0;}).sort(function(a,b){return b.taxa-a.taxa;}).slice(0,8);
   let h='<div class="card"><div class="card-title">⚖️ Produção × Desperdício <span class="sub">% que sobrou</span></div>';
   if(cruz.length){
