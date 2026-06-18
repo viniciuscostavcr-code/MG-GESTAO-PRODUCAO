@@ -288,9 +288,19 @@ async function montarABCdoBanco(){
   var mes=meses[0].mes_ref;
   MES_ATUAL=mes;
 
-  // 2. Buscar todas as vendas desse mês
-  var vendas=await sbGet('vendas_abc','select=*&mes_ref=eq.'+encodeURIComponent(mes)+'&limit=20000');
-  if(!vendas||vendas.length===0){ return null; }
+  // 2. Buscar todas as vendas desse mês (paginado: Supabase limita 1000/req)
+  var vendas=[];
+  var offset=0;
+  var bloco=1000;
+  while(true){
+    var parte=await sbGet('vendas_abc','select=*&mes_ref=eq.'+encodeURIComponent(mes)+'&order=id.asc&limit='+bloco+'&offset='+offset);
+    if(!parte||parte.length===0)break;
+    vendas=vendas.concat(parte);
+    if(parte.length<bloco)break; // última página
+    offset+=bloco;
+    if(offset>50000)break; // trava de segurança
+  }
+  if(vendas.length===0){ return null; }
 
   // 3. Agregar por produto+setor, somando o mês e contando dias com venda
   var agg={};
