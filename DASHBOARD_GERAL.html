@@ -338,11 +338,12 @@ async function montarABCdoBanco(){
     undMap[a.n]=un;
   });
 
-  // 5. Totais por setor (pad/conf) — [fat, custo, lucro]
+  // 5. Totais por setor — ORDEM: [faturamento, lucro, custo]
+  //    (é a ordem que o dashboard espera em pad26[0]/[1]/[2])
   function totSetor(setor){
     var f=0,c=0,l=0;
     produtos.forEach(function(p){if(p.s===setor){f+=p.fat;c+=p.cus;l+=p.luc;}});
-    return [f,c,l];
+    return [f,l,c];
   }
   var rupturaTotal=0;
   // Ruptura conta só produtos relevantes (faturamento > R$300/mês),
