@@ -823,10 +823,10 @@ const MOTS_DEFAULT=[
 let D={
   hist:[],extra:[],
   resps:['FUNCIONÁRIO 1','FUNCIONÁRIO 2'],
-  sets:['PADARIA','CONFEITARIA','LANCHONETE','PASTELARIA'],
+  sets:['PADARIA','CONFEITARIA','LANCHONETE'],
   motivos:[...MOTS_DEFAULT],
   fotos:{},overrides:{},
-  alertas:{PADARIA:5,CONFEITARIA:5,LANCHONETE:5,PASTELARIA:5}
+  alertas:{PADARIA:5,CONFEITARIA:5,LANCHONETE:5}
 };
 let PRODS_SUPA=[];  // catálogo carregado do Supabase
 
@@ -2415,10 +2415,12 @@ function expConsolidadoDesp(){
       var qty=parseFloat(r.qty)||0;
       totalGeral+=qty;
       var und=r.u||r.und||inferirUnidade(r.prod);
+      // Pastelaria é tratada como Confeitaria (setores unificados)
+      var setor=(r.set==='PASTELARIA')?'CONFEITARIA':r.set;
       // Por produto (agrupado por setor + produto + unidade), guardando o código
-      var keyP=r.set+'|'+r.prod+'|'+und;
+      var keyP=setor+'|'+r.prod+'|'+und;
       if(!aggProd[keyP]){
-        aggProd[keyP]={prod:r.prod,cod:r.cod||'',set:r.set,und:und,total:0,motivos:{}};
+        aggProd[keyP]={prod:r.prod,cod:r.cod||'',set:setor,und:und,total:0,motivos:{}};
       }
       // Se algum registro tiver o código e o primeiro não tinha, completa
       if(!aggProd[keyP].cod && r.cod){aggProd[keyP].cod=r.cod;}
@@ -2426,8 +2428,8 @@ function expConsolidadoDesp(){
       aggProd[keyP].motivos[r.mot]=(aggProd[keyP].motivos[r.mot]||0)+qty;
       // Por motivo
       aggMot[r.mot]=(aggMot[r.mot]||0)+qty;
-      // Por setor
-      aggSet[r.set]=(aggSet[r.set]||0)+qty;
+      // Por setor (pastelaria somada em confeitaria)
+      aggSet[setor]=(aggSet[setor]||0)+qty;
     });
   });
 
