@@ -135,28 +135,41 @@ document.getElementById('fileInput').addEventListener('change',function(e){
   var reader=new FileReader();
   reader.onload=function(ev){
     try{
-      parseCSV(ev.target.result);
+      // Detecta encoding: tenta UTF-8; se achar caractere de erro (), relê como latin-1
+      var bytes=new Uint8Array(ev.target.result);
+      var txtUtf8=new TextDecoder('utf-8').decode(bytes);
+      var texto;
+      if(txtUtf8.indexOf('\uFFFD')>=0){
+        // tinha byte inválido em UTF-8 → é latin-1
+        texto=new TextDecoder('iso-8859-1').decode(bytes);
+      }else{
+        texto=txtUtf8;
+      }
+      parseCSV(texto);
     }catch(err){
       showStatus('❌ Erro ao ler o arquivo: '+err.message,'err');
     }
   };
-  reader.readAsText(file,'ISO-8859-1'); // PDV costuma exportar em latin-1
+  reader.readAsArrayBuffer(file); // lê como bytes pra detectar encoding
 });
 
 function parseCSV(texto){
   var linhas=texto.split(/\r?\n/).filter(function(l){return l.trim()!=='';});
   if(linhas.length<2){ showStatus('❌ Arquivo vazio ou sem dados.','err'); return; }
   var header=linhas[0].split(';').map(function(h){return h.trim();});
-  // Mapear índices das colunas que interessam
+  // Normaliza pra comparar sem acento e sem caso
+  function norm(s){return (s||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'');}
+  // Mapear índices das colunas que interessam (tolerante a acento)
+  // Tenta match exato primeiro; se não achar, match parcial
   function idx(nome){
-    for(var i=0;i<header.length;i++){
-      if(header[i].toLowerCase().indexOf(nome.toLowerCase())>=0)return i;
-    }
+    var alvo=norm(nome);
+    for(var i=0;i<header.length;i++){ if(norm(header[i])===alvo)return i; }
+    for(var j=0;j<header.length;j++){ if(norm(header[j]).indexOf(alvo)>=0)return j; }
     return -1;
   }
-  var iData=idx('Quebra'), iDia=idx('Quebra2'), iCod=idx('Código'), iDesc=idx('Descrição');
-  var iQtd=idx('Quantidade'), iFat=idx('Faturamento'), iPm=idx('Preço médio');
-  var iCusto=idx('Custo Total'), iLucro=idx('Lucro'), iMargem=idx('Margem'), iClasse=idx('Classific');
+  var iData=idx('quebra'), iDia=idx('quebra2'), iCod=idx('codigo'), iDesc=idx('descricao');
+  var iQtd=idx('quantidade'), iFat=idx('faturamento'), iPm=idx('preco medio');
+  var iCusto=idx('custo total'), iLucro=idx('lucro'), iMargem=idx('margem'), iClasse=idx('classific');
 
   if(iDesc<0||iData<0){ showStatus('❌ Colunas esperadas não encontradas. Confira se é o ABC detalhado.','err'); return; }
 
