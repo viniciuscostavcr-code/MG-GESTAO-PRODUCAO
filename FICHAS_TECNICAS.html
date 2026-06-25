@@ -334,7 +334,7 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
   <div class="modal-full-header">
     <button style="background:none;border:none;color:#fff;font-size:1rem;cursor:pointer;padding:4px;" onclick="fecharModalFull()">←</button>
     <div class="modal-full-title" id="modalFichaTitulo">Nova Ficha Técnica</div>
-    <button class="btn btn-grn btn-sm" onclick="salvarFicha()">💾 Salvar</button>
+    <button class="btn btn-grn btn-sm" id="btnSalvarFicha" onclick="salvarFicha()">💾 Salvar</button>
   </div>
   <div class="modal-full-body">
     <input type="hidden" id="fichaId">
@@ -1232,7 +1232,9 @@ async function uploadFoto(fichaId) {
   return SUPA_URL + '/storage/v1/object/public/fichas-fotos/' + path;
 }
 
+let _salvandoFicha=false; // trava anti-duplicação
 async function salvarFicha(){
+  if(_salvandoFicha)return; // já está salvando — ignora clique extra
   const id=document.getElementById('fichaId').value;
   const produto_nome=document.getElementById('fichaNome').value.trim().toUpperCase();
   const setor=document.getElementById('fichaSetor').value;
@@ -1248,6 +1250,11 @@ async function salvarFicha(){
   if(!produto_nome){toast('⚠️ Nome obrigatório','er');return;}
   if(!setor){toast('⚠️ Setor obrigatório','er');return;}
   if(rendimento_kg<=0){toast('⚠️ Rendimento obrigatório','er');return;}
+  // Ativa a trava e desabilita o botão (impede clique duplo)
+  _salvandoFicha=true;
+  const btnSalvar=document.getElementById('btnSalvarFicha');
+  let txtOriginal='';
+  if(btnSalvar){txtOriginal=btnSalvar.innerHTML;btnSalvar.disabled=true;btnSalvar.style.opacity='0.6';btnSalvar.innerHTML='⏳ Salvando...';}
   const foto_url=document.getElementById('fichaFotoUrl').value||null;
   const body={produto_nome,setor,grupo:grupo||null,indicacao:indicacao||null,rendimento_kg,rendimento_unid,tempo_preparo_min,fator_coccao,preco_venda_kg,equipamentos:equipamentos||null,modo_preparo:modo_preparo||null,foto_url,ativo:true};
   try{
@@ -1285,6 +1292,11 @@ async function salvarFicha(){
     toast('✅ Ficha salva!','ok');
     await carregarTudo();
   }catch(e){toast('❌ Erro ao salvar','er');console.error(e);}
+  finally{
+    // Libera a trava e restaura o botão (sempre, mesmo se der erro)
+    _salvandoFicha=false;
+    if(btnSalvar){btnSalvar.disabled=false;btnSalvar.style.opacity='1';btnSalvar.innerHTML=txtOriginal||'💾 Salvar';}
+  }
 }
 
 async function confirmarExcluirFicha(id,nome){
