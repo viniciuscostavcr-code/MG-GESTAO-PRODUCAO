@@ -341,7 +341,10 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
     <div class="fg-row">
       <div class="fg">
         <label>Nome do produto *</label>
-        <input type="text" id="fichaNome" placeholder="ex: Bolo de Macaxeira">
+        <select id="fichaProdutoSel" onchange="aoSelecionarProduto()">
+          <option value="">Selecione o produto...</option>
+        </select>
+        <input type="hidden" id="fichaNome">
       </div>
       <div class="fg">
         <label>Setor *</label>
@@ -504,6 +507,7 @@ if (!IS_ADMIN_FT) {
 // ═══════════════════════════════════════
 let INSUMOS=[];
 let FICHAS=[];
+let PRODUTOS_CAT=[];
 let FICHA_ITENS={};
 let filtroInsumos='TODOS';
 let filtroFichas='TODOS';
@@ -572,6 +576,7 @@ function mudarTab(nome,el){
 async function carregarTudo(){
   try{
     INSUMOS=await sbGet('insumos','select=*&ativo=eq.true&order=nome.asc');
+    PRODUTOS_CAT=await sbGet('produtos','select=nome,setor,unidade,cod&ativo=eq.true&order=nome.asc');
     FICHAS=await sbGet('fichas_tecnicas','select=*&ativo=eq.true&order=produto_nome.asc');
     // Carregar itens de todas as fichas
     if(FICHAS.length){
@@ -1037,7 +1042,9 @@ function imprimirFichaProducao(id) {
 // ═══════════════════════════════════════
 function abrirModalFicha(id){
   ingredientesModal=[];
+  popularDropdownProdutos();
   document.getElementById('fichaId').value='';
+  document.getElementById('fichaProdutoSel').value='';
   document.getElementById('fichaNome').value='';
   document.getElementById('fichaSetor').value='CONFEITARIA';
   document.getElementById('fichaGrupo').value='';
@@ -1061,6 +1068,12 @@ function abrirModalFicha(id){
     if(!f)return;
     document.getElementById('fichaId').value=f.id;
     document.getElementById('fichaNome').value=f.produto_nome;
+    // Seleciona o produto no dropdown (se existir no catálogo); senão adiciona como opção avulsa
+    var selProd=document.getElementById('fichaProdutoSel');
+    var existe=false;
+    for(var oi=0;oi<selProd.options.length;oi++){if(selProd.options[oi].value===f.produto_nome){existe=true;break;}}
+    if(!existe && f.produto_nome){var op=document.createElement('option');op.value=f.produto_nome;op.textContent=f.produto_nome+' (não está no catálogo)';selProd.appendChild(op);}
+    selProd.value=f.produto_nome;
     document.getElementById('fichaSetor').value=f.setor;
     document.getElementById('fichaGrupo').value=f.grupo||'';
     document.getElementById('fichaIndicacao').value=f.indicacao||'';
@@ -1230,6 +1243,39 @@ async function uploadFoto(fichaId) {
   );
   if (!r.ok) return null;
   return SUPA_URL + '/storage/v1/object/public/fichas-fotos/' + path;
+}
+
+// Popula o dropdown de produtos com o catálogo (tabela 'produtos')
+function popularDropdownProdutos(){
+  var sel=document.getElementById('fichaProdutoSel');
+  if(!sel)return;
+  // Produtos que JÁ têm ficha (pra não duplicar ficha do mesmo produto)
+  var comFicha={};
+  FICHAS.forEach(function(f){comFicha[(f.produto_nome||'').toUpperCase()]=true;});
+  var h='<option value="">Selecione o produto...</option>';
+  PRODUTOS_CAT.forEach(function(p){
+    var nome=p.nome||'';
+    var jaTem=comFicha[nome.toUpperCase()]?' ✓ (já tem ficha)':'';
+    h+='<option value="'+nome.replace(/"/g,'&quot;')+'">'+nome+jaTem+'</option>';
+  });
+  sel.innerHTML=h;
+}
+
+// Ao selecionar um produto: preenche o nome (campo oculto) e puxa o setor
+function aoSelecionarProduto(){
+  var sel=document.getElementById('fichaProdutoSel');
+  var nome=sel.value;
+  document.getElementById('fichaNome').value=nome;
+  if(!nome)return;
+  // Acha o produto no catálogo e puxa o setor automaticamente
+  var prod=PRODUTOS_CAT.find(function(p){return p.nome===nome;});
+  if(prod && prod.setor){
+    var setorUp=(prod.setor==='PASTELARIA')?'CONFEITARIA':prod.setor;
+    var selSetor=document.getElementById('fichaSetor');
+    for(var i=0;i<selSetor.options.length;i++){
+      if(selSetor.options[i].value===setorUp){selSetor.value=setorUp;break;}
+    }
+  }
 }
 
 let _salvandoFicha=false; // trava anti-duplicação
