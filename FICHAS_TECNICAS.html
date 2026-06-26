@@ -1431,9 +1431,13 @@ function renderCMV(){
   let totalFat=0,totalCusto=0,count=0;
   const cmvItems=lista.map(function(f){
     const c=calcCMV(f);
+    // Usa o CMV disponível: por kg (se tem preço/kg) ou por unidade (se tem preço/und)
     if(c.preco>0&&c.rendimento>0){
-      const fat=c.preco*c.rendimento;
-      totalFat+=fat;
+      totalFat+=c.preco*c.rendimento;
+      totalCusto+=c.custoTotal;
+      count++;
+    }else if(c.precoUnd>0&&c.nUnid>0){
+      totalFat+=c.precoUnd*c.nUnid;
       totalCusto+=c.custoTotal;
       count++;
     }
@@ -1448,11 +1452,14 @@ function renderCMV(){
     +'<div class="kpi-card"><div class="kpi-label">Fichas com CMV</div>'
     +'<div class="kpi-val">'+count+'</div>'
     +'<div class="kpi-sub">de '+lista.length+' fichas</div></div>';
-  // Lista ordenada por CMV (pior primeiro)
+  // Ordena por CMV efetivo (usa kg, ou und se não tiver kg) — pior primeiro
+  function cmvEfetivo(c){
+    if(c.cmv!==null)return c.cmv;
+    if(c.cmvUnd!==null)return c.cmvUnd;
+    return 0;
+  }
   cmvItems.sort(function(a,b){
-    const ca=a.c.cmv!==null?a.c.cmv:0;
-    const cb=b.c.cmv!==null?b.c.cmv:0;
-    return cb-ca;
+    return cmvEfetivo(b.c)-cmvEfetivo(a.c);
   });
   const el=document.getElementById('listaCMV');
   if(!cmvItems.length){
@@ -1461,16 +1468,25 @@ function renderCMV(){
   }
   el.innerHTML=cmvItems.map(function(x){
     const f=x.f;const c=x.c;
-    const cmvStr=c.cmv!==null?fmtBR(c.cmv*100, 2)+'%':'—';
-    const margemStr=c.margem!==null?fmtBR(c.margem*100, 2)+'%':'—';
-    const barWidth=c.cmv!==null?Math.min(c.cmv*100,100):0;
-    const barClass=cmvClass(c.cmv);
-    const cor=cmvColor(c.cmv);
+    // Decide qual CMV mostrar: por kg (preferência) ou por unidade
+    var usaKg=(c.cmv!==null);
+    var usaUnd=(!usaKg && c.cmvUnd!==null);
+    var cmvVal=usaKg?c.cmv:(usaUnd?c.cmvUnd:null);
+    var margemVal=usaKg?c.margem:(usaUnd?c.margemUnd:null);
+    var custoUnit=usaKg?c.custoKgFinal:c.custoUndFinal;
+    var precoUnit=usaKg?(c.preco||0):(c.precoUnd||0);
+    var unidLabel=usaUnd?'und':'kg';
+    const cmvStr=cmvVal!==null?fmtBR(cmvVal*100, 2)+'%':'—';
+    const margemStr=margemVal!==null?fmtBR(margemVal*100, 2)+'%':'—';
+    const barWidth=cmvVal!==null?Math.min(cmvVal*100,100):0;
+    const barClass=cmvClass(cmvVal);
+    const cor=cmvColor(cmvVal);
+    var tagUnid=usaUnd?'<span style="font-size:.62rem;background:#FDEEDD;color:#E67E22;padding:1px 6px;border-radius:8px;margin-left:6px;font-weight:700;">UND</span>':'';
     return '<div class="card" style="margin-bottom:8px;">'
       +'<div class="card-body">'
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'
       +'<div style="flex:1">'
-      +'<div style="font-size:.85rem;font-weight:700;color:var(--brown);">'+f.produto_nome+'</div>'
+      +'<div style="font-size:.85rem;font-weight:700;color:var(--brown);">'+f.produto_nome+tagUnid+'</div>'
       +'<div style="font-size:.7rem;color:var(--gray);">'+f.setor+'</div>'
       +'</div>'
       +'<div style="text-align:right;">'
@@ -1480,8 +1496,8 @@ function renderCMV(){
       +'</div>'
       +'<div class="cmv-bar"><div class="cmv-fill cmv-'+barClass+'" style="width:'+barWidth+'%"></div></div>'
       +'<div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--gray);margin-top:5px;">'
-      +'<span>Custo/kg: R$ '+fmtBR(c.custoKgFinal, 2)+'</span>'
-      +'<span>Venda: R$ '+fmtBR(c.preco||0, 2)+'/kg</span>'
+      +'<span>Custo/'+unidLabel+': R$ '+fmtBR(custoUnit, 2)+'</span>'
+      +'<span>Venda: R$ '+fmtBR(precoUnit, 2)+'/'+unidLabel+'</span>'
       +'</div>'
       +'</div></div>';
   }).join('');
