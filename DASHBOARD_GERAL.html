@@ -400,15 +400,25 @@ function mudarTab(nome,el){
 
 async function carregarOperacao(){
   try{
+    // Usa o mês atual (mesmo das vendas). Se não houver, cai pra maio como antes.
+    var mesRef=MES_ATUAL||'2026-05';
+    var ini=mesRef+'-01';
+    // Último dia do mês (calcula automático)
+    var partes=mesRef.split('-');
+    var ano=parseInt(partes[0],10);
+    var mesN=parseInt(partes[1],10);
+    var ultimoDia=new Date(ano,mesN,0).getDate(); // dia 0 do mês seguinte = último do atual
+    var fim=mesRef+'-'+String(ultimoDia).padStart(2,'0');
+
     const[prod,desp]=await Promise.all([
-      sbGet('producao_itens','select=*&data_dia=gte.2026-05-01&data_dia=lte.2026-05-31&limit=10000'),
+      sbGet('producao_itens','select=*&data_dia=gte.'+ini+'&data_dia=lte.'+fim+'&limit=10000'),
       sbGet('desperdicios','select=*&limit=10000')
     ]);
     PRODUCAO=prod||[];
     DESPERDICIO=(desp||[]).map(function(r){
       let d=r.data||'';if(d.includes('/')){const p=d.split('/');d=p[2]+'-'+p[1]+'-'+p[0];}
       return{produto:r.produto||'',setor:r.setor||'',qty:parseFloat(r.quantidade)||0,und:r.unidade||inferirUnidade(r.produto),motivo:r.motivo||'—',data:d,dia:r.dia_semana||'',resp:r.responsavel||'—'};
-    }).filter(function(r){return r.data>='2026-05-01'&&r.data<='2026-05-31';});
+    }).filter(function(r){return r.data>=ini&&r.data<=fim;});
   }catch(e){console.error(e);PRODUCAO=[];DESPERDICIO=[];}
   renderGeral();renderOperacao();renderGargalos();
   setTimeout(drawGeralCharts,80);
@@ -510,6 +520,24 @@ function drawVendasCharts(){
 }
 
 // ════════ RUPTURA ════════
+// Aplica os filtros selecionados na aba de ruptura (usado na tela e na impressão)
+function filtrarRupturas(){
+  var fClasse=(document.getElementById('fRupClasse')||{}).value||'TODAS';
+  var fSetor=(document.getElementById('fRupSetor')||{}).value||'TODOS';
+  var fDias=parseInt((document.getElementById('fRupDias')||{}).value||'1',10);
+  return ABC.produtos.filter(function(p){
+    if(p.fat<=300)return false;          // relevância (mesmo filtro do cálculo)
+    if(p.ds<fDias)return false;          // mínimo de dias sem venda
+    if(fSetor!=='TODOS'&&p.s!==fSetor)return false;
+    var cls=p.classe||'C';
+    if(fClasse==='A'&&cls!=='A')return false;
+    if(fClasse==='B'&&cls!=='B')return false;
+    if(fClasse==='C'&&cls!=='C')return false;
+    if(fClasse==='AB'&&cls!=='A'&&cls!=='B')return false;
+    return true;
+  }).sort(function(a,b){return b.perda-a.perda;});
+}
+
 function renderRuptura(){
   const rupt=ABC.ruptura_total||0;
   let h='<div class="insight alert"><strong>🔴 Ruptura = venda perdida por falta de produto.</strong> Calculada pelos dias sem venda de cada produto. É o vazamento invisível — o cliente que não achou o produto e foi embora.</div>';
@@ -520,23 +548,21 @@ function renderRuptura(){
   h+='<div class="kpi"><div class="kpi-label">% do faturamento</div><div class="kpi-val" style="color:var(--red)">'+pct(rupt/v.fat26*100)+'</div><div class="kpi-sub">poderia ter vendido +'+pct(rupt/v.fat26*100)+'</div></div>';
   h+='</div>';
 
-  h+='<div class="card" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div style="font-size:.8rem;font-weight:700;color:var(--brown);flex:1;min-width:140px">🖨️ Relatório de faltas</div>'
-    +'<button onclick="imprimirRuptura(\'equipe\')" style="padding:9px 14px;background:var(--grn);color:#fff;border:none;border-radius:9px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">👥 Versão Equipe</button>'
-    +'<button onclick="imprimirRuptura(\'gestor\')" style="padding:9px 14px;background:var(--grn2);color:#fff;border:none;border-radius:9px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">💼 Versão Gestor</button>'
+  h+='<div class="card" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div style="font-size:.8rem;font-weight:700;color:var(--brown);flex:1;min-width:140px">🖨️ Para filtrar e imprimir com detalhe, use a aba <b>Produtos</b></div>'
     +'</div>';
 
   h+='<div class="card"><div class="card-title">🔴 Top 12 Rupturas <span class="sub">maior venda perdida</span></div><div class="chart-box tall"><canvas id="chRuptura"></canvas></div></div>';
 
-  // Lista detalhada por classe
+  // Lista detalhada (top 15 por venda perdida)
   const rupturas=ABC.produtos.filter(function(p){return p.fat>300&&p.ds>0;}).sort(function(a,b){return b.perda-a.perda;}).slice(0,15);
-  h+='<div class="card"><div class="card-title">📋 Detalhe das Rupturas</div>';
+  h+='<div class="card"><div class="card-title">📋 Detalhe das Rupturas <span class="sub">top 15</span></div>';
   rupturas.forEach(function(p,i){
     h+='<div class="rank-item"><div class="rank-num bad">'+(i+1)+'</div>'
       +'<div class="rank-nome"><span class="classe-tag classe-'+(p.classe||'C')+'">'+(p.classe||'C')+'</span> '+p.n
-      +'<div class="rank-sub">vendeu '+p.dv+' dias · '+p.ds+' dias sem venda</div></div>'
+      +'<div class="rank-sub">'+p.s+' · vendeu '+p.dv+' dias · '+p.ds+' sem venda · fat '+fmtR(p.fat)+'</div></div>'
       +'<div class="rank-val" style="color:var(--red)">'+fmtR(p.perda)+'</div></div>';
   });
-  h+='<div class="insight" style="margin-top:10px;margin-bottom:0">💡 Produtos <span class="classe-tag classe-A">A</span> em ruptura são prioridade máxima — vendem muito e cada dia sem produto é venda perdida garantida.</div></div>';
+  h+='<div class="insight" style="margin-top:10px;margin-bottom:0">💡 Para a lista completa com filtros (classe, setor) e impressão, use a aba <strong>Produtos</strong>.</div></div>';
   document.getElementById('rupturaBox').innerHTML=h;
   setTimeout(drawRupturaChart,50);
 }
@@ -553,43 +579,57 @@ function imprimirRuptura(modo){
   const rupt=ABC.ruptura_total||0;
   const dataStr=new Date().toLocaleDateString('pt-BR');
   const ehGestor=(modo==='gestor');
-  // produtos em ruptura, ordenados por dias sem venda (foco operacional) ou perda (gestor)
-  let rupturas=ABC.produtos.filter(function(p){return p.fat>300&&p.ds>0;});
-  rupturas.sort(function(a,b){return ehGestor?(b.perda-a.perda):(b.ds-a.ds);});
-  rupturas=rupturas.slice(0,20);
+  // Usa os MESMOS filtros selecionados na tela
+  let rupturas=filtrarRupturas();
+  // Gestor ordena por perda; produção ordena por dias sem venda (foco operacional)
+  if(!ehGestor)rupturas=rupturas.slice().sort(function(a,b){return b.ds-a.ds;});
+  // Soma da venda perdida do recorte filtrado
+  var perdaFiltro=0;rupturas.forEach(function(p){perdaFiltro+=p.perda;});
+  // Descreve o filtro aplicado (pra sair no cabeçalho)
+  var fClasse=(document.getElementById('fRupClasse')||{}).value||'TODAS';
+  var fSetor=(document.getElementById('fRupSetor')||{}).value||'TODOS';
+  var fDias=(document.getElementById('fRupDias')||{}).value||'1';
+  var filtroTxt='Classe: '+(fClasse==='TODAS'?'todas':fClasse)+' · Setor: '+(fSetor==='TODOS'?'todos':fSetor)+' · Mín. '+fDias+' dia(s) s/ venda';
 
   function emoji(ds){return ds>10?'🔴':ds>5?'🟡':'🟢';}
 
   let h='<div style="font-family:\'Plus Jakarta Sans\',sans-serif;color:#1C1C1A;max-width:760px;margin:0 auto;padding:24px;">';
   // Cabeçalho
-  h+='<div style="display:flex;align-items:center;gap:12px;border-bottom:3px solid #C0392B;padding-bottom:14px;margin-bottom:18px;">'
+  h+='<div style="display:flex;align-items:center;gap:12px;border-bottom:3px solid #C0392B;padding-bottom:14px;margin-bottom:8px;">'
     +'<div style="width:42px;height:42px;background:#1B4332;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:18px;">G</div>'
     +'<div><div style="font-size:19px;font-weight:800;color:#1B4332;">'+(ehGestor?'Relatório de Ruptura — Gestor':'Relatório de Faltas — Produção')+'</div>'
-    +'<div style="font-size:12px;color:#6B7280;">Supermercado MG · Padaria e Confeitaria · '+dataStr+'</div></div></div>';
+    +'<div style="font-size:12px;color:#6B7280;">Supermercado MG · '+nomeMesAtual()+' · '+dataStr+'</div></div></div>';
+  // Filtro aplicado
+  h+='<div style="font-size:11px;color:#888;margin-bottom:16px;">🔍 '+filtroTxt+' · '+rupturas.length+' produto(s)</div>';
 
   if(ehGestor){
     // KPIs financeiros
     h+='<div style="display:flex;gap:10px;margin-bottom:16px;">';
-    h+='<div style="flex:1;background:#FDECEA;border-radius:10px;padding:12px;"><div style="font-size:10px;color:#C0392B;text-transform:uppercase;font-weight:700;">Venda perdida estimada</div><div style="font-size:20px;font-weight:800;color:#C0392B;">'+fmtR(rupt)+'</div></div>';
-    h+='<div style="flex:1;background:#F4F4F2;border-radius:10px;padding:12px;"><div style="font-size:10px;color:#6B7280;text-transform:uppercase;font-weight:700;">% do faturamento</div><div style="font-size:20px;font-weight:800;color:#1C1C1A;">'+pct(rupt/v.fat26*100)+'</div></div>';
+    h+='<div style="flex:1;background:#FDECEA;border-radius:10px;padding:12px;"><div style="font-size:10px;color:#C0392B;text-transform:uppercase;font-weight:700;">Venda perdida (filtro)</div><div style="font-size:20px;font-weight:800;color:#C0392B;">'+fmtR(perdaFiltro)+'</div></div>';
+    h+='<div style="flex:1;background:#F4F4F2;border-radius:10px;padding:12px;"><div style="font-size:10px;color:#6B7280;text-transform:uppercase;font-weight:700;">Venda perdida (total mês)</div><div style="font-size:20px;font-weight:800;color:#1C1C1A;">'+fmtR(rupt)+'</div></div>';
     h+='</div>';
   }else{
     h+='<div style="background:#FEF3E2;border-left:4px solid #E67E22;border-radius:0 8px 8px 0;padding:12px 14px;margin-bottom:16px;font-size:13px;color:#8B4513;line-height:1.5;">'
-      +'🎯 <b>Meta da semana:</b> nenhum produto classe <b>A</b> pode faltar. Priorize a produção dos itens marcados com 🔴.</div>';
+      +'🎯 <b>Meta:</b> nenhum produto classe <b>A</b> pode faltar. Priorize a produção dos itens marcados com 🔴.</div>';
   }
 
   // Tabela
   h+='<table style="width:100%;border-collapse:collapse;font-size:12.5px;">';
-  h+='<tr style="background:#1B4332;color:#fff;"><th style="padding:8px;text-align:left;">Produto</th><th style="padding:8px;text-align:center;">Classe</th><th style="padding:8px;text-align:center;">Dias sem venda</th>';
-  if(ehGestor)h+='<th style="padding:8px;text-align:right;">Venda perdida</th>';
+  h+='<tr style="background:#1B4332;color:#fff;"><th style="padding:8px;text-align:left;">Produto</th><th style="padding:8px;text-align:center;">Classe</th><th style="padding:8px;text-align:center;">Setor</th><th style="padding:8px;text-align:center;">Vendeu</th><th style="padding:8px;text-align:center;">Sem venda</th>';
+  if(ehGestor)h+='<th style="padding:8px;text-align:right;">Fat. mês</th><th style="padding:8px;text-align:right;">Venda perdida</th>';
   h+='</tr>';
   rupturas.forEach(function(p,i){
     const bg=i%2?'#FAFAF8':'#fff';
     h+='<tr style="background:'+bg+';">';
     h+='<td style="padding:7px 8px;border-bottom:1px solid #eee;font-weight:600;">'+emoji(p.ds)+' '+p.n+'</td>';
     h+='<td style="padding:7px 8px;border-bottom:1px solid #eee;text-align:center;font-weight:700;color:'+(p.classe==='A'?'#C0392B':p.classe==='B'?'#D97706':'#888')+';">'+(p.classe||'C')+'</td>';
-    h+='<td style="padding:7px 8px;border-bottom:1px solid #eee;text-align:center;">'+p.ds+' dias</td>';
-    if(ehGestor)h+='<td style="padding:7px 8px;border-bottom:1px solid #eee;text-align:right;font-weight:700;color:#C0392B;">'+fmtR(p.perda)+'</td>';
+    h+='<td style="padding:7px 8px;border-bottom:1px solid #eee;text-align:center;font-size:11px;color:#666;">'+(p.s||'')+'</td>';
+    h+='<td style="padding:7px 8px;border-bottom:1px solid #eee;text-align:center;">'+p.dv+' dias</td>';
+    h+='<td style="padding:7px 8px;border-bottom:1px solid #eee;text-align:center;font-weight:700;">'+p.ds+' dias</td>';
+    if(ehGestor){
+      h+='<td style="padding:7px 8px;border-bottom:1px solid #eee;text-align:right;color:#666;">'+fmtR(p.fat)+'</td>';
+      h+='<td style="padding:7px 8px;border-bottom:1px solid #eee;text-align:right;font-weight:700;color:#C0392B;">'+fmtR(p.perda)+'</td>';
+    }
     h+='</tr>';
   });
   h+='</table>';
@@ -597,7 +637,8 @@ function imprimirRuptura(modo){
   // Legenda + ação
   h+='<div style="margin-top:16px;padding:12px;background:#F4F4F2;border-radius:8px;font-size:11.5px;color:#444;line-height:1.6;">'
     +'<b>Legenda:</b> 🔴 faltou mais de 10 dias · 🟡 faltou 5-10 dias · 🟢 faltou menos de 5 dias<br>'
-    +'<b>Classe A</b> = produtos que mais vendem (prioridade máxima) · <b>B</b> = importantes · <b>C</b> = menor giro';
+    +'<b>Classe A</b> = produtos que mais vendem (prioridade máxima) · <b>B</b> = importantes · <b>C</b> = menor giro<br>'
+    +'<b>Nota:</b> a venda perdida é um piso — o cálculo usa dias inteiros sem venda e já desconta os dias em que a loja não abriu. Faltas de meio-turno não são captadas, então a perda real tende a ser maior.';
   if(ehGestor)h+='<br><b>Venda perdida</b> = estimativa do faturamento não realizado por falta do produto na gôndola.';
   h+='</div>';
 
@@ -646,7 +687,7 @@ function drawCompChart(){
 
 // ════════ OPERAÇÃO ════════
 function renderOperacao(){
-  let h='<div class="insight"><strong>🏭 Marco zero do controle.</strong> Maio é o 1º mês medido no GestFood. A partir de junho teremos comparativo mês a mês.</div>';
+  let h='<div class="insight"><strong>🏭 Produção de '+nomeMesAtual()+'.</strong> Acompanhamento de produção vs planejado, mês a mês.</div>';
   // Confeitaria vem do Supabase (producao_itens); Padaria vem do CSV embutido (módulo beta)
   let confKg=0,confUnd=0,diasSet={};
   PRODUCAO.forEach(function(p){const q=parseFloat(p.qtd_produzida)||0;const u=(p.unidade||inferirUnidade(p.produto_nome)).toLowerCase();if(u==='und')confUnd+=q;else confKg+=q;if(p.data_dia)diasSet[p.data_dia]=true;});
@@ -861,6 +902,10 @@ function renderProdutos(){
   h+='<button class="pill'+(prodFiltroSetor==='PADARIA'?' on':'')+'" onclick="setProdSetor(\'PADARIA\')">Padaria</button>';
   h+='<button class="pill'+(prodFiltroSetor==='CONFEITARIA'?' on':'')+'" onclick="setProdSetor(\'CONFEITARIA\')">Confeitaria</button>';
   h+='</div>';
+  h+='<div style="display:flex;gap:8px;margin:10px 0;flex-wrap:wrap">'
+    +'<button onclick="imprimirProdutos(\'gestor\')" style="flex:1;min-width:150px;padding:10px;background:var(--grn2);color:#fff;border:none;border-radius:9px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit">💼 Imprimir — Gestor</button>'
+    +'<button onclick="imprimirProdutos(\'producao\')" style="flex:1;min-width:150px;padding:10px;background:var(--grn);color:#fff;border:none;border-radius:9px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit">👨‍🍳 Imprimir — Produção</button>'
+    +'</div>';
   h+='<div id="prodTabelaBox"></div>';
   document.getElementById('produtosBox').innerHTML=h;
   renderProdTabela();
@@ -871,7 +916,8 @@ function setProdSort(campo){
   if(prodSort===campo){prodSortDir=-prodSortDir;}else{prodSort=campo;prodSortDir=-1;}
   renderProdTabela();
 }
-function renderProdTabela(){
+// Retorna a lista de produtos aplicando os filtros ativos (usado na tela e na impressão)
+function filtrarProdutos(){
   let lista=ABC.produtos.slice();
   if(prodFiltroClasse!=='TODOS')lista=lista.filter(function(p){return p.classe===prodFiltroClasse;});
   if(prodFiltroSetor!=='TODOS')lista=lista.filter(function(p){return p.s===prodFiltroSetor;});
@@ -883,6 +929,10 @@ function renderProdTabela(){
     else{va=a[prodSort]||0;vb=b[prodSort]||0;}
     return prodSortDir*(va-vb);
   });
+  return lista;
+}
+function renderProdTabela(){
+  let lista=filtrarProdutos();
 
   let totFat=0,totPerda=0;
   lista.forEach(function(p){totFat+=p.fat;totPerda+=p.perda;});
@@ -914,6 +964,84 @@ function renderProdTabela(){
   h+='</tbody></table></div>';
   h+='<div class="insight warn" style="margin-top:12px;margin-bottom:0">💡 <strong>D.s/venda</strong> = dias que o produto ficou sem vender (possível ruptura). <strong>V.perdida</strong> = faturamento estimado que deixou de entrar. Produtos classe <span class="classe-tag classe-A">A</span> com muitos dias sem venda são prioridade.</div>';
   document.getElementById('prodTabelaBox').innerHTML=h;
+}
+
+// ════════ IMPRIMIR PRODUTOS (respeita filtros ativos) ════════
+function imprimirProdutos(modo){
+  var ehGestor=(modo==='gestor');
+  var lista=filtrarProdutos();
+  var dataStr=new Date().toLocaleDateString('pt-BR');
+  // Descrição do filtro aplicado
+  var fCl=prodFiltroClasse==='TODOS'?'todas':'classe '+prodFiltroClasse;
+  var fSt=prodFiltroSetor==='TODOS'?'todos os setores':prodFiltroSetor;
+  var fBu=prodBusca.trim()?' · busca: "'+prodBusca.trim()+'"':'';
+  var filtroTxt=fCl+' · '+fSt+fBu;
+
+  // Totais do recorte
+  var totFat=0,totLuc=0,totPerda=0,totCus=0;
+  lista.forEach(function(p){totFat+=p.fat;totLuc+=p.luc;totPerda+=p.perda;totCus+=p.cus;});
+  var cmvGeral=totFat>0?totCus/totFat*100:0;
+
+  function emoji(ds){return ds>10?'🔴':ds>5?'🟡':'🟢';}
+
+  var h='<div style="font-family:\'Plus Jakarta Sans\',sans-serif;color:#1C1C1A;max-width:800px;margin:0 auto;padding:24px;">';
+  // Cabeçalho
+  h+='<div style="display:flex;align-items:center;gap:12px;border-bottom:3px solid #1B4332;padding-bottom:14px;margin-bottom:8px;">'
+    +'<div style="width:42px;height:42px;background:#1B4332;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:18px;">G</div>'
+    +'<div><div style="font-size:19px;font-weight:800;color:#1B4332;">'+(ehGestor?'Relatório de Produtos — Gestor':'Lista de Produção')+'</div>'
+    +'<div style="font-size:12px;color:#6B7280;">Supermercado MG · '+nomeMesAtual()+' · '+dataStr+'</div></div></div>';
+  h+='<div style="font-size:11px;color:#888;margin-bottom:16px;">🔍 '+filtroTxt+' · '+lista.length+' produto(s)</div>';
+
+  if(ehGestor){
+    h+='<div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">';
+    h+='<div style="flex:1;min-width:120px;background:#EAF4EF;border-radius:10px;padding:12px;"><div style="font-size:10px;color:#1B4332;text-transform:uppercase;font-weight:700;">Faturamento</div><div style="font-size:18px;font-weight:800;color:#1B4332;">'+fmtR(totFat)+'</div></div>';
+    h+='<div style="flex:1;min-width:120px;background:#EAF4EF;border-radius:10px;padding:12px;"><div style="font-size:10px;color:#1B4332;text-transform:uppercase;font-weight:700;">Lucro</div><div style="font-size:18px;font-weight:800;color:#2D6A4F;">'+fmtR(totLuc)+'</div></div>';
+    h+='<div style="flex:1;min-width:120px;background:#F4F4F2;border-radius:10px;padding:12px;"><div style="font-size:10px;color:#6B7280;text-transform:uppercase;font-weight:700;">CMV geral</div><div style="font-size:18px;font-weight:800;color:'+(cmvGeral<=35?'#2D6A4F':cmvGeral<=45?'#D97706':'#C0392B')+';">'+cmvGeral.toFixed(1)+'%</div></div>';
+    h+='<div style="flex:1;min-width:120px;background:#FDECEA;border-radius:10px;padding:12px;"><div style="font-size:10px;color:#C0392B;text-transform:uppercase;font-weight:700;">Venda perdida</div><div style="font-size:18px;font-weight:800;color:#C0392B;">'+fmtR(totPerda)+'</div></div>';
+    h+='</div>';
+  }else{
+    h+='<div style="background:#FEF3E2;border-left:4px solid #E67E22;border-radius:0 8px 8px 0;padding:12px 14px;margin-bottom:16px;font-size:13px;color:#8B4513;line-height:1.5;">'
+      +'🎯 <b>Foco:</b> produtos marcados com 🔴 são os que mais faltaram — prioridade na produção. Classe <b>A</b> não pode faltar.</div>';
+  }
+
+  // Tabela
+  h+='<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+  if(ehGestor){
+    h+='<tr style="background:#1B4332;color:#fff;"><th style="padding:7px;text-align:left;">Produto</th><th style="padding:7px;">Classe</th><th style="padding:7px;">Setor</th><th style="padding:7px;text-align:right;">Fat</th><th style="padding:7px;text-align:right;">Lucro</th><th style="padding:7px;text-align:center;">CMV</th><th style="padding:7px;text-align:center;">D.s/venda</th><th style="padding:7px;text-align:right;">V.perdida</th></tr>';
+  }else{
+    h+='<tr style="background:#1B4332;color:#fff;"><th style="padding:7px;text-align:left;">Produto</th><th style="padding:7px;">Classe</th><th style="padding:7px;">Setor</th><th style="padding:7px;text-align:center;">Vendeu</th><th style="padding:7px;text-align:center;">Sem venda</th></tr>';
+  }
+  lista.forEach(function(p,i){
+    var bg=i%2?'#FAFAF8':'#fff';
+    var cmv=p.fat>0?p.cus/p.fat*100:0;
+    h+='<tr style="background:'+bg+';">';
+    h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;font-weight:600;">'+emoji(p.ds)+' '+p.n+'</td>';
+    h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:center;font-weight:700;color:'+(p.classe==='A'?'#C0392B':p.classe==='B'?'#D97706':'#888')+';">'+(p.classe||'C')+'</td>';
+    h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:center;font-size:10px;color:#666;">'+(p.s||'')+'</td>';
+    if(ehGestor){
+      h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:right;">'+fmtR(p.fat)+'</td>';
+      h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:right;color:#2D6A4F;">'+fmtR(p.luc)+'</td>';
+      h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:center;color:'+(cmv<=35?'#2D6A4F':cmv<=45?'#D97706':'#C0392B')+';font-weight:700;">'+cmv.toFixed(0)+'%</td>';
+      h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:center;font-weight:'+(p.ds>5?'700':'400')+';color:'+(p.ds>5?'#C0392B':'#666')+';">'+p.ds+'</td>';
+      h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:right;font-weight:700;color:#C0392B;">'+(p.perda>0?fmtR(p.perda):'—')+'</td>';
+    }else{
+      h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:center;">'+p.dv+' dias</td>';
+      h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:center;font-weight:700;">'+p.ds+' dias</td>';
+    }
+    h+='</tr>';
+  });
+  h+='</table>';
+
+  // Rodapé
+  h+='<div style="margin-top:16px;padding:12px;background:#F4F4F2;border-radius:8px;font-size:11px;color:#444;line-height:1.6;">'
+    +'<b>Legenda:</b> 🔴 faltou +10 dias · 🟡 5-10 dias · 🟢 -5 dias · <b>A</b>=mais vendem · <b>B</b>=importantes · <b>C</b>=menor giro<br>'
+    +'<b>Nota:</b> venda perdida é um piso — usa dias inteiros sem venda, já desconta dias de loja fechada e não capta faltas de meio-turno; a perda real tende a ser maior.</div>';
+
+  h+='<div style="margin-top:20px;text-align:center;"><button onclick="window.print()" style="padding:12px 28px;background:#2D6A4F;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">🖨️ Imprimir</button></div>';
+  h+='</div>';
+
+  document.getElementById('printArea').innerHTML=h;
+  setTimeout(function(){window.print();},300);
 }
 
 // ════════ IMPRIMIR — relatório visual com gráficos ════════
