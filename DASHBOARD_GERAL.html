@@ -281,6 +281,18 @@ async function sbGet(t,p){const r=await fetch(SUPA_URL+'/rest/v1/'+t+'?'+p,{head
 let ABC = ABC_EMBUTIDO;
 let MES_ATUAL = '';  // ex: '2026-05' — preenchido ao carregar
 
+// Converte MES_ATUAL (ex '2026-06') em nome legível (ex 'Junho 2026')
+function nomeMesAtual(){
+  if(!MES_ATUAL)return 'Maio';
+  var nomes=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  var p=MES_ATUAL.split('-');
+  if(p.length!==2)return 'Maio';
+  var ano=p[0];
+  var mesIdx=parseInt(p[1],10)-1;
+  if(mesIdx<0||mesIdx>11)return 'Maio';
+  return nomes[mesIdx]+' '+ano;
+}
+
 // Monta o objeto ABC a partir da tabela vendas_abc do Supabase
 async function montarABCdoBanco(){
   // 1. Descobrir o mês mais recente que tem dados
@@ -432,7 +444,7 @@ function renderGeral(){
   const varFat=varPct(v.fat26,v.fat25),varLuc=varPct(v.luc26,v.luc25);
 
   let h='<div class="kpi-grid">';
-  h+='<div class="kpi dest"><div class="kpi-label">Faturamento Maio</div><div class="kpi-val">'+fmtR(v.fat26)+'</div><div class="kpi-trend" style="color:#A7D9BC">'+(varFat>=0?'▲':'▼')+' '+Math.abs(varFat).toFixed(1)+'% vs 2025</div></div>';
+  h+='<div class="kpi dest"><div class="kpi-label">Faturamento '+nomeMesAtual()+'</div><div class="kpi-val">'+fmtR(v.fat26)+'</div><div class="kpi-trend" style="color:#A7D9BC">'+(varFat>=0?'▲':'▼')+' '+Math.abs(varFat).toFixed(1)+'% vs 2025</div></div>';
   h+='<div class="kpi"><div class="kpi-label">Lucro Bruto</div><div class="kpi-val" style="color:var(--grn)">'+fmtR(v.luc26)+'</div><div class="kpi-trend '+(varLuc>=0?'up':'down')+'">'+(varLuc>=0?'▲':'▼')+' '+Math.abs(varLuc).toFixed(1)+'%</div></div>';
   h+='<div class="kpi"><div class="kpi-label">Margem Bruta</div><div class="kpi-val">'+pct(v.margem26)+'</div><div class="kpi-sub">2025: '+pct(v.margem25)+'</div></div>';
   h+='<div class="kpi"><div class="kpi-label">CMV Geral</div><div class="kpi-val" style="color:'+(v.cmv26<=35?'var(--grn)':v.cmv26<=45?'var(--yellow)':'var(--red)')+'">'+pct(v.cmv26)+'</div><div class="kpi-sub">custo ÷ venda</div></div>';
@@ -503,7 +515,7 @@ function renderRuptura(){
   let h='<div class="insight alert"><strong>🔴 Ruptura = venda perdida por falta de produto.</strong> Calculada pelos dias sem venda de cada produto. É o vazamento invisível — o cliente que não achou o produto e foi embora.</div>';
 
   h+='<div class="kpi-grid">';
-  h+='<div class="kpi alerta"><div class="kpi-label">Venda perdida estimada</div><div class="kpi-val">'+fmtR(rupt)+'</div><div class="kpi-sub">no mês de maio</div></div>';
+  h+='<div class="kpi alerta"><div class="kpi-label">Venda perdida estimada</div><div class="kpi-val">'+fmtR(rupt)+'</div><div class="kpi-sub">no mês de '+nomeMesAtual()+'</div></div>';
   const v=totaisVendas();
   h+='<div class="kpi"><div class="kpi-label">% do faturamento</div><div class="kpi-val" style="color:var(--red)">'+pct(rupt/v.fat26*100)+'</div><div class="kpi-sub">poderia ter vendido +'+pct(rupt/v.fat26*100)+'</div></div>';
   h+='</div>';
@@ -606,7 +618,7 @@ function imprimirRuptura(modo){
 // ════════ COMPARATIVO ════════
 function renderComparativo(){
   const v=totaisVendas();
-  let h='<div class="insight"><strong>📅 Maio/2025 vs Maio/2026</strong> — mesmo mês, um ano depois.</div>';
+  let h='<div class="insight"><strong>📅 '+nomeMesAtual()+' vs mesmo mês de 2025</strong> — mesmo mês, um ano depois.</div>';
   h+='<div class="card"><div class="card-title">📊 Faturamento e Lucro</div><div class="chart-box"><canvas id="chComp"></canvas></div></div>';
   h+='<div class="card"><div class="card-title">💵 Faturamento</div>';
   h+=cRow('Padaria',ABC.pad26[0],ABC.pad25[0]);
