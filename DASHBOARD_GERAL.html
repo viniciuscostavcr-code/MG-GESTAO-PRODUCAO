@@ -682,7 +682,7 @@ function drawCompChart(){
   const v=totaisVendas();
   destroyChart('chComp');
   const el=document.getElementById('chComp');
-  if(el)charts['chComp']=new Chart(el,{type:'bar',data:{labels:['Faturamento','Lucro'],datasets:[{label:'Maio/2025',data:[v.fat25,v.luc25],backgroundColor:CORES.gray,borderRadius:4},{label:'Maio/2026',data:[v.fat26,v.luc26],backgroundColor:CORES.grn,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:11}}},tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+fmtR(c.parsed.y);}}}},scales:{y:{ticks:{font:{size:10},callback:function(v){return 'R$'+(v/1000)+'k';}}},x:{ticks:{font:{size:11}}}}}});
+  if(el)charts['chComp']=new Chart(el,{type:'bar',data:{labels:['Faturamento','Lucro'],datasets:[{label:nomeMesAtual().split(' ')[0]+'/2025',data:[v.fat25,v.luc25],backgroundColor:CORES.gray,borderRadius:4},{label:nomeMesAtual(),data:[v.fat26,v.luc26],backgroundColor:CORES.grn,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:11}}},tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+fmtR(c.parsed.y);}}}},scales:{y:{ticks:{font:{size:10},callback:function(v){return 'R$'+(v/1000)+'k';}}},x:{ticks:{font:{size:11}}}}}});
 }
 
 // ════════ OPERAÇÃO ════════
@@ -766,7 +766,7 @@ function drawOperacaoChart(){
 function renderGargalos(){
   const desp=DESPERDICIO;
   let h='';
-  if(!desp.length){h='<div class="empty"><div class="empty-ico">📭</div><p>Sem dados de desperdício de maio no Supabase.</p></div>';document.getElementById('gargalosBox').innerHTML=h;return;}
+  if(!desp.length){h='<div class="empty"><div class="empty-ico">📭</div><p>Sem dados de desperdício de '+nomeMesAtual()+' no Supabase.</p></div>';document.getElementById('gargalosBox').innerHTML=h;return;}
 
   // KPIs em R$
   let despKg=0,despUnd=0,custoTot=0,vendaTot=0,semPreco=0;
@@ -783,10 +783,10 @@ function renderGargalos(){
   h+='<div class="kpi"><div class="kpi-label">Total desperdiçado</div><div class="kpi-val" style="font-size:1.15rem">'+fmtKg(despKg)+' kg</div><div class="kpi-sub">'+(despUnd>0?fmtN(despUnd)+' und · ':'')+desp.length+' registros</div></div>';
   h+='<div class="kpi"><div class="kpi-label">% do faturamento</div><div class="kpi-val" style="color:'+(vendaTot/v.fat26*100<=3?'var(--grn)':'var(--red)')+'">'+pct(vendaTot/v.fat26*100)+'</div><div class="kpi-sub">venda perdida ÷ faturamento</div></div>';
   h+='</div>';
-  if(semPreco>0)h+='<div class="insight warn">⚠️ '+semPreco+' registro(s) sem preço no ABC de maio (produto não vendido no período) — não entram no cálculo de custo/venda perdida para não distorcer os valores.</div>';
+  if(semPreco>0)h+='<div class="insight warn">⚠️ '+semPreco+' registro(s) sem preço no ABC de '+nomeMesAtual()+' (produto não vendido no período) — não entram no cálculo de custo/venda perdida para não distorcer os valores.</div>';
 
   // Tendência ao longo dos dias
-  h+='<div class="card"><div class="card-title">📉 Tendência Diária <span class="sub">kg ao longo de maio</span></div><div class="chart-box"><canvas id="chTend"></canvas></div></div>';
+  h+='<div class="card"><div class="card-title">📉 Tendência Diária <span class="sub">kg ao longo de '+nomeMesAtual()+'</span></div><div class="chart-box"><canvas id="chTend"></canvas></div></div>';
   // Por dia da semana
   h+='<div class="card"><div class="card-title">📅 Por Dia da Semana</div><div class="chart-box"><canvas id="chDia"></canvas></div></div>';
   // Por motivo
@@ -1070,7 +1070,7 @@ function imprimirDashboard(){
     {plugins:{legend:{position:'right',labels:{font:fontBase}}},cutout:'60%'},420,260);
   // 2. Comparativo 25 vs 26
   const imgComp=gerarGraficoImg('bar',
-    {labels:['Faturamento','Lucro'],datasets:[{label:'Maio/2025',data:[v.fat25,v.luc25],backgroundColor:CORES.gray,borderRadius:4},{label:'Maio/2026',data:[v.fat26,v.luc26],backgroundColor:CORES.grn,borderRadius:4}]},
+    {labels:['Faturamento','Lucro'],datasets:[{label:nomeMesAtual().split(' ')[0]+'/2025',data:[v.fat25,v.luc25],backgroundColor:CORES.gray,borderRadius:4},{label:nomeMesAtual(),data:[v.fat26,v.luc26],backgroundColor:CORES.grn,borderRadius:4}]},
     {plugins:{legend:{position:'top',labels:{font:fontBase}}},scales:{y:{ticks:{callback:function(x){return 'R$'+(x/1000)+'k';}}}}},520,280);
 
   function kpiCard(label,val,sub,cor){
@@ -1084,7 +1084,7 @@ function imprimirDashboard(){
   // Cabeçalho
   h+='<div style="display:flex;align-items:center;gap:12px;border-bottom:3px solid #1B4332;padding-bottom:14px;margin-bottom:20px;">'
     +'<div style="width:42px;height:42px;background:#1B4332;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:18px;">G</div>'
-    +'<div><div style="font-size:20px;font-weight:800;color:#1B4332;">Dashboard Gerencial — Maio/2026</div>'
+    +'<div><div style="font-size:20px;font-weight:800;color:#1B4332;">Dashboard Gerencial — '+nomeMesAtual()+'</div>'
     +'<div style="font-size:12px;color:#6B7280;">Supermercado MG · Padaria e Confeitaria · '+dataStr+'</div></div></div>';
 
   // KPIs manchete
@@ -1098,14 +1098,14 @@ function imprimirDashboard(){
   // Gráficos lado a lado
   h+='<div style="display:flex;gap:16px;margin-bottom:8px;page-break-inside:avoid;break-inside:avoid;">';
   h+='<div style="flex:1;border:1px solid #E8E8E4;border-radius:12px;padding:14px;"><div style="font-size:13px;font-weight:700;margin-bottom:8px;">🏭 Faturamento por Setor</div><img src="'+imgSetor+'" style="width:100%;"></div>';
-  h+='<div style="flex:1;border:1px solid #E8E8E4;border-radius:12px;padding:14px;"><div style="font-size:13px;font-weight:700;margin-bottom:8px;">📈 Maio 25 vs 26</div><img src="'+imgComp+'" style="width:100%;"></div>';
+  h+='<div style="flex:1;border:1px solid #E8E8E4;border-radius:12px;padding:14px;"><div style="font-size:13px;font-weight:700;margin-bottom:8px;">📈 '+nomeMesAtual().split(' ')[0]+' 25 vs 26</div><img src="'+imgComp+'" style="width:100%;"></div>';
   h+='</div>';
 
   // Comparativo tabela
   h+='<div style="page-break-inside:avoid;break-inside:avoid;">';
   h+='<h2 style="color:#2D6A4F;font-size:15px;margin:20px 0 8px;">Comparativo 2025 vs 2026</h2>';
   h+='<table style="width:100%;border-collapse:collapse;font-size:13px;">';
-  h+='<tr style="background:#1B4332;color:#fff;"><th style="padding:8px;text-align:left;">Indicador</th><th style="padding:8px;text-align:right;">Maio/25</th><th style="padding:8px;text-align:right;">Maio/26</th><th style="padding:8px;text-align:right;">Var.</th></tr>';
+  h+='<tr style="background:#1B4332;color:#fff;"><th style="padding:8px;text-align:left;">Indicador</th><th style="padding:8px;text-align:right;">'+nomeMesAtual().split(' ')[0]+'/25</th><th style="padding:8px;text-align:right;">'+nomeMesAtual().split(' ')[0]+'/26</th><th style="padding:8px;text-align:right;">Var.</th></tr>';
   h+='<tr><td style="padding:8px;border-bottom:1px solid #eee;">Faturamento</td><td style="padding:8px;text-align:right;border-bottom:1px solid #eee;">'+fmtR(v.fat25)+'</td><td style="padding:8px;text-align:right;border-bottom:1px solid #eee;"><b>'+fmtR(v.fat26)+'</b></td><td style="padding:8px;text-align:right;border-bottom:1px solid #eee;color:#2D6A4F;font-weight:700;">'+(varFat>=0?'+':'')+varFat.toFixed(1)+'%</td></tr>';
   h+='<tr><td style="padding:8px;border-bottom:1px solid #eee;">Lucro bruto</td><td style="padding:8px;text-align:right;border-bottom:1px solid #eee;">'+fmtR(v.luc25)+'</td><td style="padding:8px;text-align:right;border-bottom:1px solid #eee;"><b>'+fmtR(v.luc26)+'</b></td><td style="padding:8px;text-align:right;border-bottom:1px solid #eee;color:#2D6A4F;font-weight:700;">'+(varLuc>=0?'+':'')+varLuc.toFixed(1)+'%</td></tr>';
   h+='<tr><td style="padding:8px;">Margem</td><td style="padding:8px;text-align:right;">'+pct(v.margem25)+'</td><td style="padding:8px;text-align:right;"><b>'+pct(v.margem26)+'</b></td><td style="padding:8px;text-align:right;font-weight:700;">'+(v.margem26-v.margem25>=0?'+':'')+(v.margem26-v.margem25).toFixed(1)+'pp</td></tr>';
