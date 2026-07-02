@@ -857,12 +857,22 @@ function drawCompChart(){
 // ════════ OPERAÇÃO ════════
 function renderOperacao(){
   let h='<div class="insight"><strong>🏭 Produção de '+nomeMesAtual()+'.</strong> Acompanhamento de produção vs planejado, mês a mês.</div>';
-  // Confeitaria vem do Supabase (producao_itens); Padaria vem do CSV embutido (módulo beta)
-  let confKg=0,confUnd=0,diasSet={};
-  PRODUCAO.forEach(function(p){const q=parseFloat(p.qtd_produzida)||0;const u=(p.unidade||inferirUnidade(p.produto_nome)).toLowerCase();if(u==='und')confUnd+=q;else confKg+=q;if(p.data_dia)diasSet[p.data_dia]=true;});
-  const pp=ABC.padaria_prod||{kg:0,und:0,top:[],regs:0,dias:0};
-  const totalKg=confKg+(pp.kg||0);
-  const totalUnd=confUnd+(pp.und||0);
+  // Tudo vem do Supabase (producao_itens) — padaria e confeitaria unificadas no GESTAO_PRODUCAO
+  let confKg=0,confUnd=0,padKg=0,padUnd=0,diasSet={};
+  PRODUCAO.forEach(function(p){
+    const q=parseFloat(p.qtd_produzida)||0;
+    const u=(p.unidade||inferirUnidade(p.produto_nome)).toLowerCase();
+    const setor=(p.setor||'').toUpperCase();
+    if(setor==='PADARIA'){
+      if(u==='und')padUnd+=q;else padKg+=q;
+    }else{ // confeitaria (e qualquer outro) 
+      if(u==='und')confUnd+=q;else confKg+=q;
+    }
+    if(p.data_dia)diasSet[p.data_dia]=true;
+  });
+  const pp={kg:padKg,und:padUnd,top:[]}; // compatibilidade com o resto da função
+  const totalKg=confKg+padKg;
+  const totalUnd=confUnd+padUnd;
 
   // Aderência à meta — mesma régua do Gestão de Produção (_calcAderenciaHist):
   // produziu>0 e (sem meta OU produziu>=meta) = aderente; produziu=0 = não aderente; produziu<meta = ajustado
@@ -882,7 +892,7 @@ function renderOperacao(){
   h+='<div class="kpi dest"><div class="kpi-label">Produção Total</div><div class="kpi-val">'+fmtKg(totalKg)+' kg</div><div class="kpi-sub">'+(totalUnd>0?fmtN(totalUnd)+' und':'')+'</div></div>';
   h+='<div class="kpi"><div class="kpi-label">Padaria</div><div class="kpi-val" style="color:var(--blue);font-size:1.15rem">'+fmtKg(pp.kg||0)+' kg</div><div class="kpi-sub">'+(pp.und>0?fmtN(pp.und)+' und':'')+'</div></div>';
   h+='<div class="kpi"><div class="kpi-label">Confeitaria</div><div class="kpi-val" style="color:var(--purple);font-size:1.15rem">'+fmtKg(confKg)+' kg</div><div class="kpi-sub">'+(confUnd>0?fmtN(confUnd)+' und':'')+'</div></div>';
-  h+='<div class="kpi"><div class="kpi-label">Aderência à meta</div><div class="kpi-val" style="color:'+(ader>=70?'var(--grn)':ader>=50?'var(--yellow)':'var(--red)')+'">'+ader+'%</div><div class="kpi-sub">confeitaria</div></div>';
+  h+='<div class="kpi"><div class="kpi-label">Aderência à meta</div><div class="kpi-val" style="color:'+(ader>=70?'var(--grn)':ader>=50?'var(--yellow)':'var(--red)')+'">'+ader+'%</div><div class="kpi-sub">geral</div></div>';
   h+='</div>';
 
   // Seção dedicada de aderência (só faz sentido se há metas configuradas)
@@ -908,27 +918,25 @@ function renderOperacao(){
 
   h+='<div class="card"><div class="card-title">🏭 Produção por Setor <span class="sub">kg</span></div><div class="chart-box"><canvas id="chOpSetor"></canvas></div></div>';
 
-  // Top produzidos (junta os dois setores)
+  // Top produzidos (junta os dois setores, ambos do banco)
   const agg={};
-  PRODUCAO.forEach(function(p){const nm=p.produto_nome||'—';const q=parseFloat(p.qtd_produzida)||0;const u=(p.unidade||inferirUnidade(nm)).toLowerCase();if(!agg[nm])agg[nm]={kg:0,und:0,un:u,s:'CONFEITARIA'};if(u==='und')agg[nm].und+=q;else agg[nm].kg+=q;});
-  (pp.top||[]).forEach(function(item){const nm=item.n;if(!agg[nm])agg[nm]={kg:0,und:0,un:item.un,s:'PADARIA'};agg[nm].kg+=item.kg||0;agg[nm].und+=item.und||0;});
+  PRODUCAO.forEach(function(p){const nm=p.produto_nome||'—';const q=parseFloat(p.qtd_produzida)||0;const u=(p.unidade||inferirUnidade(nm)).toLowerCase();const st=(p.setor||'CONFEITARIA').toUpperCase();if(!agg[nm])agg[nm]={kg:0,und:0,un:u,s:st};if(u==='und')agg[nm].und+=q;else agg[nm].kg+=q;});
   const top=Object.keys(agg).map(function(nm){return{nome:nm,kg:agg[nm].kg,und:agg[nm].und,un:agg[nm].un,s:agg[nm].s};}).sort(function(a,b){return(b.kg+b.und)-(a.kg+a.und);}).slice(0,12);
   h+='<div class="card"><div class="card-title">🏆 Top 12 Produzidos</div>';
   top.forEach(function(item,i){const val=item.un==='und'?fmtN(item.und)+' und':fmtKg(item.kg)+' kg';h+='<div class="rank-item"><div class="rank-num'+(i<3?' top':'')+'">'+(i+1)+'</div><div class="rank-nome">'+item.nome+'<div class="rank-sub">'+item.s.slice(0,4)+'</div></div><div class="rank-val" style="color:var(--grn2)">'+val+'</div></div>';});
   h+='</div>';
 
-  h+='<div class="insight warn" style="margin-bottom:0">⚠️ A padaria usa o módulo antigo (PRODUCAO_BETA) e a confeitaria o GESTAO_PRODUCAO. Unificar os dois sistemas é o próximo passo — por ora a padaria entra pelo histórico exportado.</div>';
+  h+='<div class="insight" style="margin-bottom:0">✅ Produção unificada: padaria e confeitaria registradas no mesmo sistema (GestFood — Gestão de Produção).</div>';
 
   document.getElementById('operacaoBox').innerHTML=h;
   setTimeout(drawOperacaoChart,50);
 }
 function drawOperacaoChart(){
-  let confKg=0;
-  PRODUCAO.forEach(function(p){const q=parseFloat(p.qtd_produzida)||0;const u=(p.unidade||inferirUnidade(p.produto_nome)).toLowerCase();if(u!=='und')confKg+=q;});
-  const pp=ABC.padaria_prod||{kg:0};
+  let confKg=0,padKg=0;
+  PRODUCAO.forEach(function(p){const q=parseFloat(p.qtd_produzida)||0;const u=(p.unidade||inferirUnidade(p.produto_nome)).toLowerCase();if(u==='und')return;const st=(p.setor||'').toUpperCase();if(st==='PADARIA')padKg+=q;else confKg+=q;});
   destroyChart('chOpSetor');
   const el=document.getElementById('chOpSetor');
-  if(el)charts['chOpSetor']=new Chart(el,{type:'bar',data:{labels:['Padaria','Confeitaria'],datasets:[{data:[pp.kg||0,confKg],backgroundColor:[CORES.padaria,CORES.conf],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return fmtKg(c.parsed.y)+' kg';}}}},scales:{y:{ticks:{font:{size:10}}},x:{ticks:{font:{size:11}}}}}});
+  if(el)charts['chOpSetor']=new Chart(el,{type:'bar',data:{labels:['Padaria','Confeitaria'],datasets:[{data:[padKg,confKg],backgroundColor:[CORES.padaria,CORES.conf],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return fmtKg(c.parsed.y)+' kg';}}}},scales:{y:{ticks:{font:{size:10}}},x:{ticks:{font:{size:11}}}}}});
 }
 
 // ════════ GARGALOS ════════
@@ -936,6 +944,9 @@ function renderGargalos(){
   const desp=DESPERDICIO;
   let h='';
   if(!desp.length){h='<div class="empty"><div class="empty-ico">📭</div><p>Sem dados de desperdício de '+nomeMesAtual()+' no Supabase.</p></div>';document.getElementById('gargalosBox').innerHTML=h;return;}
+
+  // Botão de impressão do relatório pro dono
+  h+='<div style="margin-bottom:12px"><button onclick="imprimirDesperdicio()" style="width:100%;padding:12px;background:var(--grn2);color:#fff;border:none;border-radius:9px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit">🖨️ Imprimir relatório de desperdício (para o dono)</button></div>';
 
   // KPIs em R$
   let despKg=0,despUnd=0,custoTot=0,vendaTot=0,semPreco=0;
@@ -1016,11 +1027,125 @@ function renderGargalos(){
   setTimeout(drawGargalosCharts,50);
 }
 
+// ════════ RELATÓRIO DE DESPERDÍCIO (para o dono) ════════
+async function imprimirDesperdicio(){
+  const dataStr=new Date().toLocaleDateString('pt-BR');
+  const nomeM=nomeMesAtual();
+
+  // ── Busca o histórico de TODOS os meses (pra evolução) ──
+  var histMeses={};
+  try{
+    var linhas=[];var offset=0,bloco=1000;
+    while(true){
+      var parte=await sbGet('desperdicios','select=data,produto,cod,quantidade,unidade,setor,motivo&limit='+bloco+'&offset='+offset);
+      if(!parte||parte.length===0)break;
+      linhas=linhas.concat(parte);
+      if(parte.length<bloco)break;
+      offset+=bloco;if(offset>50000)break;
+    }
+    linhas.forEach(function(r){
+      var d=r.data||'';if(d.indexOf('/')>=0){var p=d.split('/');d=p[2]+'-'+p[1]+'-'+p[0];}
+      var mes=d.slice(0,7);
+      if(!/^20\d\d-\d\d$/.test(mes))return; // ignora datas quebradas
+      if(!histMeses[mes])histMeses[mes]={custo:0,kg:0,regs:0};
+      var reg={produto:r.produto,cod:(r.cod||'').toString().trim(),qty:parseFloat(r.quantidade)||0,und:r.unidade||inferirUnidade(r.produto)};
+      var pr=precoProduto(reg);
+      histMeses[mes].custo+=pr?reg.qty*pr.ck:0;
+      if(reg.und!=='und')histMeses[mes].kg+=reg.qty;
+      histMeses[mes].regs++;
+    });
+  }catch(e){console.log('hist desperdicio:',e.message);}
+
+  var mesesOrd=Object.keys(histMeses).sort();
+  var nomesMes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  function rotulo(m){var p=m.split('-');return nomesMes[parseInt(p[1],10)-1]+'/'+p[0].slice(2);}
+
+  // ── Gráfico de evolução (barras) ──
+  var imgEvol='';
+  try{
+    imgEvol=gerarGraficoImg('bar',
+      {labels:mesesOrd.map(rotulo),datasets:[{label:'Custo do desperdício (R$)',data:mesesOrd.map(function(m){return Math.round(histMeses[m].custo);}),backgroundColor:'#E67E22',borderRadius:4}]},
+      {plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(v){return 'R$'+v;}}}}},700,280);
+  }catch(e){console.log('grafico evol desp:',e.message);}
+
+  // ── Dados do mês atual ──
+  var desp=DESPERDICIO;
+  var custoMes=0,vendaMes=0,kgMes=0,undMes=0;
+  var porSetor={},porProduto={},porMotivo={};
+  desp.forEach(function(d){
+    var pr=precoProduto(d);
+    if(pr){custoMes+=d.qty*pr.ck;vendaMes+=d.qty*pr.vk;}
+    if(d.und!=='und')kgMes+=d.qty;else undMes+=d.qty;
+    var s=(d.setor||'OUTROS').toUpperCase();
+    if(!porSetor[s])porSetor[s]={custo:0,kg:0};
+    porSetor[s].custo+=pr?d.qty*pr.ck:0;if(d.und!=='und')porSetor[s].kg+=d.qty;
+    if(!porProduto[d.produto])porProduto[d.produto]={custo:0,qty:0,und:d.und};
+    porProduto[d.produto].custo+=pr?d.qty*pr.ck:0;porProduto[d.produto].qty+=d.qty;
+    var mo=d.motivo||'—';if(!porMotivo[mo])porMotivo[mo]=0;porMotivo[mo]+=pr?d.qty*pr.ck:0;
+  });
+  var topProd=Object.keys(porProduto).map(function(k){return{nome:k,c:porProduto[k].custo,q:porProduto[k].qty,u:porProduto[k].und};}).filter(function(x){return x.c>0;}).sort(function(a,b){return b.c-a.c;}).slice(0,8);
+  var setoresOrd=Object.keys(porSetor).sort(function(a,b){return porSetor[b].custo-porSetor[a].custo;});
+  var motivosOrd=Object.keys(porMotivo).sort(function(a,b){return porMotivo[b]-porMotivo[a];}).slice(0,5);
+
+  // ── Monta o HTML ──
+  var h='<div style="font-family:\'Plus Jakarta Sans\',sans-serif;color:#1C1C1A;max-width:780px;margin:0 auto;padding:24px;">';
+  h+='<div style="display:flex;align-items:center;gap:12px;border-bottom:3px solid #E67E22;padding-bottom:14px;margin-bottom:18px;">'
+    +'<div style="width:42px;height:42px;background:#1B4332;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:18px;">G</div>'
+    +'<div><div style="font-size:19px;font-weight:800;color:#1B4332;">Relatório de Desperdício — '+nomeM+'</div>'
+    +'<div style="font-size:12px;color:#6B7280;">Supermercado MG · Padaria e Confeitaria · '+dataStr+'</div></div></div>';
+
+  // 1. KPIs
+  h+='<div style="display:flex;gap:10px;margin-bottom:18px;">';
+  h+='<div style="flex:1;background:#FDF1E3;border-radius:10px;padding:13px;"><div style="font-size:10px;color:#8B5A0E;text-transform:uppercase;font-weight:700;">Custo (saiu do caixa)</div><div style="font-size:19px;font-weight:800;color:#E67E22;">'+fmtR(custoMes)+'</div></div>';
+  h+='<div style="flex:1;background:#FDECEA;border-radius:10px;padding:13px;"><div style="font-size:10px;color:#C0392B;text-transform:uppercase;font-weight:700;">Venda perdida</div><div style="font-size:19px;font-weight:800;color:#C0392B;">'+fmtR(vendaMes)+'</div></div>';
+  h+='<div style="flex:1;background:#F4F4F2;border-radius:10px;padding:13px;"><div style="font-size:10px;color:#6B7280;text-transform:uppercase;font-weight:700;">Quantidade</div><div style="font-size:19px;font-weight:800;color:#1C1C1A;">'+fmtKg(kgMes)+' kg</div></div>';
+  h+='</div>';
+
+  // 2. Evolução
+  if(imgEvol){
+    h+='<div style="margin-bottom:18px;"><div style="font-size:14px;font-weight:700;margin-bottom:8px;">📉 Evolução do desperdício (custo mês a mês)</div><img src="'+imgEvol+'" style="width:100%;border:1px solid #eee;border-radius:8px;"></div>';
+    // Mini-tabela da evolução
+    h+='<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:18px;">';
+    h+='<tr style="background:#F4F4F2;"><th style="padding:6px;text-align:left;">Mês</th><th style="padding:6px;text-align:right;">Custo</th><th style="padding:6px;text-align:right;">Kg</th><th style="padding:6px;text-align:right;">Registros</th></tr>';
+    mesesOrd.forEach(function(m){h+='<tr><td style="padding:6px;border-bottom:1px solid #eee;">'+rotulo(m)+'</td><td style="padding:6px;text-align:right;border-bottom:1px solid #eee;color:#E67E22;font-weight:700;">'+fmtR(histMeses[m].custo)+'</td><td style="padding:6px;text-align:right;border-bottom:1px solid #eee;">'+fmtKg(histMeses[m].kg)+'</td><td style="padding:6px;text-align:right;border-bottom:1px solid #eee;color:#888;">'+histMeses[m].regs+'</td></tr>';});
+    h+='</table>';
+  }
+
+  // 3. Por setor
+  h+='<div style="font-size:14px;font-weight:700;margin-bottom:8px;">🏭 Desperdício por setor ('+nomeM+')</div>';
+  h+='<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:18px;">';
+  h+='<tr style="background:#1B4332;color:#fff;"><th style="padding:8px;text-align:left;">Setor</th><th style="padding:8px;text-align:right;">Custo</th><th style="padding:8px;text-align:right;">Kg</th></tr>';
+  setoresOrd.forEach(function(s,i){h+='<tr style="background:'+(i%2?'#FAFAF8':'#fff')+';"><td style="padding:7px 8px;border-bottom:1px solid #eee;font-weight:600;">'+s+'</td><td style="padding:7px 8px;text-align:right;border-bottom:1px solid #eee;color:#E67E22;font-weight:700;">'+fmtR(porSetor[s].custo)+'</td><td style="padding:7px 8px;text-align:right;border-bottom:1px solid #eee;">'+fmtKg(porSetor[s].kg)+'</td></tr>';});
+  h+='</table>';
+
+  // 4. Top produtos
+  h+='<div style="font-size:14px;font-weight:700;margin-bottom:8px;">📦 Top produtos desperdiçados ('+nomeM+')</div>';
+  h+='<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:18px;">';
+  h+='<tr style="background:#1B4332;color:#fff;"><th style="padding:8px;text-align:left;">Produto</th><th style="padding:8px;text-align:right;">Qtd</th><th style="padding:8px;text-align:right;">Custo</th></tr>';
+  topProd.forEach(function(p,i){h+='<tr style="background:'+(i%2?'#FAFAF8':'#fff')+';"><td style="padding:7px 8px;border-bottom:1px solid #eee;font-weight:600;">'+p.nome+'</td><td style="padding:7px 8px;text-align:right;border-bottom:1px solid #eee;">'+fmtKg(p.q)+' '+p.u+'</td><td style="padding:7px 8px;text-align:right;border-bottom:1px solid #eee;color:#E67E22;font-weight:700;">'+fmtR(p.c)+'</td></tr>';});
+  h+='</table>';
+
+  // 5. Motivos
+  h+='<div style="font-size:14px;font-weight:700;margin-bottom:8px;">🔍 Principais motivos ('+nomeM+')</div>';
+  h+='<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:8px;">';
+  h+='<tr style="background:#1B4332;color:#fff;"><th style="padding:8px;text-align:left;">Motivo</th><th style="padding:8px;text-align:right;">Custo</th></tr>';
+  motivosOrd.forEach(function(m,i){h+='<tr style="background:'+(i%2?'#FAFAF8':'#fff')+';"><td style="padding:7px 8px;border-bottom:1px solid #eee;">'+m+'</td><td style="padding:7px 8px;text-align:right;border-bottom:1px solid #eee;color:#E67E22;font-weight:700;">'+fmtR(porMotivo[m])+'</td></tr>';});
+  h+='</table>';
+
+  h+='<div style="margin-top:16px;padding:12px;background:#F4F4F2;border-radius:8px;font-size:11px;color:#444;line-height:1.6;">'
+    +'<b>Custo</b> = o que saiu do caixa (dinheiro gasto no que foi perdido). <b>Venda perdida</b> = o faturamento que esses produtos gerariam se vendidos.<br>'
+    +'Os valores usam o preço médio real de venda de cada produto no mês. Registros de produtos não vendidos no período ficam fora do cálculo.</div>';
+  h+='<div style="font-size:10px;color:#999;margin-top:16px;text-align:center;border-top:1px solid #eee;padding-top:10px;">GestFood · Relatório de Desperdício · '+dataStr+'</div>';
+  h+='</div>';
+
+  document.getElementById('printArea').innerHTML=h;
+  setTimeout(function(){window.print();},400);
+}
+
 function renderCruzamento(){
   // Produziu muito e desperdiçou muito? (sobra) — casa nomes por normNome
   const prodAgg={};const nomeOrig={};
   PRODUCAO.forEach(function(p){const nm=normNome(p.produto_nome);if(!nm)return;prodAgg[nm]=(prodAgg[nm]||0)+(parseFloat(p.qtd_produzida)||0);nomeOrig[nm]=nomeOrig[nm]||p.produto_nome;});
-  (ABC.padaria_prod&&ABC.padaria_prod.top||[]).forEach(function(item){const nm=normNome(item.n);if(!nm)return;prodAgg[nm]=(prodAgg[nm]||0)+(item.kg||0)+(item.und||0);nomeOrig[nm]=nomeOrig[nm]||item.n;});
   const despAgg={};
   DESPERDICIO.forEach(function(d){const nm=normNome(d.produto);if(!nm)return;despAgg[nm]=(despAgg[nm]||0)+d.qty;nomeOrig[nm]=nomeOrig[nm]||d.produto;});
   const cruz=Object.keys(despAgg).map(function(nm){
