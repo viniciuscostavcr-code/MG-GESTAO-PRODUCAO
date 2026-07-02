@@ -127,6 +127,15 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
   body>*:not(#printArea){display:none!important;}
   #printArea{display:block!important;}
   #printArea *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+  /* Impede que imagens (gráficos) sejam partidas entre duas páginas.
+     Este é o principal ajuste: o gráfico vai inteiro para a próxima folha
+     em vez de ser cortado no meio. */
+  #printArea img{break-inside:avoid!important;page-break-inside:avoid!important;max-width:100%;}
+  /* Mantém cada linha de tabela inteira (não corta uma linha ao meio),
+     mas permite que a tabela como um todo quebre entre páginas se for longa */
+  #printArea tr,#printArea td,#printArea th{break-inside:avoid;page-break-inside:avoid;}
+  /* Evita que um título fique órfão no fim da página, longe do seu conteúdo */
+  #printArea h1,#printArea h2,#printArea h3{break-after:avoid;page-break-after:avoid;}
 }
 </style>
 </head>
@@ -138,6 +147,9 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
     <div class="topbar-logo">G</div>
     <div class="topbar-title">Gest<span>Food</span> — Dashboard</div>
     <div class="topbar-right">
+      <select id="seletorMes" onchange="trocarMes(this.value)" title="Escolher mês" style="background:rgba(255,255,255,.15);color:#fff;border:1.5px solid rgba(255,255,255,.25);border-radius:8px;padding:6px 10px;font-size:.8rem;font-weight:600;cursor:pointer;outline:none;">
+        <option value="">Carregando meses...</option>
+      </select>
       <a href="IMPORTAR_VENDAS.html" class="btn-hub" style="background:rgba(167,217,188,.22);">📥 Importar vendas</a>
       <button class="btn-print-top" onclick="imprimirDashboard()">🖨️</button>
       <div class="user-badge" id="userBadge"></div>
@@ -339,11 +351,36 @@ async function totaisDoMes(mesRef){
   }catch(e){console.log('Erro ao buscar mês '+mesRef+':',e.message);return null;}
 }
 
-async function montarABCdoBanco(){
-  // 1. Descobrir o mês mais recente que tem dados
-  var meses=await sbGet('vendas_abc','select=mes_ref&order=mes_ref.desc&limit=1');
-  if(!meses||meses.length===0){ return null; } // sem dados → usa embutido
-  var mes=meses[0].mes_ref;
+// Lista todos os meses distintos que têm dados no banco (mais recente primeiro).
+// Usado para popular o seletor de mês no topo do dashboard.
+async function listarMesesDisponiveis(){
+  try{
+    var linhas=await sbGet('vendas_abc','select=mes_ref&order=mes_ref.desc&limit=10000');
+    if(!linhas||linhas.length===0)return [];
+    // Remove repetidos mantendo a ordem (mais recente → mais antigo)
+    var vistos={};
+    var meses=[];
+    linhas.forEach(function(l){
+      if(l.mes_ref && !vistos[l.mes_ref]){ vistos[l.mes_ref]=true; meses.push(l.mes_ref); }
+    });
+    return meses;
+  }catch(e){console.log('Erro ao listar meses:',e.message);return [];}
+}
+
+// Monta o ABC de um mês.
+// Se "mesEscolhido" for passado (ex: '2026-06'), usa esse mês.
+// Se não for passado, usa automaticamente o mês mais recente com dados.
+async function montarABCdoBanco(mesEscolhido){
+  var mes;
+  if(mesEscolhido){
+    // Mês veio do seletor — usa ele direto
+    mes=mesEscolhido;
+  }else{
+    // 1. Descobrir o mês mais recente que tem dados
+    var meses=await sbGet('vendas_abc','select=mes_ref&order=mes_ref.desc&limit=1');
+    if(!meses||meses.length===0){ return null; } // sem dados → usa embutido
+    mes=meses[0].mes_ref;
+  }
   MES_ATUAL=mes;
 
   // 2. Buscar todas as vendas desse mês (paginado: Supabase limita 1000/req)
@@ -821,7 +858,7 @@ async function imprimirComparativo(){
   h+='</div>';
 
   // Gráfico de evolução
-  if(imgEvol)h+='<div style="margin-bottom:18px;"><div style="font-size:13px;font-weight:700;margin-bottom:8px;">📈 Evolução mês a mês</div><img src="'+imgEvol+'" style="width:100%;border:1px solid #eee;border-radius:8px;"></div>';
+  if(imgEvol)h+='<div style="margin-bottom:18px;break-inside:avoid;page-break-inside:avoid;"><div style="font-size:13px;font-weight:700;margin-bottom:8px;">📈 Evolução mês a mês</div><img src="'+imgEvol+'" style="width:100%;border:1px solid #eee;border-radius:8px;"></div>';
 
   // Tabela faturamento
   h+='<div style="font-size:13px;font-weight:700;margin-bottom:6px;">💵 Faturamento por setor</div>';
@@ -945,8 +982,8 @@ function renderGargalos(){
   let h='';
   if(!desp.length){h='<div class="empty"><div class="empty-ico">📭</div><p>Sem dados de desperdício de '+nomeMesAtual()+' no Supabase.</p></div>';document.getElementById('gargalosBox').innerHTML=h;return;}
 
-  // Botão de impressão do relatório pro dono
-  h+='<div style="margin-bottom:12px"><button onclick="imprimirDesperdicio()" style="width:100%;padding:12px;background:var(--grn2);color:#fff;border:none;border-radius:9px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit">🖨️ Imprimir relatório de desperdício (para o dono)</button></div>';
+  // Botão de impressão do relatório de desperdício
+  h+='<div style="margin-bottom:12px"><button onclick="imprimirDesperdicio()" style="width:100%;padding:12px;background:var(--grn2);color:#fff;border:none;border-radius:9px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit">🖨️ Imprimir relatório de desperdício</button></div>';
 
   // KPIs em R$
   let despKg=0,despUnd=0,custoTot=0,vendaTot=0,semPreco=0;
@@ -1027,7 +1064,7 @@ function renderGargalos(){
   setTimeout(drawGargalosCharts,50);
 }
 
-// ════════ RELATÓRIO DE DESPERDÍCIO (para o dono) ════════
+// ════════ RELATÓRIO DE DESPERDÍCIO ════════
 async function imprimirDesperdicio(){
   const dataStr=new Date().toLocaleDateString('pt-BR');
   const nomeM=nomeMesAtual();
@@ -1103,7 +1140,7 @@ async function imprimirDesperdicio(){
 
   // 2. Evolução
   if(imgEvol){
-    h+='<div style="margin-bottom:18px;"><div style="font-size:14px;font-weight:700;margin-bottom:8px;">📉 Evolução do desperdício (custo mês a mês)</div><img src="'+imgEvol+'" style="width:100%;border:1px solid #eee;border-radius:8px;"></div>';
+    h+='<div style="margin-bottom:18px;break-inside:avoid;page-break-inside:avoid;"><div style="font-size:14px;font-weight:700;margin-bottom:8px;">📉 Evolução do desperdício (custo mês a mês)</div><img src="'+imgEvol+'" style="width:100%;border:1px solid #eee;border-radius:8px;"></div>';
     // Mini-tabela da evolução
     h+='<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:18px;">';
     h+='<tr style="background:#F4F4F2;"><th style="padding:6px;text-align:left;">Mês</th><th style="padding:6px;text-align:right;">Custo</th><th style="padding:6px;text-align:right;">Kg</th><th style="padding:6px;text-align:right;">Registros</th></tr>';
@@ -1437,6 +1474,53 @@ function imprimirDashboard(){
   setTimeout(function(){window.print();},300);
 }
 
+// Preenche o seletor de mês do topo com os meses disponíveis no banco,
+// e marca como selecionado o mês atualmente exibido (MES_ATUAL).
+function popularSeletorMes(meses){
+  var sel=document.getElementById('seletorMes');
+  if(!sel)return;
+  if(!meses||meses.length===0){
+    sel.innerHTML='<option value="">Sem dados</option>';
+    return;
+  }
+  var nomes=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  var html='';
+  meses.forEach(function(m){
+    var p=m.split('-');
+    var rotulo=m;
+    if(p.length===2){
+      var idx=parseInt(p[1],10)-1;
+      if(idx>=0&&idx<12)rotulo=nomes[idx]+' '+p[0];
+    }
+    var sel2=(m===MES_ATUAL)?' selected':'';
+    html+='<option value="'+m+'"'+sel2+'>'+rotulo+'</option>';
+  });
+  sel.innerHTML=html;
+}
+
+// Chamada quando o usuário escolhe outro mês no seletor.
+// Recarrega TODO o dashboard (vendas, ruptura, comparativo e operação) com o mês novo.
+async function trocarMes(mesRef){
+  if(!mesRef)return;
+  var sel=document.getElementById('seletorMes');
+  if(sel)sel.disabled=true; // evita cliques duplos enquanto carrega
+  try{
+    var abcBanco=await montarABCdoBanco(mesRef);
+    if(abcBanco && abcBanco.produtos && abcBanco.produtos.length>0){
+      ABC=abcBanco;
+    }
+    // Re-renderiza todas as abas com os dados do mês escolhido
+    renderVendas();renderRuptura();renderComparativo();await carregarOperacao();
+    // Redesenha o gráfico da aba que estiver aberta no momento
+    var abaAtiva=document.querySelector('.tab.on');
+    if(abaAtiva)abaAtiva.click();
+  }catch(e){
+    console.log('Erro ao trocar de mês:',e.message);
+  }finally{
+    if(sel)sel.disabled=false;
+  }
+}
+
 // INIT — tenta carregar do banco; se falhar, usa o embutido
 async function iniciarDashboard(){
   try{
@@ -1450,6 +1534,9 @@ async function iniciarDashboard(){
   }catch(e){
     console.log('⚠️ Erro ao ler do banco, usando embutidos:', e.message);
   }
+  // Popula o seletor de mês com os meses que existem no banco
+  var mesesDisp=await listarMesesDisponiveis();
+  popularSeletorMes(mesesDisp);
   // Renderiza tudo (com ABC do banco ou embutido)
   renderVendas();renderRuptura();renderComparativo();carregarOperacao();
 }
