@@ -245,10 +245,27 @@ function acharABC(nome){
   return p||null;
 }
 
-// Busca preço em 3 níveis: ABC (match inteligente) → lista manual → null
-function precoProduto(nome){
-  const p=acharABC(nome);
-  if(p&&p.qtd>0)return{ck:p.cus/p.qtd,vk:p.fat/p.qtd,classe:p.classe,fonte:'abc'};
+// Acha produto no ABC pelo CÓDIGO (mais confiável que nome)
+function acharABCporCod(cod){
+  if(!cod)return null;
+  var c=String(cod).trim();
+  if(!c)return null;
+  return ABC.produtos.find(function(x){return String(x.cod||'').trim()===c;})||null;
+}
+
+// Busca preço: 1º por código no ABC → 2º por nome no ABC → 3º lista manual → null
+// Aceita nome (string) ou objeto {produto, cod} do desperdício
+function precoProduto(ref){
+  var nome, cod;
+  if(typeof ref==='object'&&ref!==null){nome=ref.produto||ref.n||'';cod=ref.cod||'';}
+  else{nome=ref||'';cod='';}
+  // 1º: casa por código (usa o preço médio real do ABC: fat/qtd)
+  var p=acharABCporCod(cod);
+  if(p&&p.qtd>0)return{ck:p.cus/p.qtd,vk:p.fat/p.qtd,classe:p.classe,fonte:'abc-cod'};
+  // 2º: casa por nome
+  p=acharABC(nome);
+  if(p&&p.qtd>0)return{ck:p.cus/p.qtd,vk:p.fat/p.qtd,classe:p.classe,fonte:'abc-nome'};
+  // 3º: lista manual (por nome)
   const n=normNome(nome);
   for(const k in PRECOS_MANUAIS){if(normNome(k)===n)return{ck:PRECOS_MANUAIS[k].custo||0,vk:PRECOS_MANUAIS[k].venda||0,classe:null,fonte:'manual'};}
   return null;
@@ -294,6 +311,34 @@ function nomeMesAtual(){
 }
 
 // Monta o objeto ABC a partir da tabela vendas_abc do Supabase
+// Busca e agrega os totais de um mês específico do banco.
+// Retorna {PADARIA:[fat,lucro,custo], CONFEITARIA:[fat,lucro,custo]} ou null se não houver dados.
+async function totaisDoMes(mesRef){
+  try{
+    var linhas=[];
+    var offset=0,bloco=1000;
+    while(true){
+      var parte=await sbGet('vendas_abc','select=setor,faturamento,lucro,custo_total&mes_ref=eq.'+encodeURIComponent(mesRef)+'&order=id.asc&limit='+bloco+'&offset='+offset);
+      if(!parte||parte.length===0)break;
+      linhas=linhas.concat(parte);
+      if(parte.length<bloco)break;
+      offset+=bloco;
+      if(offset>50000)break;
+    }
+    if(linhas.length===0)return null;
+    var acc={};
+    linhas.forEach(function(v){
+      var s=v.setor||'';
+      if(s==='PASTELARIA')s='CONFEITARIA';
+      if(!acc[s])acc[s]=[0,0,0];
+      acc[s][0]+=Number(v.faturamento)||0;
+      acc[s][1]+=Number(v.lucro)||0;
+      acc[s][2]+=Number(v.custo_total)||0;
+    });
+    return acc;
+  }catch(e){console.log('Erro ao buscar mês '+mesRef+':',e.message);return null;}
+}
+
 async function montarABCdoBanco(){
   // 1. Descobrir o mês mais recente que tem dados
   var meses=await sbGet('vendas_abc','select=mes_ref&order=mes_ref.desc&limit=1');
@@ -363,19 +408,24 @@ async function montarABCdoBanco(){
   // mesma régua do cálculo original — evita inflar com itens marginais
   produtos.forEach(function(p){if(p.fat>300)rupturaTotal+=p.perda;});
 
-  // 6. Montar objeto final — mantém pad25/conf25 e padaria_prod do embutido
-  //    (esses ainda não estão no banco; virão em etapa futura)
+  // 6. Buscar o MESMO MÊS do ano anterior (ex: 2026-06 → 2025-06) pra comparação real
+  var mesAnoAnterior=(parseInt(mes.slice(0,4),10)-1)+mes.slice(4); // '2025-06'
+  var tot25=await totaisDoMes(mesAnoAnterior);
+
+  // 7. Montar objeto final
   return {
     pad26: totSetor('PADARIA'),
     conf26: totSetor('CONFEITARIA'),
-    pad25: ABC_EMBUTIDO.pad25,
-    conf25: ABC_EMBUTIDO.conf25,
+    pad25: (tot25&&tot25.PADARIA)?tot25.PADARIA:ABC_EMBUTIDO.pad25,
+    conf25: (tot25&&tot25.CONFEITARIA)?tot25.CONFEITARIA:ABC_EMBUTIDO.conf25,
     produtos: produtos,
     ruptura_total: rupturaTotal,
     padaria_prod: ABC_EMBUTIDO.padaria_prod,
     und_map: undMap,
     _origem: 'supabase',
-    _mes: mes
+    _mes: mes,
+    _mes25: mesAnoAnterior,
+    _tem25: !!tot25
   };
 }
 
@@ -417,7 +467,7 @@ async function carregarOperacao(){
     PRODUCAO=prod||[];
     DESPERDICIO=(desp||[]).map(function(r){
       let d=r.data||'';if(d.includes('/')){const p=d.split('/');d=p[2]+'-'+p[1]+'-'+p[0];}
-      return{produto:r.produto||'',setor:r.setor||'',qty:parseFloat(r.quantidade)||0,und:r.unidade||inferirUnidade(r.produto),motivo:r.motivo||'—',data:d,dia:r.dia_semana||'',resp:r.responsavel||'—'};
+      return{produto:r.produto||'',cod:(r.cod||'').toString().trim(),setor:r.setor||'',qty:parseFloat(r.quantidade)||0,und:r.unidade||inferirUnidade(r.produto),motivo:r.motivo||'—',data:d,dia:r.dia_semana||'',resp:r.responsavel||'—'};
     }).filter(function(r){return r.data>=ini&&r.data<=fim;});
   }catch(e){console.error(e);PRODUCAO=[];DESPERDICIO=[];}
   renderGeral();renderOperacao();renderGargalos();
@@ -431,16 +481,18 @@ function totaisVendas(){
 }
 function estimarDesperdicio(){
   let custo=0,venda=0,semPreco=0;
+  var listaSemPreco=[];
   DESPERDICIO.forEach(function(d){
-    const pr=precoProduto(d.produto);
+    const pr=precoProduto(d); // passa o registro inteiro (nome + código)
     if(pr){
       custo+=d.qty*pr.ck;
       venda+=d.qty*pr.vk;
     }else{
       semPreco++;
+      listaSemPreco.push({produto:d.produto,cod:d.cod,qty:d.qty,und:d.und});
     }
   });
-  return{custo:custo,venda:venda,semPreco:semPreco};
+  return{custo:custo,venda:venda,semPreco:semPreco,listaSemPreco:listaSemPreco};
 }
 function estimarCustoDesperdicio(){return estimarDesperdicio().custo;}
 
@@ -656,6 +708,29 @@ function imprimirRuptura(modo){
   setTimeout(function(){window.print();},200);
 }
 
+// Busca o faturamento mensal de um ano inteiro (retorna array de 12 posições, jan-dez)
+async function faturamentoMensalAno(ano){
+  var meses=[0,0,0,0,0,0,0,0,0,0,0,0];
+  var achou=false;
+  try{
+    var linhas=[];
+    var offset=0,bloco=1000;
+    while(true){
+      var parte=await sbGet('vendas_abc','select=mes_ref,faturamento&mes_ref=like.'+ano+'-*&order=id.asc&limit='+bloco+'&offset='+offset);
+      if(!parte||parte.length===0)break;
+      linhas=linhas.concat(parte);
+      if(parte.length<bloco)break;
+      offset+=bloco;
+      if(offset>80000)break;
+    }
+    linhas.forEach(function(v){
+      var m=parseInt((v.mes_ref||'').slice(5,7),10)-1;
+      if(m>=0&&m<12){meses[m]+=Number(v.faturamento)||0;achou=true;}
+    });
+  }catch(e){console.log('Erro faturamento ano '+ano+':',e.message);}
+  return achou?meses:null;
+}
+
 // ════════ COMPARATIVO ════════
 function renderComparativo(){
   const v=totaisVendas();
@@ -673,11 +748,105 @@ function renderComparativo(){
   h+='</div>';
   const varFat=varPct(v.fat26,v.fat25),varLuc=varPct(v.luc26,v.luc25);
   h+='<div class="insight"><strong>Resumo:</strong> faturamento '+(varFat>=0?'+':'')+varFat.toFixed(1)+'%, lucro '+(varLuc>=0?'+':'')+varLuc.toFixed(1)+'%. '+(varLuc>varFat?'Lucro cresceu mais que faturamento — ganho de eficiência.':'')+'</div>';
+  // Gráfico de evolução mês a mês (2025 vs 2026)
+  h+='<div class="card"><div class="card-title">📈 Evolução do Faturamento <span class="sub">2025 vs 2026, mês a mês</span></div><div class="chart-box tall"><canvas id="chEvolucao"></canvas></div><div id="evolucaoNota" style="font-size:.7rem;color:var(--gray);margin-top:8px"></div></div>';
+  // Botão imprimir
+  h+='<div style="display:flex;gap:8px;margin-top:4px">'
+    +'<button onclick="imprimirComparativo()" style="flex:1;padding:12px;background:var(--grn2);color:#fff;border:none;border-radius:9px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit">🖨️ Imprimir comparativo 25 vs 26</button>'
+    +'</div>';
   document.getElementById('compBox').innerHTML=h;
   setTimeout(drawCompChart,50);
+  setTimeout(drawEvolucaoChart,80);
+}
+
+// Desenha o gráfico de evolução mês a mês (2 linhas: 2025 e 2026)
+async function drawEvolucaoChart(){
+  const anoAtual=parseInt((MES_ATUAL||'2026-06').slice(0,4),10);
+  const anoAnt=anoAtual-1;
+  const [fat26,fat25]=await Promise.all([faturamentoMensalAno(anoAtual),faturamentoMensalAno(anoAnt)]);
+  const labels=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  // Transforma 0 em null pra linha não cair a zero em meses sem dados
+  function limpar(arr){return arr?arr.map(function(x){return x>0?x:null;}):null;}
+  const d26=limpar(fat26), d25=limpar(fat25);
+  destroyChart('chEvolucao');
+  const el=document.getElementById('chEvolucao');
+  if(!el)return;
+  var datasets=[];
+  if(d25)datasets.push({label:String(anoAnt),data:d25,borderColor:CORES.gray,backgroundColor:'transparent',borderWidth:2,tension:.3,spanGaps:true,pointRadius:3});
+  if(d26)datasets.push({label:String(anoAtual),data:d26,borderColor:CORES.grn,backgroundColor:'transparent',borderWidth:3,tension:.3,spanGaps:true,pointRadius:3});
+  charts['chEvolucao']=new Chart(el,{type:'line',data:{labels:labels,datasets:datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:12}}},tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+(c.parsed.y!=null?fmtR(c.parsed.y):'sem dados');}}}},scales:{y:{ticks:{font:{size:10},callback:function(v){return 'R$'+(v/1000)+'k';}}},x:{ticks:{font:{size:11}}}}}});
+  // Nota sobre meses disponíveis
+  var nMeses26=d26?d26.filter(function(x){return x!=null;}).length:0;
+  var nMeses25=d25?d25.filter(function(x){return x!=null;}).length:0;
+  var nota=document.getElementById('evolucaoNota');
+  if(nota)nota.innerHTML='📊 '+anoAtual+': '+nMeses26+' mês(es) · '+anoAnt+': '+nMeses25+' mês(es). O gráfico se preenche conforme você importa mais meses.';
 }
 function cRow(l,a,b){const va=varPct(a,b);return '<div class="comp-row"><span class="comp-label">'+l+'</span><span class="comp-25">'+fmtR(b)+'</span><span class="comp-26">'+fmtR(a)+'</span><span class="comp-var '+(va>=0?'up':'down')+'">'+(va>=0?'+':'')+va.toFixed(1)+'%</span></div>';}
 function cRowB(l,a,b){const va=varPct(a,b);return '<div class="comp-row" style="background:var(--grn-l);margin:0 -16px;padding:11px 16px;border-radius:10px"><span class="comp-label" style="font-weight:800">'+l+'</span><span class="comp-25">'+fmtR(b)+'</span><span class="comp-26" style="color:var(--grn2)">'+fmtR(a)+'</span><span class="comp-var '+(va>=0?'up':'down')+'">'+(va>=0?'+':'')+va.toFixed(1)+'%</span></div>';}
+
+// ════════ IMPRIMIR COMPARATIVO 25 vs 26 ════════
+async function imprimirComparativo(){
+  const v=totaisVendas();
+  const dataStr=new Date().toLocaleDateString('pt-BR');
+  const nomeM=nomeMesAtual();
+  const anoAtual=parseInt((MES_ATUAL||'2026-06').slice(0,4),10);
+  const anoAnt=anoAtual-1;
+  const mesN=nomeM.split(' ')[0];
+  const varFat=varPct(v.fat26,v.fat25),varLuc=varPct(v.luc26,v.luc25);
+
+  // Gera imagem do gráfico de evolução pra embutir no PDF
+  var imgEvol='';
+  try{
+    const [f26,f25]=await Promise.all([faturamentoMensalAno(anoAtual),faturamentoMensalAno(anoAnt)]);
+    const labels=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    function limpar(arr){return arr?arr.map(function(x){return x>0?x:null;}):null;}
+    var ds=[];
+    if(f25)ds.push({label:String(anoAnt),data:limpar(f25),borderColor:'#9CA3AF',backgroundColor:'transparent',borderWidth:2,tension:.3,spanGaps:true});
+    if(f26)ds.push({label:String(anoAtual),data:limpar(f26),borderColor:'#2D6A4F',backgroundColor:'transparent',borderWidth:3,tension:.3,spanGaps:true});
+    imgEvol=gerarGraficoImg('line',{labels:labels,datasets:ds},{plugins:{legend:{position:'top'}},scales:{y:{ticks:{callback:function(v){return 'R$'+(v/1000)+'k';}}}}},700,300);
+  }catch(e){console.log('grafico evol pdf:',e.message);}
+
+  function linha(l,a,b){var va=varPct(a,b);var cor=va>=0?'#2D6A4F':'#C0392B';return '<tr><td style="padding:8px;border-bottom:1px solid #eee;">'+l+'</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right;color:#666;">'+fmtR(b)+'</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right;font-weight:700;">'+fmtR(a)+'</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right;font-weight:700;color:'+cor+';">'+(va>=0?'+':'')+va.toFixed(1)+'%</td></tr>';}
+
+  var h='<div style="font-family:\'Plus Jakarta Sans\',sans-serif;color:#1C1C1A;max-width:760px;margin:0 auto;padding:24px;">';
+  h+='<div style="display:flex;align-items:center;gap:12px;border-bottom:3px solid #1B4332;padding-bottom:14px;margin-bottom:18px;">'
+    +'<div style="width:42px;height:42px;background:#1B4332;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:18px;">G</div>'
+    +'<div><div style="font-size:19px;font-weight:800;color:#1B4332;">Comparativo '+mesN+' '+anoAnt+' vs '+anoAtual+'</div>'
+    +'<div style="font-size:12px;color:#6B7280;">Supermercado MG · Padaria e Confeitaria · '+dataStr+'</div></div></div>';
+
+  // KPIs resumo
+  h+='<div style="display:flex;gap:10px;margin-bottom:18px;">';
+  h+='<div style="flex:1;background:#EAF4EF;border-radius:10px;padding:14px;"><div style="font-size:10px;color:#1B4332;text-transform:uppercase;font-weight:700;">Faturamento '+anoAtual+'</div><div style="font-size:20px;font-weight:800;color:#1B4332;">'+fmtR(v.fat26)+'</div><div style="font-size:12px;font-weight:700;color:'+(varFat>=0?'#2D6A4F':'#C0392B')+';">'+(varFat>=0?'▲':'▼')+' '+Math.abs(varFat).toFixed(1)+'% vs '+anoAnt+'</div></div>';
+  h+='<div style="flex:1;background:#EAF4EF;border-radius:10px;padding:14px;"><div style="font-size:10px;color:#1B4332;text-transform:uppercase;font-weight:700;">Lucro '+anoAtual+'</div><div style="font-size:20px;font-weight:800;color:#2D6A4F;">'+fmtR(v.luc26)+'</div><div style="font-size:12px;font-weight:700;color:'+(varLuc>=0?'#2D6A4F':'#C0392B')+';">'+(varLuc>=0?'▲':'▼')+' '+Math.abs(varLuc).toFixed(1)+'% vs '+anoAnt+'</div></div>';
+  h+='</div>';
+
+  // Gráfico de evolução
+  if(imgEvol)h+='<div style="margin-bottom:18px;"><div style="font-size:13px;font-weight:700;margin-bottom:8px;">📈 Evolução mês a mês</div><img src="'+imgEvol+'" style="width:100%;border:1px solid #eee;border-radius:8px;"></div>';
+
+  // Tabela faturamento
+  h+='<div style="font-size:13px;font-weight:700;margin-bottom:6px;">💵 Faturamento por setor</div>';
+  h+='<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;">';
+  h+='<tr style="background:#1B4332;color:#fff;"><th style="padding:8px;text-align:left;">Setor</th><th style="padding:8px;text-align:right;">'+mesN+'/'+String(anoAnt).slice(2)+'</th><th style="padding:8px;text-align:right;">'+mesN+'/'+String(anoAtual).slice(2)+'</th><th style="padding:8px;text-align:right;">Var.</th></tr>';
+  h+=linha('Padaria',ABC.pad26[0],ABC.pad25[0]);
+  h+=linha('Confeitaria',ABC.conf26[0],ABC.conf25[0]);
+  h+='<tr style="background:#EAF4EF;font-weight:800;"><td style="padding:8px;">TOTAL</td><td style="padding:8px;text-align:right;">'+fmtR(v.fat25)+'</td><td style="padding:8px;text-align:right;">'+fmtR(v.fat26)+'</td><td style="padding:8px;text-align:right;color:'+(varFat>=0?'#2D6A4F':'#C0392B')+';">'+(varFat>=0?'+':'')+varFat.toFixed(1)+'%</td></tr>';
+  h+='</table>';
+
+  // Tabela lucro
+  h+='<div style="font-size:13px;font-weight:700;margin-bottom:6px;">💰 Lucro por setor</div>';
+  h+='<table style="width:100%;border-collapse:collapse;font-size:13px;">';
+  h+='<tr style="background:#1B4332;color:#fff;"><th style="padding:8px;text-align:left;">Setor</th><th style="padding:8px;text-align:right;">'+mesN+'/'+String(anoAnt).slice(2)+'</th><th style="padding:8px;text-align:right;">'+mesN+'/'+String(anoAtual).slice(2)+'</th><th style="padding:8px;text-align:right;">Var.</th></tr>';
+  h+=linha('Padaria',ABC.pad26[1],ABC.pad25[1]);
+  h+=linha('Confeitaria',ABC.conf26[1],ABC.conf25[1]);
+  h+='<tr style="background:#EAF4EF;font-weight:800;"><td style="padding:8px;">TOTAL</td><td style="padding:8px;text-align:right;">'+fmtR(v.luc25)+'</td><td style="padding:8px;text-align:right;">'+fmtR(v.luc26)+'</td><td style="padding:8px;text-align:right;color:'+(varLuc>=0?'#2D6A4F':'#C0392B')+';">'+(varLuc>=0?'+':'')+varLuc.toFixed(1)+'%</td></tr>';
+  h+='</table>';
+
+  h+='<div style="font-size:10px;color:#999;margin-top:20px;text-align:center;border-top:1px solid #eee;padding-top:10px;">GestFood · Comparativo anual · '+dataStr+'</div>';
+  h+='</div>';
+
+  document.getElementById('printArea').innerHTML=h;
+  setTimeout(function(){window.print();},400);
+}
 function drawCompChart(){
   const v=totaisVendas();
   destroyChart('chComp');
@@ -772,7 +941,7 @@ function renderGargalos(){
   let despKg=0,despUnd=0,custoTot=0,vendaTot=0,semPreco=0;
   desp.forEach(function(d){
     if(d.und==='und')despUnd+=d.qty;else despKg+=d.qty;
-    const pr=precoProduto(d.produto);
+    const pr=precoProduto(d);
     if(pr){custoTot+=d.qty*pr.ck;vendaTot+=d.qty*pr.vk;}
     else{semPreco++;}
   });
@@ -783,7 +952,20 @@ function renderGargalos(){
   h+='<div class="kpi"><div class="kpi-label">Total desperdiçado</div><div class="kpi-val" style="font-size:1.15rem">'+fmtKg(despKg)+' kg</div><div class="kpi-sub">'+(despUnd>0?fmtN(despUnd)+' und · ':'')+desp.length+' registros</div></div>';
   h+='<div class="kpi"><div class="kpi-label">% do faturamento</div><div class="kpi-val" style="color:'+(vendaTot/v.fat26*100<=3?'var(--grn)':'var(--red)')+'">'+pct(vendaTot/v.fat26*100)+'</div><div class="kpi-sub">venda perdida ÷ faturamento</div></div>';
   h+='</div>';
-  if(semPreco>0)h+='<div class="insight warn">⚠️ '+semPreco+' registro(s) sem preço no ABC de '+nomeMesAtual()+' (produto não vendido no período) — não entram no cálculo de custo/venda perdida para não distorcer os valores.</div>';
+  if(semPreco>0){
+    // Junta os produtos sem preço (únicos) pra você ver quais precisam de preço manual
+    var semPrecoMap={};
+    desp.forEach(function(d){
+      if(!precoProduto(d)){
+        var ch=(d.cod||'')+'|'+d.produto;
+        if(!semPrecoMap[ch])semPrecoMap[ch]={produto:d.produto,cod:d.cod,qty:0,und:d.und};
+        semPrecoMap[ch].qty+=d.qty;
+      }
+    });
+    var itensSP=Object.values(semPrecoMap);
+    var listaTxt=itensSP.map(function(x){return (x.cod?'['+x.cod+'] ':'')+x.produto+' ('+fmtKg(x.qty)+' '+x.und+')';}).join(' · ');
+    h+='<div class="insight warn">⚠️ <strong>'+itensSP.length+' produto(s) sem preço</strong> — não vendidos no ABC de '+nomeMesAtual()+', então ficam fora do cálculo de custo/venda perdida.<br><span style="font-size:.72rem;color:#8B6914;">'+listaTxt+'</span></div>';
+  }
 
   // Tendência ao longo dos dias
   h+='<div class="card"><div class="card-title">📉 Tendência Diária <span class="sub">kg ao longo de '+nomeMesAtual()+'</span></div><div class="chart-box"><canvas id="chTend"></canvas></div></div>';
@@ -794,7 +976,7 @@ function renderGargalos(){
 
   // Por setor
   const aggS={};
-  desp.forEach(function(d){const s=(d.setor||'OUTROS').toUpperCase();if(!aggS[s])aggS[s]={kg:0,custo:0};const pr=precoProduto(d.produto);aggS[s].kg+=(d.und!=='und'?d.qty:0);if(pr)aggS[s].custo+=d.qty*pr.ck;});
+  desp.forEach(function(d){const s=(d.setor||'OUTROS').toUpperCase();if(!aggS[s])aggS[s]={kg:0,custo:0};const pr=precoProduto(d);aggS[s].kg+=(d.und!=='und'?d.qty:0);if(pr)aggS[s].custo+=d.qty*pr.ck;});
   const sk=Object.keys(aggS).sort(function(a,b){return aggS[b].custo-aggS[a].custo;});
   h+='<div class="card"><div class="card-title">🏭 Por Setor</div>';
   const maxS=Math.max.apply(null,sk.map(function(k){return aggS[k].custo;}))||1;
@@ -803,7 +985,7 @@ function renderGargalos(){
 
   // Top produtos com custo + venda perdida + classe ABC
   const agg={};
-  desp.forEach(function(d){if(!agg[d.produto])agg[d.produto]={kg:0,und:0,un:d.und,custo:0,venda:0,temPreco:false,fonte:''};const pr=precoProduto(d.produto);if(d.und==='und')agg[d.produto].und+=d.qty;else agg[d.produto].kg+=d.qty;if(pr){agg[d.produto].custo+=d.qty*pr.ck;agg[d.produto].venda+=d.qty*pr.vk;agg[d.produto].temPreco=true;agg[d.produto].classe=pr.classe;agg[d.produto].fonte=pr.fonte;}else{agg[d.produto].classe=null;}});
+  desp.forEach(function(d){if(!agg[d.produto])agg[d.produto]={kg:0,und:0,un:d.und,custo:0,venda:0,temPreco:false,fonte:''};const pr=precoProduto(d);if(d.und==='und')agg[d.produto].und+=d.qty;else agg[d.produto].kg+=d.qty;if(pr){agg[d.produto].custo+=d.qty*pr.ck;agg[d.produto].venda+=d.qty*pr.vk;agg[d.produto].temPreco=true;agg[d.produto].classe=pr.classe;agg[d.produto].fonte=pr.fonte;}else{agg[d.produto].classe=null;}});
   const lista=Object.keys(agg).map(function(nm){return{nome:nm,kg:agg[nm].kg,und:agg[nm].und,un:agg[nm].un,custo:agg[nm].custo,venda:agg[nm].venda,classe:agg[nm].classe,temPreco:agg[nm].temPreco,fonte:agg[nm].fonte};}).sort(function(a,b){return (b.kg+b.und)-(a.kg+a.und);}).slice(0,12);
   h+='<div class="card"><div class="card-title">🗑️ Top 12 Desperdiçados <span class="sub">por quantidade</span></div>';
   lista.forEach(function(item,i){
@@ -1136,7 +1318,7 @@ async function iniciarDashboard(){
     var abcBanco=await montarABCdoBanco();
     if(abcBanco && abcBanco.produtos && abcBanco.produtos.length>0){
       ABC=abcBanco;
-      console.log('✅ Dashboard usando dados do Supabase ('+abcBanco._mes+', '+abcBanco.produtos.length+' produtos)');
+      console.log('✅ Dashboard usando dados do Supabase ('+abcBanco._mes+', '+abcBanco.produtos.length+' produtos). Comparativo '+abcBanco._mes25+': '+(abcBanco._tem25?'do banco ✅':'embutido (sem dados no banco)'));
     }else{
       console.log('ℹ️ Sem dados no banco — usando dados embutidos.');
     }
