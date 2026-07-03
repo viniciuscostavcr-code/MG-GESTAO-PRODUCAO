@@ -123,16 +123,19 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
 .cmv-warn{color:var(--yellow);font-weight:700;}
 .cmv-bad{color:var(--red);font-weight:700;}
 @media print{
-  @page{margin:12mm;}
+  @page{margin:12mm;size:A4 portrait;}
+  html,body{height:auto!important;overflow:visible!important;}
   body>*:not(#printArea){display:none!important;}
-  #printArea{display:block!important;}
+  #printArea{display:block!important;position:static!important;height:auto!important;overflow:visible!important;}
   #printArea *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+  /* Container não limita altura nem escala */
+  #printArea>div{max-width:100%!important;height:auto!important;overflow:visible!important;}
   /* Permite que tabelas longas fluam por várias páginas sem cortar conteúdo */
-  #printArea table{page-break-inside:auto;break-inside:auto;}
-  #printArea tr{page-break-inside:avoid;break-inside:avoid;page-break-after:auto;}
-  #printArea thead{display:table-header-group;} /* repete o cabeçalho em cada página */
-  #printArea tfoot{display:table-footer-group;}
-  #printArea img{max-width:100%;}
+  #printArea table{page-break-inside:auto!important;break-inside:auto!important;width:100%!important;}
+  #printArea tr{page-break-inside:avoid!important;break-inside:avoid!important;page-break-after:auto!important;}
+  #printArea thead{display:table-header-group!important;} /* repete o cabeçalho em cada página */
+  #printArea tfoot{display:table-footer-group!important;}
+  #printArea img{max-width:100%!important;}
 }
 </style>
 </head>
@@ -1209,6 +1212,7 @@ function filtrarProdutos(){
     let va,vb;
     if(prodSort==='n'){va=a.n;vb=b.n;return prodSortDir*(va<vb?-1:va>vb?1:0);}
     if(prodSort==='cmv'){va=a.fat>0?a.cus/a.fat:0;vb=b.fat>0?b.cus/b.fat:0;}
+    else if(prodSort==='media'){va=a.dv>0?a.qtd/a.dv:0;vb=b.dv>0?b.qtd/b.dv:0;}
     else{va=a[prodSort]||0;vb=b[prodSort]||0;}
     return prodSortDir*(va-vb);
   });
@@ -1224,6 +1228,8 @@ function renderProdTabela(){
   let h='<div style="font-size:.72rem;color:var(--gray);margin-bottom:8px">'+lista.length+' produtos · fat '+fmtR(totFat)+' · venda perdida '+fmtR(totPerda)+'</div>';
   h+='<div class="pscroll"><table class="ptable"><thead><tr>';
   h+='<th class="'+(prodSort==='n'?'sorted':'')+'" onclick="setProdSort(\'n\')">Produto'+ar('n')+'</th>';
+  h+='<th class="'+(prodSort==='qtd'?'sorted':'')+'" onclick="setProdSort(\'qtd\')">Qtd vend'+ar('qtd')+'</th>';
+  h+='<th class="'+(prodSort==='media'?'sorted':'')+'" onclick="setProdSort(\'media\')">Méd/dia'+ar('media')+'</th>';
   h+='<th class="'+(prodSort==='fat'?'sorted':'')+'" onclick="setProdSort(\'fat\')">Fat'+ar('fat')+'</th>';
   h+='<th class="'+(prodSort==='luc'?'sorted':'')+'" onclick="setProdSort(\'luc\')">Lucro'+ar('luc')+'</th>';
   h+='<th class="'+(prodSort==='cmv'?'sorted':'')+'" onclick="setProdSort(\'cmv\')">CMV'+ar('cmv')+'</th>';
@@ -1236,6 +1242,10 @@ function renderProdTabela(){
     const cmvCls=cmv<=35?'cmv-ok':cmv<=45?'cmv-warn':'cmv-bad';
     h+='<tr>';
     h+='<td title="'+p.n+'"><span class="classe-tag classe-'+(p.classe||'C')+'">'+(p.classe||'C')+'</span> '+p.n+'</td>';
+    var ehUnd=(p.un==='und');
+    var mediaDia=p.dv>0?p.qtd/p.dv:0;
+    h+='<td>'+(ehUnd?fmtN(Math.round(p.qtd)):fmtKg(p.qtd))+(ehUnd?' un':' kg')+'</td>';
+    h+='<td style="color:var(--brown);font-weight:600">'+(ehUnd?fmtN(Math.round(mediaDia)):fmtKg(mediaDia))+(ehUnd?' un':' kg')+'</td>';
     h+='<td>'+fmtR(p.fat)+'</td>';
     h+='<td>'+fmtR(p.luc)+'</td>';
     h+='<td class="'+cmvCls+'">'+cmv.toFixed(0)+'%</td>';
