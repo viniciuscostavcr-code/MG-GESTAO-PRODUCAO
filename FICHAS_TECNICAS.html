@@ -228,6 +228,8 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
         <button class="setor-tab on" onclick="filtrarInsumos('TODOS',this)">Todos</button>
         <button class="setor-tab" onclick="filtrarInsumos('PADARIA',this)">Padaria</button>
         <button class="setor-tab" onclick="filtrarInsumos('CONFEITARIA',this)">Confeitaria</button>
+        <button class="setor-tab" onclick="filtrarInsumos('LANCHONETE',this)">Lanchonete</button>
+        <button class="setor-tab" onclick="filtrarInsumos('RESTAURANTE',this)">Restaurante</button>
       </div>
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
@@ -242,6 +244,8 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
         <button class="setor-tab on" onclick="filtrarFichas('TODOS',this)">Todos</button>
         <button class="setor-tab" onclick="filtrarFichas('PADARIA',this)">Padaria</button>
         <button class="setor-tab" onclick="filtrarFichas('CONFEITARIA',this)">Confeitaria</button>
+        <button class="setor-tab" onclick="filtrarFichas('LANCHONETE',this)">Lanchonete</button>
+        <button class="setor-tab" onclick="filtrarFichas('RESTAURANTE',this)">Restaurante</button>
       </div>
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
@@ -256,6 +260,8 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
         <button class="setor-tab on" onclick="filtrarProducao('TODOS',this)">Todos</button>
         <button class="setor-tab" onclick="filtrarProducao('PADARIA',this)">Padaria</button>
         <button class="setor-tab" onclick="filtrarProducao('CONFEITARIA',this)">Confeitaria</button>
+        <button class="setor-tab" onclick="filtrarProducao('LANCHONETE',this)">Lanchonete</button>
+        <button class="setor-tab" onclick="filtrarProducao('RESTAURANTE',this)">Restaurante</button>
       </div>
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
@@ -270,6 +276,8 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
         <button class="setor-tab on" onclick="filtrarCMV('TODOS',this)">Todos</button>
         <button class="setor-tab" onclick="filtrarCMV('PADARIA',this)">Padaria</button>
         <button class="setor-tab" onclick="filtrarCMV('CONFEITARIA',this)">Confeitaria</button>
+        <button class="setor-tab" onclick="filtrarCMV('LANCHONETE',this)">Lanchonete</button>
+        <button class="setor-tab" onclick="filtrarCMV('RESTAURANTE',this)">Restaurante</button>
       </div>
       <div class="kpi-grid" id="cmvKpis"></div>
       <div id="listaCMV"><div class="loading"><div class="spin"></div>Carregando...</div></div>
@@ -353,6 +361,7 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
           <option value="CONFEITARIA">Confeitaria</option>
           <option value="PADARIA">Padaria</option>
           <option value="LANCHONETE">Lanchonete</option>
+          <option value="RESTAURANTE">Restaurante</option>
         </select>
       </div>
     </div>
@@ -1544,7 +1553,7 @@ function imprimirFichaProd(id){
   if(f.rendimento_unid)rendStr=f.rendimento_unid+' unidades';
   var tempoStr=f.tempo_preparo_min?f.tempo_preparo_min+' min':'';
   var codStr=f.cod?f.cod:'';
-  var setorIco={PADARIA:'🍞',CONFEITARIA:'🎂',LANCHONETE:'🥪'};
+  var setorIco={PADARIA:'🍞',CONFEITARIA:'🎂',LANCHONETE:'🥪',RESTAURANTE:'🍽️'};
   var ico=setorIco[f.setor]||'👨‍🍳';
   var fotoHtml=f.foto_url
     ? '<img src="'+f.foto_url+'" class="prod-foto">'
