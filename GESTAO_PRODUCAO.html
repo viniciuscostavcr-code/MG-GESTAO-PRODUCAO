@@ -550,90 +550,6 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
   body.auto-foco .foco-bar{display:flex;}
   body.auto-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:0!important;}
 }
-
-/* ── CHECKLIST E "HOJE" EM MODO PAISAGEM (celular deitado) ── */
-/* Reduz padding/altura/fonte para caber mais produtos na tela */
-@media (orientation: landscape) and (max-height: 500px) {
-
-  /* ═══ CHECKLIST (.prod-card e .ck-*) ═══ */
-  .prod-card{padding:8px 12px!important;margin-bottom:6px!important;min-height:36px!important;}
-  .prod-hdr{margin-bottom:3px!important;}
-  .prod-nm{font-size:.8rem!important;line-height:1.25!important;}
-  .prod-inp{height:40px!important;padding:0 10px!important;font-size:1rem!important;}
-  .prod-inp-row{margin-bottom:4px!important;}
-  .prod-inp-lbl{font-size:.68rem!important;width:52px!important;}
-  .prod-inp-und{font-size:.68rem!important;width:30px!important;}
-  .emb-row{gap:4px!important;padding:2px 0!important;}
-  .emb-inp,.emb-gram-inp{height:36px!important;font-size:14px!important;}
-  .emb-tot{font-size:.72rem!important;padding:2px 0!important;}
-  .emb-section-lbl{font-size:.65rem!important;margin:2px 0!important;}
-  .ck-search-wrap{padding:6px 10px 0!important;}
-  .ck-search{height:38px!important;padding:0 10px!important;}
-  .ck-search input{font-size:.85rem!important;}
-  .ck-filters{padding:5px 10px 0!important;}
-  .ck-filt{padding:4px 10px!important;font-size:.7rem!important;}
-  .ck-list{padding:6px 10px!important;}
-  .btn-finalizar{padding:10px!important;font-size:.85rem!important;min-height:40px!important;}
-  .ck-footer-btn{padding:6px 10px 12px!important;}
-  .ck-progress{padding:4px 10px 2px!important;bottom:48px!important;}
-
-  /* ═══ ABA "HOJE" (.phoje-*) ═══ */
-  /* Header compacto */
-  .phoje-hdr{padding:5px 10px!important;gap:6px!important;}
-  .phoje-back{font-size:1rem!important;padding:2px!important;}
-  .phoje-ttl-main{font-size:.78rem!important;}
-  .phoje-ttl-sub{font-size:.62rem!important;}
-  .phoje-prog{font-size:.68rem!important;}
-
-  /* Body / labels de seção */
-  .phoje-body{padding:5px 0 4px!important;}
-  .phoje-sec-lbl{font-size:.65rem!important;padding:4px 12px 1px!important;}
-
-  /* Avisos / banners */
-  .phoje-aviso{padding:6px 10px!important;font-size:.7rem!important;line-height:1.35!important;margin:0 10px 6px!important;}
-
-  /* Cards compactos */
-  .phoje-card{padding:8px 11px 7px!important;margin:0 10px 6px!important;border-radius:10px!important;}
-  .phoje-card-nm{font-size:.78rem!important;margin-bottom:2px!important;}
-  .phoje-abc{min-width:16px!important;height:16px!important;font-size:9px!important;padding:0 3px!important;}
-  .phoje-sug{font-size:.66rem!important;margin-bottom:2px!important;}
-  .phoje-alert{font-size:.64rem!important;margin-bottom:4px!important;}
-
-  /* Input do produto (menor mas mantém 16px pra não dar zoom no iOS) */
-  .phoje-inp-row{gap:6px!important;margin-bottom:5px!important;}
-  .phoje-inp{height:40px!important;padding:0 10px!important;font-size:16px!important;}
-  .phoje-inp-und{font-size:.66rem!important;}
-  .phoje-conf-btn{padding:7px!important;font-size:.72rem!important;border-radius:7px!important;}
-
-  /* Footer compacto */
-  .phoje-footer{padding:6px 10px 10px!important;}
-  .phoje-footer-resumo{font-size:.66rem!important;margin-bottom:5px!important;line-height:1.4!important;}
-  .btn-finalizar-hoje{padding:9px!important;font-size:.8rem!important;min-height:38px!important;}
-
-  /* Botão "Produto não listado" → vira ícone "+" flutuante pequeno em landscape */
-  .phoje-add-btn{
-    width:36px!important;
-    height:36px!important;
-    padding:0!important;
-    margin:0 0 6px auto!important;
-    border-radius:50%!important;
-    font-size:0!important;
-    border:1.5px solid var(--grn2)!important;
-    color:transparent!important;
-    background:#fff!important;
-    display:flex!important;
-    align-items:center!important;
-    justify-content:center!important;
-  }
-  /* Substitui o texto "➕ Produto não listado" por um "+" verde grande */
-  .phoje-add-btn::before{
-    content:"+";
-    font-size:22px!important;
-    font-weight:700!important;
-    color:var(--grn2)!important;
-    line-height:1!important;
-  }
-}
 .prod-tabela{border-collapse:collapse;min-width:700px;width:100%;font-size:.82rem;}
 .prod-tabela th{background:#1B4332;color:#fff;padding:10px 8px;text-align:center;white-space:nowrap;}
 /* Cabeçalho sticky (fixo ao rolar verticalmente) */
@@ -784,6 +700,14 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
         style="background:#2D6A4F;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:.82rem;font-weight:700;">✅ Hoje</button>
     </div>
 
+    <!-- Botões de impressão do planejamento -->
+    <div style="display:flex;gap:8px;padding:0 16px 8px;">
+      <button onclick="imprimirPlanejamentoSemanal()"
+        style="flex:1;background:#1B4332;color:#fff;border:none;border-radius:8px;padding:9px;cursor:pointer;font-size:.78rem;font-weight:600;">🖨️ Imprimir Semanal</button>
+      <button onclick="imprimirPlanejamentoMensal()"
+        style="flex:1;background:#2D6A4F;color:#fff;border:none;border-radius:8px;padding:9px;cursor:pointer;font-size:.78rem;font-weight:600;">🖨️ Imprimir Mensal</button>
+    </div>
+
     <!-- Mini resumo -->
     <div id="resumoSemana"
       style="padding:6px 16px;font-size:.75rem;color:#6B7280;">
@@ -856,12 +780,12 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
     <div class="cfg-min-sub" id="cfgMinProdNm"></div>
     <div class="emb-modal-fg">
       <label class="emb-modal-lbl">Mínimo gôndola *</label>
-      <input class="emb-modal-inp" type="text" id="cfgMinVal" inputmode="decimal" min="0" step="0.1" placeholder="Ex: 20">
+      <input class="emb-modal-inp" type="number" id="cfgMinVal" inputmode="decimal" min="0" step="0.1" placeholder="Ex: 20">
     </div>
     <div id="cfgMinFrzWrap" style="display:none;">
       <div class="emb-modal-fg" style="margin-top:10px;">
         <label class="emb-modal-lbl">Mínimo freezer</label>
-        <input class="emb-modal-inp" type="text" id="cfgMinFrzVal" inputmode="decimal" min="0" step="0.1" placeholder="Ex: 10">
+        <input class="emb-modal-inp" type="number" id="cfgMinFrzVal" inputmode="decimal" min="0" step="0.1" placeholder="Ex: 10">
       </div>
     </div>
     <div class="emb-modal-btns">
@@ -882,7 +806,7 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
     </div>
     <div class="emb-modal-fg">
       <label class="emb-modal-lbl">Gramatura média (g) *</label>
-      <input class="emb-modal-inp" type="text" id="embModalGram" inputmode="numeric" min="1" step="1" placeholder="Ex: 500">
+      <input class="emb-modal-inp" type="number" id="embModalGram" inputmode="numeric" min="1" step="1" placeholder="Ex: 500">
     </div>
     <div class="emb-modal-btns">
       <button class="conf-cn" onclick="fecharModalAddEmb()">Cancelar</button>
@@ -900,7 +824,7 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
     <div class="mp-dias-row" id="mpDiasRow"></div>
     <div class="meta-pop-lbl">Meta semanal:</div>
     <div class="meta-pop-row">
-      <input class="meta-pop-inp" type="text" min="0" inputmode="decimal" id="mpMetaInp"
+      <input class="meta-pop-inp" type="number" min="0" inputmode="numeric" id="mpMetaInp"
         placeholder="0"
         onkeydown="if(event.key==='Enter'){event.preventDefault();_salvarMetaPop()}">
       <span class="meta-pop-und" id="mpUndLbl">kg</span>
@@ -919,7 +843,7 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
     <div class="plan-sub" id="planSub"></div>
     <div class="emb-modal-fg">
       <label class="emb-modal-lbl" id="planQtdLbl">Quantidade planejada *</label>
-      <input class="emb-modal-inp" type="text" id="planVal" inputmode="decimal" min="0" step="0.5" placeholder="Ex: 20">
+      <input class="emb-modal-inp" type="number" id="planVal" inputmode="decimal" min="0" step="0.5" placeholder="Ex: 20">
     </div>
     <div class="emb-modal-btns">
       <button class="conf-cn" onclick="fecharPlanModal()">Cancelar</button>
@@ -945,9 +869,6 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
 </div>
 
 <script>
-// Normaliza vírgula decimal (BR) para ponto antes de parseFloat
-function parseDecBR(v){return parseFloat(String(v==null?'':v).replace(',','.'));}
-
 // ══════════════════════════════════════════════════
 // SUPABASE
 // ══════════════════════════════════════════════════
@@ -1217,6 +1138,130 @@ init();
 // ══════════════════════════════════════════════════
 // MODAL DE IMPRESSÃO (PDF) — Safari iOS-safe
 // ══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
+// IMPRIMIR PLANEJAMENTO DE PRODUÇÃO (semanal e mensal)
+// ══════════════════════════════════════════════════
+function _prodsOrdenados(){
+  // Produtos do setor atual, ordenados por categoria e nome
+  return (TODOS_PRODS||[]).slice().sort(function(a,b){
+    var ca=(a.categoria||'ZZZ'),cb=(b.categoria||'ZZZ');
+    if(ca!==cb)return ca<cb?-1:1;
+    return (a.nome||'')<(b.nome||'')?-1:1;
+  });
+}
+function _fmtMeta(v){
+  v=Number(v)||0;
+  if(v===0)return '—';
+  // até 3 casas, sem zeros à toa
+  return (Math.round(v*1000)/1000).toLocaleString('pt-BR',{maximumFractionDigits:3});
+}
+
+function imprimirPlanejamentoSemanal(){
+  if(!PROD_SEM_ISO){toast('⚠️ Abra a projeção semanal primeiro','wa');return;}
+  var dias=_diasSemana(PROD_SEM_ISO);
+  var prods=_prodsOrdenados();
+  var nomesDia=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+  var dataStr=new Date().toLocaleDateString('pt-BR');
+  var ini=dias[0].split('-').reverse().join('/');
+  var fim=dias[6].split('-').reverse().join('/');
+  var setorIco={PADARIA:'🍞',CONFEITARIA:'🎂',LANCHONETE:'🥪',RESTAURANTE:'🍽️'}[SETOR]||'🏭';
+
+  var h='<div style="font-family:sans-serif;color:#111;">';
+  h+='<div style="display:flex;align-items:center;gap:12px;border-bottom:3px solid #1B4332;padding-bottom:12px;margin-bottom:14px;">'
+    +'<div style="width:40px;height:40px;background:#1B4332;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:16px;">G</div>'
+    +'<div><div style="font-size:18px;font-weight:800;color:#1B4332;">'+setorIco+' Planejamento Semanal — '+SETOR+'</div>'
+    +'<div style="font-size:12px;color:#666;">Semana '+ini+' a '+fim+' · impresso em '+dataStr+'</div></div></div>';
+
+  h+='<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+  h+='<thead><tr style="background:#1B4332;color:#fff;">';
+  h+='<th style="padding:7px 8px;text-align:left;">Produto</th>';
+  dias.forEach(function(d,i){
+    var num=d.split('-')[2];
+    h+='<th style="padding:7px 4px;text-align:center;">'+nomesDia[_diaSemNum(d)]+'<br><span style="font-size:9px;opacity:.8;">'+num+'</span></th>';
+  });
+  h+='<th style="padding:7px 8px;text-align:center;background:#2D6A4F;">Total</th>';
+  h+='</tr></thead><tbody>';
+
+  var catAtual='';
+  prods.forEach(function(p){
+    // separador de categoria
+    if(p.categoria!==catAtual){
+      catAtual=p.categoria;
+      h+='<tr style="background:#EAF4EF;"><td colspan="'+(dias.length+2)+'" style="padding:5px 8px;font-weight:800;color:#1B4332;font-size:11px;">'+catAtual+'</td></tr>';
+    }
+    var totalSem=0;
+    var cells='';
+    dias.forEach(function(d){
+      var lote=getLoteProduto(p.nome,SETOR,_diaSemNum(d),d);
+      var q=lote&&lote.qtd?lote.qtd:0;
+      totalSem+=q;
+      cells+='<td style="padding:6px 4px;text-align:center;border-bottom:1px solid #eee;">'+_fmtMeta(q)+'</td>';
+    });
+    var un=(p.unidade==='UND'?'un':'kg');
+    h+='<tr>';
+    h+='<td style="padding:6px 8px;border-bottom:1px solid #eee;font-weight:600;">'+p.nome+' <span style="color:#999;font-size:10px;">'+un+'</span></td>';
+    h+=cells;
+    h+='<td style="padding:6px 8px;text-align:center;border-bottom:1px solid #eee;font-weight:800;color:#2D6A4F;background:#F7F7F5;">'+_fmtMeta(totalSem)+'</td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table>';
+  h+='<div style="margin-top:14px;font-size:11px;color:#888;">Quantidades planejadas por dia. "—" indica produto sem meta no dia. Ajuste as metas na projeção semanal do sistema.</div>';
+  h+='</div>';
+  abrirPrintModal(h);
+}
+
+function imprimirPlanejamentoMensal(){
+  var prods=_prodsOrdenados();
+  var dataStr=new Date().toLocaleDateString('pt-BR');
+  var setorIco={PADARIA:'🍞',CONFEITARIA:'🎂',LANCHONETE:'🥪',RESTAURANTE:'🍽️'}[SETOR]||'🏭';
+  // Base semanal (semana atual) × 4,33 semanas ≈ mês
+  var segRef=PROD_SEM_ISO||_segISOdeHoje();
+  var dias=_diasSemana(segRef);
+
+  var h='<div style="font-family:sans-serif;color:#111;">';
+  h+='<div style="display:flex;align-items:center;gap:12px;border-bottom:3px solid #1B4332;padding-bottom:12px;margin-bottom:14px;">'
+    +'<div style="width:40px;height:40px;background:#1B4332;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:16px;">G</div>'
+    +'<div><div style="font-size:18px;font-weight:800;color:#1B4332;">'+setorIco+' Planejamento Mensal — '+SETOR+'</div>'
+    +'<div style="font-size:12px;color:#666;">Estimativa mensal (base semanal × 4,33) · impresso em '+dataStr+'</div></div></div>';
+
+  h+='<table style="width:100%;border-collapse:collapse;font-size:12.5px;">';
+  h+='<thead><tr style="background:#1B4332;color:#fff;">';
+  h+='<th style="padding:8px;text-align:left;">Produto</th>';
+  h+='<th style="padding:8px;text-align:center;">Meta semanal</th>';
+  h+='<th style="padding:8px;text-align:center;background:#2D6A4F;">Estimativa mensal</th>';
+  h+='</tr></thead><tbody>';
+
+  var catAtual='';
+  var totalMesGeral=0;
+  prods.forEach(function(p){
+    if(p.categoria!==catAtual){
+      catAtual=p.categoria;
+      h+='<tr style="background:#EAF4EF;"><td colspan="3" style="padding:5px 8px;font-weight:800;color:#1B4332;font-size:11px;">'+catAtual+'</td></tr>';
+    }
+    // meta semanal = soma dos 7 dias
+    var totalSem=0;
+    dias.forEach(function(d){var lote=getLoteProduto(p.nome,SETOR,_diaSemNum(d),d);totalSem+=(lote&&lote.qtd)?lote.qtd:0;});
+    var mensal=totalSem*4.33;
+    var un=(p.unidade==='UND'?'un':'kg');
+    h+='<tr>';
+    h+='<td style="padding:7px 8px;border-bottom:1px solid #eee;font-weight:600;">'+p.nome+' <span style="color:#999;font-size:10px;">'+un+'</span></td>';
+    h+='<td style="padding:7px 8px;text-align:center;border-bottom:1px solid #eee;">'+_fmtMeta(totalSem)+'</td>';
+    h+='<td style="padding:7px 8px;text-align:center;border-bottom:1px solid #eee;font-weight:800;color:#2D6A4F;background:#F7F7F5;">'+_fmtMeta(mensal)+'</td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table>';
+  h+='<div style="margin-top:14px;font-size:11px;color:#888;">A estimativa mensal multiplica a meta semanal por 4,33 (média de semanas no mês). É uma projeção — os totais reais dependem de feriados e sazonalidade.</div>';
+  h+='</div>';
+  abrirPrintModal(h);
+}
+
+// Segunda-feira ISO da semana de hoje (fallback se PROD_SEM_ISO não estiver setado)
+function _segISOdeHoje(){
+  var d=new Date();var dia=d.getDay();var diff=(dia===0?-6:1-dia);
+  d.setDate(d.getDate()+diff);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
 function abrirPrintModal(html) {
   var c = document.getElementById('printModalContent');
   var m = document.getElementById('printModal');
@@ -1802,14 +1847,14 @@ function _buildProdCard(p) {
     if (temFreezer) {
       frzRow = `<div class="prod-inp-row">
         <span class="prod-inp-lbl">Freezer:</span>
-        <input class="prod-inp" type="text" inputmode="decimal" min="0" step="0.1"
+        <input class="prod-inp" type="number" inputmode="decimal" min="0" step="0.1"
           value="${qFrz}" placeholder="0" id="frz-${p.id}"
           oninput="onInput('${p.id}','freezer',this.value)" style="font-size:16px;">
         <span class="prod-inp-und">${escHtml(und)}</span>
       </div>`;
     }
     const totalRow = temFreezer
-      ? `<div class="prod-total" id="tot-${p.id}">Total: ${((parseDecBR(qGon)||0)+(parseDecBR(qFrz)||0)).toFixed(1)} ${escHtml(und)}</div>`
+      ? `<div class="prod-total" id="tot-${p.id}">Total: ${((parseFloat(qGon)||0)+(parseFloat(qFrz)||0)).toFixed(1)} ${escHtml(und)}</div>`
       : '';
 
     // Semáforo(s)
@@ -1824,7 +1869,7 @@ function _buildProdCard(p) {
       stHtml = `<div id="status-${p.id}">${_semHtml(_getStatusGon(p.id))}</div>`;
     }
 
-    const inpGon = '<input class="prod-inp" type="text" inputmode="decimal" min="0" step="0.1"'
+    const inpGon = '<input class="prod-inp" type="number" inputmode="decimal" min="0" step="0.1"'
       +' value="'+(bloqueado?'0':qGon)+'" placeholder="0" id="gon-'+p.id+'"'
       +' '+(bloqueado?'disabled':'oninput="onInput(\''+p.id+'\',\'gondola\',this.value)"')+' style="font-size:16px;">';
     const inpRow = '<div class="prod-inp-row">'
@@ -1854,12 +1899,12 @@ function _buildProdCard(p) {
       const subTxt = qty !== '' ? `= ${kg.toFixed(1)}kg` : '= 0,0kg';
       return `<div class="emb-row">
         <span class="emb-nm">${escHtml(e.nome_embalagem)}</span>
-        <input class="emb-gram-inp" type="text" inputmode="decimal" min="1" step="1"
+        <input class="emb-gram-inp" type="number" inputmode="decimal" min="1" step="1"
           value="${gram}" title="Gramatura (g)"
           id="egram-${campo}-${p.id}-${e.id}"
           oninput="onEmbGramInput('${p.id}','${campo}','${e.id}',this.value)">
         <span class="emb-gram-suf">g ×</span>
-        <input class="emb-inp" type="text" inputmode="numeric" min="0" placeholder="0" step="1"
+        <input class="emb-inp" type="number" inputmode="numeric" min="0" placeholder="0" step="1"
           value="${qty}" placeholder="0"
           id="emb-${campo}-${p.id}-${e.id}"
           oninput="onEmbInput('${p.id}','${campo}','${e.id}',null,this.value)"
@@ -1939,12 +1984,12 @@ function onInput(prodId, campo, valor) {
 
 // Handler para alteração de gramatura (atualiza override local e recalcula)
 function onEmbGramInput(prodId, campo, embId, valor) {
-  const g = Math.max(1, parseInt(parseDecBR(valor))||1);
+  const g = Math.max(1, parseInt(valor)||1);
   _gramOverrides[`${prodId}_${embId}`] = g;
 
   // Recalcula subtotal deste item
   const qEl = document.getElementById(`emb-${campo}-${prodId}-${embId}`);
-  const qty = qEl ? (parseInt(parseDecBR(qEl.value))||0) : 0;
+  const qty = qEl ? (parseInt(qEl.value)||0) : 0;
   const kg = qty * g / 1000;
   const subEl = document.getElementById(`esub-${campo}-${prodId}-${embId}`);
   if (subEl) subEl.textContent = qty > 0 ? `= ${kg.toFixed(1)}kg` : '= 0,0kg';
@@ -1955,7 +2000,7 @@ function onEmbGramInput(prodId, campo, embId, valor) {
   function _totSection(c) {
     return embs.reduce((s,e) => {
       const qI = document.getElementById(`emb-${c}-${prodId}-${e.id}`);
-      const q = qI ? (parseInt(parseDecBR(qI.value))||0) : 0;
+      const q = qI ? (parseInt(qI.value)||0) : 0;
       const gr = _gramOverrides[`${prodId}_${e.id}`] != null ? _gramOverrides[`${prodId}_${e.id}`] : (e.gramatura_g||0);
       return s + q * gr / 1000;
     }, 0);
@@ -1990,7 +2035,7 @@ function onEmbInput(prodId, campo, embId, gramaturaG, valor) {
   if (!reg.embs_gon) reg.embs_gon = {};
   if (!reg.embs_frz) reg.embs_frz = {};
 
-  const qty = (valor === '' || valor == null) ? 0 : Math.max(0, parseInt(parseDecBR(valor))||0);
+  const qty = (valor === '' || valor == null) ? 0 : Math.max(0, parseInt(valor)||0);
   const embMap = campo === 'gondola' ? reg.embs_gon : reg.embs_frz;
   embMap[embId] = qty;
 
@@ -2407,7 +2452,7 @@ function _renderResumo(conf, total) {
       ${_buildAvisoConfigMin()}
       ${_buildSugestaoProducao()}
       <button class="btn-prim" onclick="goTab('producao')">📅 Ver Produção →</button>
-      <button class="btn-sec btn-print" onclick="imprimirSugestaoProducao()">🖨️ Imprimir Sugestão</button>
+      <button class="btn-sec btn-print" onclick="imprimirChecklist()">🖨️ Imprimir Resumo</button>
       <button class="btn-sec" onclick="novoChecklist()">🔄 Novo Checklist</button>
     </div>`;
 }
@@ -2556,7 +2601,7 @@ async function salvarCfgMin() {
   }
 
   const valEl = document.getElementById('cfgMinVal');
-  const min = parseDecBR(valEl ? valEl.value : '') || 0;
+  const min = parseFloat(valEl ? valEl.value : '') || 0;
   if (min < 0) { toast('⚠️ Valor inválido', 'wa'); return; }
 
   // ── Validação: produto deve existir no catálogo ──
@@ -2570,7 +2615,7 @@ async function salvarCfgMin() {
   const cfgAtual = CK_CFG[_cfgMinProdId] || {};
   const temFreezer = SETOR === 'CONFEITARIA' ? false : !!cfgAtual.tem_freezer;
   const frzEl = document.getElementById('cfgMinFrzVal');
-  const minFrz = temFreezer ? (parseDecBR(frzEl ? frzEl.value : '') || 0) : 0;
+  const minFrz = temFreezer ? (parseFloat(frzEl ? frzEl.value : '') || 0) : 0;
 
   const payload = {
     produto_id: _cfgMinProdId,
@@ -3471,12 +3516,9 @@ function abrirDetalheProduto(prodId) {
   html += '<div style="font-size:.65rem;color:#6B7280;margin-top:1px;">'
     + escHtml(prod.nome) + '</div>';
   html += '</div>';
-  html += '<button onclick="abrirFichaProd(\''
-    + escHtml(prod.nome).replace(/'/g, "\\'")
-    + '\')" style="font-size:.65rem;font-weight:700;'
+  html += '<span style="font-size:.65rem;font-weight:700;'
     + 'background:#EAF4EF;color:#1B4332;padding:3px 9px;'
-    + 'border-radius:6px;border:none;cursor:pointer;'
-    + 'font-family:inherit;">📋 Ficha</button>';
+    + 'border-radius:6px;">Em breve</span>';
   html += '</div>';
 
   // Projeção semanal
@@ -3605,7 +3647,7 @@ function _fecharMetaPop() {
 
 async function _salvarMetaPop() {
   if (!_mpProdId) return;
-  const novoTotal = parseDecBR(document.getElementById('mpMetaInp').value) || 0;
+  const novoTotal = parseFloat(document.getElementById('mpMetaInp').value) || 0;
   const prod = TODOS_PRODS.find(p => p.id === _mpProdId);
   if (!prod) return;
 
@@ -3745,7 +3787,7 @@ function fecharPlanModal() {
 }
 async function salvarPlanItem() {
   if (!_planProdId || !_planDateISO) return;
-  const val = parseDecBR(document.getElementById('planVal').value);
+  const val = parseFloat(document.getElementById('planVal').value);
   if (isNaN(val) || val < 0) { toast('⚠️ Informe uma quantidade válida','wa'); return; }
 
   const fields = _planIsPas
@@ -3892,14 +3934,13 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
   <div class="phoje-sug">Sugestão: <strong>${lote.qtd}${und.toLowerCase()}</strong>${lote.sazonalidade!==1?' · sazon. ×'+lote.sazonalidade:''}</div>
   ${alertHtml}
   <div class="phoje-inp-row">
-    <input class="phoje-inp" type="text" inputmode="decimal" min="0" step="0.5"
+    <input class="phoje-inp" type="number" inputmode="decimal" min="0" step="0.5"
       id="phoje-inp-${p.id}"
       value="${valAtual}"
       placeholder="${lote.qtd||0}"
       data-prodid="${p.id}"
       data-idx="${idx}"
       data-und="${und}"
-      oninput="onPhojeChange('${p.id}',this.value)"
       onchange="onPhojeChange('${p.id}',this.value)"
       onkeydown="onPhojeKey(event,'${p.id}')">
     <span class="phoje-inp-und">${und.toLowerCase()}</span>
@@ -3934,12 +3975,12 @@ function _buildPhojeResumo(prods, hoje) {
 
 function onPhojeChange(prodId, val) {
   if (!PROD_HOJE_VALS[prodId]) PROD_HOJE_VALS[prodId] = {};
-  PROD_HOJE_VALS[prodId].val = parseDecBR(val)||0;
+  PROD_HOJE_VALS[prodId].val = parseFloat(val)||0;
   PROD_HOJE_VALS[prodId].done = false;
   const btn = document.getElementById('phoje-btn-'+prodId);
   const und = document.querySelector(`#phoje-inp-${prodId}`)?.dataset?.und||'kg';
   if (btn) {
-    const v = parseDecBR(val)||0;
+    const v = parseFloat(val)||0;
     btn.className='phoje-conf-btn';
     btn.textContent = '✅ Confirmar '+v+und.toLowerCase();
   }
@@ -3950,7 +3991,7 @@ function onPhojeKey(e, prodId) {
     e.preventDefault();
     // Confirma automaticamente e pula para o próximo
     const inp = document.getElementById('phoje-inp-'+prodId);
-    const val = parseDecBR(inp?.value)||0;
+    const val = parseFloat(inp?.value)||0;
     confirmarItemHoje(prodId, val);
     _pularProximoPhojeInp(prodId);
   }
@@ -3974,7 +4015,7 @@ function _setupHojeKeyNav() {
 async function confirmarItemHoje(prodId, qtdSug) {
   const inp = document.getElementById('phoje-inp-'+prodId);
   const und = inp?.dataset?.und||'KG';
-  const val = inp ? (parseDecBR(inp.value)||0) : (parseFloat(qtdSug)||0);
+  const val = inp ? (parseFloat(inp.value)||0) : (parseFloat(qtdSug)||0);
   if (!PROD_HOJE_VALS[prodId]) PROD_HOJE_VALS[prodId] = {};
   PROD_HOJE_VALS[prodId].val  = val;
   PROD_HOJE_VALS[prodId].done = true;
@@ -4046,12 +4087,6 @@ function voltarParaTabela() {
   renderTabelaSemanal();
 }
 
-// Navega para a ficha técnica de produção do produto selecionado
-function abrirFichaProd(nomeProd) {
-  var nome = encodeURIComponent(nomeProd);
-  window.location.href = 'FICHAS_TECNICAS.html?prod=' + nome;
-}
-
 // ── Adicionar produto não listado ao Confirmar Hoje ──
 // Mostra popup de busca para encontrar qualquer produto do setor não exibido na tela atual
 function adicionarProdHoje() {
@@ -4115,7 +4150,7 @@ function adicionarProdHoje() {
   if (btnSalvar) {
     btnSalvar.onclick = async () => {
       if (!_planProdId) { toast('⚠️ Selecione um produto','wa'); return; }
-      const val = parseDecBR(document.getElementById('planVal').value);
+      const val = parseFloat(document.getElementById('planVal').value);
       if (isNaN(val) || val < 0) { toast('⚠️ Informe a quantidade','wa'); return; }
 
       const ok = await _upsertProdItem(_planProdId, hoje, {
@@ -4487,7 +4522,7 @@ function _renderHistTabela() {
 
     var prodCell = IS_ADMIN
       ? ('<span class="hist-qtd-val" id="hqv_' + it.id + '">' + (prod > 0 ? fmtPtBR(prod,1) : '—') + '</span>'
-        + '<input class="hist-qtd-inp" id="hqi_' + it.id + '" type="text" inputmode="decimal" min="0" step="0.1"'
+        + '<input class="hist-qtd-inp" id="hqi_' + it.id + '" type="number" min="0" step="0.1"'
         + ' value="' + prod + '" style="display:none;width:72px;padding:3px 6px;border:1.5px solid #2D6A4F;border-radius:6px;font-size:.8rem;font-family:inherit;"'
         + ' onblur="editarItem(\'' + it.id + '\',this.value)"'
         + ' onkeydown="if(event.key===\'Enter\')this.blur();if(event.key===\'Escape\')_cancelEditItem(\'' + it.id + '\',' + prod + ')">')
@@ -5147,7 +5182,7 @@ function _cancelEditItem(itemId, qtdOriginal) {
 
 async function editarItem(itemId, novaQtd) {
   if (!IS_ADMIN) return;
-  const qtd = parseFloat((novaQtd||'').toString().replace(',','.'));
+  const qtd = parseFloat(novaQtd);
   if (isNaN(qtd) || qtd < 0) {
     toast('⚠️ Quantidade inválida', 'wa');
     return;
@@ -5155,6 +5190,7 @@ async function editarItem(itemId, novaQtd) {
   try {
     await sbPatch('producao_itens', itemId, {
       qtd_produzida: qtd,
+      editado_por:   GF_USER.nome,
       atualizado_em: new Date().toISOString()
     });
     toast('✅ Quantidade atualizada', 'ok');
@@ -5234,49 +5270,6 @@ async function _carregarHistAtual() {
 // ══════════════════════════════════════════════════
 function imprimirChecklist() {
   window.print();
-}
-
-function imprimirSugestaoProducao() {
-  var hoje = new Date();
-  var dia = String(hoje.getDate()).padStart(2,'0');
-  var mes = String(hoje.getMonth()+1).padStart(2,'0');
-  var ano = hoje.getFullYear();
-  var dataFmt = dia + '/' + mes + '/' + ano;
-  var setorNm = SETOR === 'PADARIA' ? 'Padaria' : 'Confeitaria/Pastelaria';
-
-  var sugestaoHtml = _buildSugestaoProducao();
-
-  if (!sugestaoHtml) {
-    toast('✅ Nenhuma sugestão de produção no momento!', 'ok');
-    return;
-  }
-
-  var styleTag = '<style>'
-    + 'body{font-family:sans-serif;padding:16px;color:#1a1a1a;}'
-    + '.print-titulo{font-size:18px;font-weight:800;color:#1B4332;margin-bottom:2px;}'
-    + '.print-sub{font-size:12px;color:#555;margin-bottom:16px;}'
-    + '.sug-card{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:12px;}'
-    + '.sug-ttl{font-size:13px;font-weight:700;color:#1B4332;margin-bottom:10px;}'
-    + '.sug-row{display:flex;align-items:center;gap:8px;padding:7px 0;'
-    +   'border-bottom:1px solid #f0f0f0;}'
-    + '.sug-row:last-child{border-bottom:none;}'
-    + '.urg-dot{font-size:16px;flex-shrink:0;}'
-    + '.sug-nm{flex:1;font-size:13px;font-weight:500;display:flex;align-items:center;gap:6px;}'
-    + '.sug-qty{font-size:13px;font-weight:700;color:#1B4332;white-space:nowrap;}'
-    + '.abc-badge{display:inline-flex;align-items:center;justify-content:center;'
-    +   'min-width:20px;height:20px;border-radius:4px;font-size:11px;font-weight:700;padding:0 4px;}'
-    + '.abc-badge.A{background:#FDECEA;color:#C0392B;}'
-    + '.abc-badge.B{background:#FEF3C7;color:#D97706;}'
-    + '.abc-badge.C{background:#F4F4F2;color:#6B7280;}'
-    + '.rodape{font-size:10px;color:#999;margin-top:12px;text-align:center;}'
-    + '</style>';
-
-  var bodyHtml = '<div class="print-titulo">📋 Sugestão de Produção</div>'
-    + '<div class="print-sub">' + setorNm + ' · ' + dataFmt + '</div>'
-    + sugestaoHtml
-    + '<div class="rodape">GestFood — Supermercado MG</div>';
-
-  abrirPrintModal(styleTag + bodyHtml);
 }
 
 function exportarExcel() {
@@ -6113,13 +6106,14 @@ function getLoteProduto(produtoNome, setor, diaSemana, dataISO) {
   // CASO 1: produto TEM meta cadastrada e ESTE DIA tem meta > 0
   if (pbMatch && metaCheia > 0) {
 
-    // ═══ DISTRIBUIÇÃO FIXA DA META SEMANAL ═══
+    // ═══ REDISTRIBUIÇÃO AUTOMÁTICA DA META SEMANAL (Opção A — divisão igual) ═══
     // Sistema divide a meta semanal em partes iguais entre todos os dias úteis.
-    // Cada dia tem sua cota fixa. NÃO compensa dias perdidos — se um dia
-    // anterior não foi produzido, a meta de hoje continua igual.
+    // Quando padeiro produz menos/mais num dia, os dias restantes redistribuem
+    // o saldo de forma uniforme.
     //
-    // Fórmula única (todos os dias, inclusive hoje):
-    //   meta_semanal ÷ total_dias_uteis
+    // Fórmula:
+    //   - Para HOJE: (meta_semanal − produzido_acumulado) ÷ dias_restantes_inclusive_hoje
+    //   - Para outros dias: meta_semanal ÷ total_dias_uteis
     //
     // NÃO respeita a distribuição cadastrada (seg=2, sáb=4). Trata todos iguais.
     // A sazonalidade futura vai trazer a possibilidade de respeitar a distribuição.
@@ -6135,21 +6129,98 @@ function getLoteProduto(produtoNome, setor, diaSemana, dataISO) {
       if (Number(pbMatch[d]) > 0) diasUteisTotal++;
     });
 
-    // DISTRIBUIÇÃO FIXA — mesma cota para todos os dias incluindo hoje
-    // Decisão: sem compensação de dias perdidos. Cada dia tem sua cota fixa.
-    const qtdMedia = diasUteisTotal > 0 ? _arred(metaSemanal / diasUteisTotal) : 0;
+    // Verificar se dataISO é HOJE no fuso local
+    const _hojeISO = (function() {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return y + '-' + m + '-' + dd;
+    })();
+
+    // Se NÃO é hoje (passado ou futuro), retorna média igual
+    if (dataISO !== _hojeISO) {
+      const qtdMedia = diasUteisTotal > 0 ? _arred(metaSemanal / diasUteisTotal) : 0;
+      return {
+        qtd: qtdMedia,
+        mediaDia: qtdMedia,
+        sazonalidade: 1,
+        loteBase: qtdMedia,
+        cap: 0,
+        regra: null,
+        categoria: (pbMatch.categoria || '—').toUpperCase(),
+        observacao: 'Meta sem ' + metaSemanal + ' ÷ ' + diasUteisTotal + ' dias = ' + qtdMedia,
+        diasProducao: _diasIdx.map(function(d, i) { return Number(pbMatch[d]) > 0 ? i : -1; }).filter(function(i) { return i >= 0; })
+      };
+    }
+
+    // É HOJE — aplica redistribuição considerando produção real anterior
+
+    // 1. Identificar produto
+    const prodAtual = TODOS_PRODS.find(function(pp) {
+      return _normProdNome(pp.nome) === _normProdNome(produtoNome);
+    });
+    const prodId = prodAtual ? prodAtual.id : null;
+
+    // 2. Calcular início da semana (segunda)
+    const dt = new Date(dataISO + 'T12:00:00');
+    const dow = dt.getDay(); // 0=dom, 1=seg, ... 6=sab
+    const diasParaSeg = dow === 0 ? -6 : (1 - dow);
+    const segDt = new Date(dt);
+    segDt.setDate(dt.getDate() + diasParaSeg);
+    const _toISO = function(d) { return d.toISOString().slice(0,10); };
+
+    // 3. Somar produção real ANTERIOR ao dia de hoje (segunda até ontem)
+    let produzidoSemana = 0;
+    if (prodId && typeof PROD_ITENS !== 'undefined') {
+      for (let i = 0; i < 7; i++) {
+        const checkDt = new Date(segDt);
+        checkDt.setDate(segDt.getDate() + i);
+        const checkISO = _toISO(checkDt);
+        if (checkISO === dataISO) continue; // pula o dia atual
+        if (checkISO > dataISO) continue;   // pula dias futuros
+        const key = prodId + '_' + checkISO;
+        const item = PROD_ITENS[key];
+        if (item && item.status === 'confirmado') {
+          produzidoSemana += Number(item.qtd_produzida) || 0;
+        }
+      }
+    }
+
+    // 5. Contar dias de produção restantes (incluindo hoje, descontando os já passados)
+    let diasRestantes = 0;
+    const hojeIdx = dow === 0 ? 6 : (dow - 1); // 0=seg, 6=dom
+    for (let i = hojeIdx; i < 7; i++) {
+      // mapear i (0=seg) para chave do projecao_base
+      const idxToDow = (i + 1) % 7;
+      const dayKey = _diasIdx[idxToDow];
+      if (Number(pbMatch[dayKey]) > 0) diasRestantes++;
+    }
+
+    // 6. Fórmula final: sugestão = restante ÷ dias_restantes
+    let qtd;
+    let observacao;
+    if (diasRestantes > 0) {
+      const restante = Math.max(0, metaSemanal - produzidoSemana);
+      qtd = restante / diasRestantes;
+      qtd = _arred(qtd);  // arredonda para 1 casa decimal (evita 0.6000000000000001)
+      observacao = 'Meta sem ' + metaSemanal + ' − produzido ' + produzidoSemana
+                 + ' = ' + restante + ' ÷ ' + diasRestantes + ' dias = ' + qtd;
+    } else {
+      qtd = metaCheia;
+      observacao = 'Meta do dia (cálculo de redistribuição não aplicável)';
+    }
+
     return {
-      qtd: qtdMedia,
-      mediaDia: qtdMedia,
+      qtd,
+      mediaDia:     metaCheia,
       sazonalidade: 1,
-      loteBase: qtdMedia,
-      cap: 0,
-      regra: null,
-      categoria: (pbMatch.categoria || '—').toUpperCase(),
-      observacao: 'Meta sem ' + metaSemanal + ' ÷ ' + diasUteisTotal + ' dias = ' + qtdMedia,
-      diasProducao: _diasIdx.map(function(d, i) {
-        return Number(pbMatch[d]) > 0 ? i : -1;
-      }).filter(function(i) { return i >= 0; })
+      loteBase:     metaCheia,
+      cap:          0,
+      regra:        null,
+      categoria:    (pbMatch.categoria || '—').toUpperCase(),
+      observacao:   observacao,
+      diasProducao: _diasIdx.map(function(d, i) { return Number(pbMatch[d]) > 0 ? i : -1; }).filter(function(i) { return i >= 0; })
     };
   }
 
