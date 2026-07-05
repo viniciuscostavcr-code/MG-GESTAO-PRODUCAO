@@ -3192,6 +3192,10 @@ function _buildTabelaEsqueleto() {
     + '<button onclick="semanaProxima()" style="background:#EAF4EF;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:1rem;">→</button>'
     + '<button onclick="confirmarHoje()" style="background:#2D6A4F;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:.82rem;font-weight:700;">✅ Hoje</button>'
     + '</div>';
+  var btnPrint = '<div style="display:flex;gap:8px;padding:0 16px 8px;">'
+    + '<button onclick="imprimirPlanejamentoSemanal()" style="flex:1;background:#1B4332;color:#fff;border:none;border-radius:8px;padding:9px;cursor:pointer;font-size:.78rem;font-weight:600;">🖨️ Imprimir Semanal</button>'
+    + '<button onclick="imprimirPlanejamentoMensal()" style="flex:1;background:#2D6A4F;color:#fff;border:none;border-radius:8px;padding:9px;cursor:pointer;font-size:.78rem;font-weight:600;">🖨️ Imprimir Mensal</button>'
+    + '</div>';
   var resumo = '<div id="resumoSemana" style="padding:6px 16px;font-size:.75rem;color:#6B7280;">⏳ Carregando...</div>';
   var search = '<div id="prodSearchWrap" class="ck-search" style="margin:8px 12px;">'
     + '<span>🔍</span>'
@@ -3218,7 +3222,7 @@ function _buildTabelaEsqueleto() {
     + '</tbody>'
     + '</table>'
     + '</div>';
-  return focoBar + navBar + resumo + search + legenda + tabela;
+  return focoBar + navBar + btnPrint + resumo + search + legenda + tabela;
 }
 
 const _DIAS_TH = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
