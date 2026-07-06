@@ -1166,38 +1166,45 @@ function imprimirPlanejamentoSemanal(){
   var fim=dias[6].split('-').reverse().join('/');
   var setorIco={PADARIA:'🍞',CONFEITARIA:'🎂',LANCHONETE:'🥪',RESTAURANTE:'🍽️'}[SETOR]||'🏭';
 
-  var h='<div style="font-family:sans-serif;color:#111;">';
-  h+='<div style="display:flex;align-items:center;gap:12px;border-bottom:3px solid #1B4332;padding-bottom:12px;margin-bottom:16px;">'
-    +'<div style="width:40px;height:40px;background:#1B4332;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:16px;">G</div>'
-    +'<div><div style="font-size:18px;font-weight:800;color:#1B4332;">'+setorIco+' Calendário Semanal — '+SETOR+'</div>'
-    +'<div style="font-size:12px;color:#666;">Semana '+ini+' a '+fim+' · impresso em '+dataStr+'</div></div></div>';
+  // @page paisagem só para esta impressão (mais largura = letra maior)
+  var h='<style>@media print{@page{size:A4 landscape;margin:10mm;}}</style>';
+  h+='<div style="font-family:sans-serif;color:#111;">';
+  h+='<div style="display:flex;align-items:center;gap:14px;border-bottom:4px solid #1B4332;padding-bottom:16px;margin-bottom:20px;">'
+    +'<div style="width:52px;height:52px;background:#1B4332;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:22px;">G</div>'
+    +'<div><div style="font-size:24px;font-weight:800;color:#1B4332;">'+setorIco+' Calendário Semanal — '+SETOR+'</div>'
+    +'<div style="font-size:15px;color:#666;margin-top:2px;">Semana '+ini+' a '+fim+' · impresso em '+dataStr+'</div></div></div>';
 
   // Grade de calendário: 7 cards (um por dia)
-  h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;">';
+  h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;">';
   dias.forEach(function(d){
     var num=d.split('-')[2];
     var diaNome=nomesDia[_diaSemNum(d)];
-    // Produtos com meta nesse dia
+    var ehDomingo=(_diaSemNum(d)===0);
     var itens=[];
     prods.forEach(function(p){
       var lote=getLoteProduto(p.nome,SETOR,_diaSemNum(d),d);
       var q=lote&&lote.qtd?lote.qtd:0;
       if(q>0){var un=(p.unidade==='UND'?'un':'kg');itens.push({nome:p.nome,q:q,un:un});}
     });
-    h+='<div style="border:1px solid #DDD;border-radius:8px;overflow:hidden;break-inside:avoid;">';
-    h+='<div style="background:#1B4332;color:#fff;padding:6px 4px;text-align:center;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;">'+diaNome.slice(0,3)+'</div><div style="font-size:15px;font-weight:800;">'+num+'</div></div>';
-    h+='<div style="padding:5px 4px;">';
+    var corHeader=ehDomingo?'#8B5A0E':'#1B4332';
+    h+='<div style="border:2px solid '+corHeader+';border-radius:10px;overflow:hidden;break-inside:avoid;">';
+    h+='<div style="background:'+corHeader+';color:#fff;padding:9px 4px;text-align:center;">'
+      +'<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">'+diaNome.slice(0,3)+'</div>'
+      +'<div style="font-size:22px;font-weight:900;line-height:1;margin-top:2px;">'+num+'</div></div>';
+    h+='<div style="padding:8px 7px;">';
     if(itens.length===0){
-      h+='<div style="font-size:9px;color:#bbb;text-align:center;padding:8px 0;">—</div>';
+      h+='<div style="font-size:13px;color:#ccc;text-align:center;padding:16px 0;">—</div>';
     }else{
       itens.forEach(function(it){
-        h+='<div style="font-size:9.5px;line-height:1.3;padding:3px 0;border-bottom:1px dashed #eee;"><div style="font-weight:600;color:#333;">'+it.nome+'</div><div style="color:#2D6A4F;font-weight:700;">'+_fmtMeta(it.q)+' '+it.un+'</div></div>';
+        h+='<div style="padding:7px 0;border-bottom:1px solid #eee;">'
+          +'<div style="font-size:13px;font-weight:700;color:#1a1a1a;line-height:1.25;">'+it.nome+'</div>'
+          +'<div style="font-size:15px;color:#2D6A4F;font-weight:800;margin-top:1px;">'+_fmtMeta(it.q)+' '+it.un+'</div></div>';
       });
     }
     h+='</div></div>';
   });
   h+='</div>';
-  h+='<div style="margin-top:14px;font-size:11px;color:#888;">Produção planejada de cada dia. Ajuste as metas na projeção semanal do sistema.</div>';
+  h+='<div style="margin-top:18px;font-size:13px;color:#888;">Produção planejada de cada dia. Ajuste as metas na projeção semanal do sistema.</div>';
   h+='</div>';
   abrirPrintModal(h);
 }
@@ -1230,16 +1237,20 @@ function imprimirPlanejamentoMensal(){
     return{kg:totKg,und:totUnd};
   }
 
-  var h='<div style="font-family:sans-serif;color:#111;">';
-  h+='<div style="display:flex;align-items:center;gap:12px;border-bottom:3px solid #1B4332;padding-bottom:12px;margin-bottom:16px;">'
-    +'<div style="width:40px;height:40px;background:#1B4332;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:16px;">G</div>'
-    +'<div><div style="font-size:18px;font-weight:800;color:#1B4332;">'+setorIco+' Calendário Mensal — '+SETOR+'</div>'
-    +'<div style="font-size:12px;color:#666;">'+nomesMes[mes]+' de '+ano+' · produção planejada por dia · impresso em '+dataStr+'</div></div></div>';
+  var h='<style>@media print{@page{size:A4 landscape;margin:10mm;}}</style>';
+  h+='<div style="font-family:sans-serif;color:#111;">';
+  h+='<div style="display:flex;align-items:center;gap:14px;border-bottom:4px solid #1B4332;padding-bottom:16px;margin-bottom:20px;">'
+    +'<div style="width:52px;height:52px;background:#1B4332;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:22px;">G</div>'
+    +'<div><div style="font-size:24px;font-weight:800;color:#1B4332;">'+setorIco+' Calendário Mensal — '+SETOR+'</div>'
+    +'<div style="font-size:15px;color:#666;margin-top:2px;">'+nomesMes[mes]+' de '+ano+' · produção planejada por dia · impresso em '+dataStr+'</div></div></div>';
 
   // Grade de calendário do mês
   h+='<table style="width:100%;border-collapse:collapse;table-layout:fixed;">';
-  h+='<thead><tr style="background:#1B4332;color:#fff;">';
-  ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].forEach(function(d){h+='<th style="padding:6px;text-align:center;font-size:11px;border:1px solid #2D6A4F;">'+d+'</th>';});
+  h+='<thead><tr>';
+  ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].forEach(function(d,i){
+    var cor=(i===0)?'#8B5A0E':'#1B4332';
+    h+='<th style="padding:10px;text-align:center;font-size:15px;font-weight:800;color:#fff;background:'+cor+';border:1px solid #fff;">'+d+'</th>';
+  });
   h+='</tr></thead><tbody>';
 
   var dia=1;
@@ -1248,18 +1259,19 @@ function imprimirPlanejamentoMensal(){
   for(var s=0;s<semanas;s++){
     h+='<tr>';
     for(var col=0;col<7;col++){
+      var ehDom=(col===0);
       if((s===0&&col<diaSemInicio)||dia>ultimoDia){
-        h+='<td style="border:1px solid #eee;background:#FAFAFA;height:74px;vertical-align:top;"></td>';
+        h+='<td style="border:1px solid #eee;background:#FAFAFA;height:95px;vertical-align:top;"></td>';
       }else{
         var dataISO=ano+'-'+String(mes+1).padStart(2,'0')+'-'+String(dia).padStart(2,'0');
         var tot=totalDoDia(dataISO);
         totalMesKg+=tot.kg;
         var conteudo='';
-        if(tot.kg>0)conteudo+='<div style="font-size:12px;font-weight:800;color:#2D6A4F;">'+_fmtMeta(tot.kg)+' kg</div>';
-        if(tot.und>0)conteudo+='<div style="font-size:10px;font-weight:700;color:#E67E22;">'+_fmtMeta(tot.und)+' un</div>';
-        if(!conteudo)conteudo='<div style="font-size:9px;color:#ccc;">—</div>';
-        h+='<td style="border:1px solid #ddd;height:74px;vertical-align:top;padding:4px;">'
-          +'<div style="font-size:11px;font-weight:700;color:#1B4332;margin-bottom:3px;">'+dia+'</div>'
+        if(tot.kg>0)conteudo+='<div style="font-size:16px;font-weight:800;color:#2D6A4F;line-height:1.2;">'+_fmtMeta(tot.kg)+' kg</div>';
+        if(tot.und>0)conteudo+='<div style="font-size:13px;font-weight:700;color:#E67E22;line-height:1.2;">'+_fmtMeta(tot.und)+' un</div>';
+        if(!conteudo)conteudo='<div style="font-size:13px;color:#ccc;">—</div>';
+        h+='<td style="border:1px solid #ddd;height:95px;vertical-align:top;padding:7px;'+(ehDom?'background:#FDF8F0;':'')+'">'
+          +'<div style="font-size:16px;font-weight:800;color:'+(ehDom?'#8B5A0E':'#1B4332')+';margin-bottom:5px;">'+dia+'</div>'
           +conteudo+'</td>';
         dia++;
       }
@@ -1267,8 +1279,8 @@ function imprimirPlanejamentoMensal(){
     h+='</tr>';
   }
   h+='</tbody></table>';
-  h+='<div style="margin-top:14px;padding:10px;background:#EAF4EF;border-radius:8px;font-size:13px;font-weight:700;color:#1B4332;text-align:center;">Total planejado no mês: '+_fmtMeta(totalMesKg)+' kg</div>';
-  h+='<div style="margin-top:8px;font-size:11px;color:#888;">Cada dia mostra o total de produção planejado (kg em verde, unidades em laranja). Baseado nas metas por dia da semana configuradas no sistema.</div>';
+  h+='<div style="margin-top:18px;padding:14px;background:#EAF4EF;border-radius:10px;font-size:17px;font-weight:800;color:#1B4332;text-align:center;">Total planejado no mês: '+_fmtMeta(totalMesKg)+' kg</div>';
+  h+='<div style="margin-top:10px;font-size:13px;color:#888;">Cada dia mostra o total de produção planejado (kg em verde, unidades em laranja). Baseado nas metas por dia da semana configuradas no sistema.</div>';
   h+='</div>';
   abrirPrintModal(h);
 }
