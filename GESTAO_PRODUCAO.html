@@ -1292,6 +1292,45 @@ function _segISOdeHoje(){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 
+// ══════════════════════════════════════════════════
+// MENU ⋮ DA ABA PRODUÇÃO
+// ══════════════════════════════════════════════════
+function toggleMenuProd(ev){
+  if(ev)ev.stopPropagation();
+  var m=document.getElementById('menuProd');
+  if(!m)return;
+  var abrindo=(m.style.display==='none'||!m.style.display);
+  m.style.display=abrindo?'block':'none';
+  if(abrindo){
+    // fecha ao clicar fora
+    setTimeout(function(){
+      document.addEventListener('click',fecharMenuProdFora);
+    },10);
+  }
+}
+function fecharMenuProd(){
+  var m=document.getElementById('menuProd');
+  if(m)m.style.display='none';
+  document.removeEventListener('click',fecharMenuProdFora);
+}
+function fecharMenuProdFora(e){
+  var m=document.getElementById('menuProd');
+  if(m&&!m.contains(e.target))fecharMenuProd();
+}
+function mostrarLegenda(){
+  var h='<div style="font-family:sans-serif;padding:10px;max-width:520px;margin:0 auto;">'
+    + '<div style="font-size:19px;font-weight:800;color:#1B4332;margin-bottom:16px;border-bottom:2px solid #1B4332;padding-bottom:10px;">ℹ️ Legenda de cores</div>'
+    + '<div style="display:flex;flex-direction:column;gap:12px;font-size:15px;">'
+    + '<div>🔴 <b>Zerado</b> — produto sem estoque</div>'
+    + '<div>🟡 <b>Abaixo do mínimo</b> — precisa repor</div>'
+    + '<div>🟡 <b>Próximo do mínimo</b> — atenção</div>'
+    + '<div>✅ <b>OK</b> — estoque adequado</div>'
+    + '</div>'
+    + '<div style="margin-top:16px;padding:12px;background:#EAF4EF;border-radius:9px;font-size:13px;color:#1B4332;">Produtos classe <b>A</b> acendem alertas 30% mais cedo que os de classe <b>C</b> — os mais vendidos merecem mais atenção.</div>'
+    + '</div>';
+  abrirPrintModal(h);
+}
+
 function abrirPrintModal(html) {
   var c = document.getElementById('printModalContent');
   var m = document.getElementById('printModal');
@@ -3216,30 +3255,26 @@ function _buildTabelaEsqueleto() {
     + '<button onclick="confirmarHoje()">Hoje</button>'
     + '<button class="sair" onclick="sairModoFoco()">✕</button>'
     + '</div>';
-  var navBar = '<div id="prodNavBar" style="display:flex;align-items:center;gap:8px;padding:12px 16px;">'
+  var navBar = '<div id="prodNavBar" style="display:flex;align-items:center;gap:6px;padding:10px 12px;">'
     + '<button onclick="semanaAnterior()" style="background:#EAF4EF;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:1rem;">←</button>'
-    + '<span id="lblSemana" style="font-weight:700;font-size:.9rem;color:#1B4332;flex:1;text-align:center;">...</span>'
+    + '<span id="lblSemana" style="font-weight:700;font-size:.88rem;color:#1B4332;flex:1;text-align:center;">...</span>'
     + '<button onclick="semanaProxima()" style="background:#EAF4EF;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:1rem;">→</button>'
-    + '<button onclick="confirmarHoje()" style="background:#2D6A4F;color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:.82rem;font-weight:700;">✅ Hoje</button>'
+    + '<button onclick="toggleMenuProd(event)" title="Mais opções" style="background:#EAF4EF;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:1.1rem;line-height:1;color:#1B4332;font-weight:700;">⋮</button>'
     + '</div>';
-  var btnPrint = '<div style="display:flex;gap:8px;padding:0 16px 8px;">'
-    + '<button onclick="imprimirPlanejamentoSemanal()" style="flex:1;background:#1B4332;color:#fff;border:none;border-radius:8px;padding:9px;cursor:pointer;font-size:.78rem;font-weight:600;">🖨️ Imprimir Semanal</button>'
-    + '<button onclick="imprimirPlanejamentoMensal()" style="flex:1;background:#2D6A4F;color:#fff;border:none;border-radius:8px;padding:9px;cursor:pointer;font-size:.78rem;font-weight:600;">🖨️ Imprimir Mensal</button>'
+  // Menu ⋮ (fica escondido até clicar)
+  var menuProd = '<div id="menuProd" style="display:none;position:absolute;right:14px;top:52px;z-index:60;background:#fff;border:1px solid #DEDEDA;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.14);overflow:hidden;min-width:190px;">'
+    + '<button onclick="fecharMenuProd();imprimirPlanejamentoSemanal();" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#1B4332;font-family:inherit;border-bottom:1px solid #F0F0EE;">🖨️ Imprimir Semanal</button>'
+    + '<button onclick="fecharMenuProd();imprimirPlanejamentoMensal();" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#1B4332;font-family:inherit;border-bottom:1px solid #F0F0EE;">🖨️ Imprimir Mensal</button>'
+    + '<button onclick="fecharMenuProd();mostrarLegenda();" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#6B7280;font-family:inherit;">ℹ️ Legenda de cores</button>'
     + '</div>';
-  var resumo = '<div id="resumoSemana" style="padding:6px 16px;font-size:.75rem;color:#6B7280;">⏳ Carregando...</div>';
-  var search = '<div id="prodSearchWrap" class="ck-search" style="margin:8px 12px;">'
+  var search = '<div id="prodSearchWrap" class="ck-search" style="margin:0 12px 8px;">'
     + '<span>🔍</span>'
     + '<input type="text" id="buscaProdInp" placeholder="Buscar produto..." autocomplete="off"'
     + ' style="font-size:16px;"'
     + ' oninput="BUSCA_PROD=this.value;var fi=document.getElementById(\'focoBuscaInp\');if(fi)fi.value=this.value;_popularBodyTabela(_diasSemana(PROD_SEM_ISO),_today())">'
     + '</div>';
-  var legenda = '<div class="legenda-cores" style="display:flex;gap:10px;padding:4px 8px;font-size:.6rem;color:#6B7280;flex-wrap:wrap;border-bottom:1px solid #EAF4EF;">'
-    + '<span>🔴 Zerado</span>'
-    + '<span>🟡 Abaixo do mínimo</span>'
-    + '<span>🟡 Próximo</span>'
-    + '<span>✅ OK</span>'
-    + '<span style="color:#aaa;">&middot; Classe A acende alertas 30% mais cedo que C</span>'
-    + '</div>';
+  var resumo = '<div id="resumoSemana" style="display:none;"></div>'; // oculto (mantido pra não quebrar quem atualiza)
+  var legenda = '';
   var tabela = '<div class="prod-tabela-wrap" style="margin:0 12px 80px;">'
     + '<table class="prod-tabela" id="tabelaSemanal">'
     + '<thead><tr id="headerSemana">'
@@ -3252,7 +3287,7 @@ function _buildTabelaEsqueleto() {
     + '</tbody>'
     + '</table>'
     + '</div>';
-  return focoBar + navBar + btnPrint + resumo + search + legenda + tabela;
+  return '<div style="position:relative;">' + focoBar + navBar + menuProd + resumo + search + legenda + tabela + '</div>';
 }
 
 const _DIAS_TH = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
