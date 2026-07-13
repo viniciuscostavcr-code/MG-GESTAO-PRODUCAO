@@ -158,6 +158,7 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
     <button class="tab" onclick="mudarTab('vendas',this)">💰 Vendas</button>
     <button class="tab" onclick="mudarTab('ruptura',this)">🔴 Ruptura</button>
     <button class="tab" onclick="mudarTab('produtos',this)">📋 Produtos</button>
+    <button class="tab" onclick="mudarTab('precos',this)">💵 Preços/CMV</button>
     <button class="tab" onclick="mudarTab('comparativo',this)">📈 25v26</button>
     <button class="tab" onclick="mudarTab('operacao',this)">🏭 Operação</button>
     <button class="tab" onclick="mudarTab('gargalos',this)">🗑️ Desperdício</button>
@@ -168,6 +169,7 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
     <div class="pane" id="pane-vendas"><div id="vendasBox"></div></div>
     <div class="pane" id="pane-ruptura"><div id="rupturaBox"></div></div>
     <div class="pane" id="pane-produtos"><div id="produtosBox"></div></div>
+    <div class="pane" id="pane-precos"><div id="precosBox"></div></div>
     <div class="pane" id="pane-comparativo"><div id="compBox"></div></div>
     <div class="pane" id="pane-operacao"><div id="operacaoBox"><div class="loading"><div class="spin"></div>Carregando...</div></div></div>
     <div class="pane" id="pane-gargalos"><div id="gargalosBox"></div></div>
@@ -215,6 +217,7 @@ if(!IS_ADMIN){
 })();
 
 let PRODUCAO=[],DESPERDICIO=[];
+let FICHAS=[],FICHA_ITENS={},INSUMOS=[]; // para o CMV teórico (aba Preços)
 let setorVendas='TODOS';
 let charts={};
 
@@ -452,6 +455,7 @@ function mudarTab(nome,el){
   if(nome==='comparativo')setTimeout(drawCompChart,50);
   if(nome==='ruptura')setTimeout(drawRupturaChart,50);
   if(nome==='produtos')renderProdutos();
+  if(nome==='precos')renderPrecos();
   if(nome==='geral')setTimeout(drawGeralCharts,50);
   if(nome==='gargalos')setTimeout(drawGargalosCharts,50);
   if(nome==='operacao')setTimeout(drawOperacaoChart,50);
@@ -481,6 +485,58 @@ async function carregarOperacao(){
   }catch(e){console.error(e);PRODUCAO=[];DESPERDICIO=[];}
   renderGeral();renderOperacao();renderGargalos();
   setTimeout(drawGeralCharts,80);
+  carregarFichas(); // carrega em paralelo, pra aba Preços
+}
+
+// ════════ FICHAS TÉCNICAS (para CMV teórico) ════════
+async function carregarFichas(){
+  try{
+    const[fichas,itens,insumos]=await Promise.all([
+      sbGet('fichas_tecnicas','select=*&ativo=eq.true&limit=2000'),
+      sbGet('ficha_itens','select=*&limit=20000'),
+      sbGet('insumos','select=*&limit=2000')
+    ]);
+    FICHAS=fichas||[];
+    INSUMOS=insumos||[];
+    FICHA_ITENS={};
+    (itens||[]).forEach(function(it){
+      if(!FICHA_ITENS[it.ficha_id])FICHA_ITENS[it.ficha_id]=[];
+      FICHA_ITENS[it.ficha_id].push(it);
+    });
+    console.log('✅ Fichas carregadas: '+FICHAS.length+' fichas, '+INSUMOS.length+' insumos');
+    var painel=document.getElementById('pane-precos');
+    if(painel&&painel.classList.contains('on'))renderPrecos();
+  }catch(e){console.log('Erro ao carregar fichas:',e.message);FICHAS=[];}
+}
+
+// Calcula o custo teórico (da ficha) — mesma lógica do módulo de fichas técnicas
+function custoTeoricoFicha(ficha){
+  var itens=FICHA_ITENS[ficha.id]||[];
+  var custoTotal=0,pesoBrutoTotal=0;
+  itens.forEach(function(it){
+    var ins=INSUMOS.find(function(i){return i.id===it.insumo_id;});
+    var custoKg=ins?parseFloat(ins.custo_kg_l)||0:0;
+    var qtdBruta=parseFloat(it.qtd_bruta)||parseFloat(it.qtd_liquida)||0;
+    pesoBrutoTotal+=qtdBruta;
+    custoTotal+=qtdBruta*custoKg;
+  });
+  var fa=parseFloat(ficha.fator_coccao)||1;
+  var rendCalc=pesoBrutoTotal*fa;
+  var rendimento=parseFloat(ficha.rendimento_kg)||rendCalc||0;
+  var nUnid=parseFloat(ficha.rendimento_unid)||0;
+  var custoKg=rendimento>0?custoTotal/rendimento:0;
+  var custoUnd=nUnid>0?custoTotal/nUnid:0;
+  var precoKg=parseFloat(ficha.preco_venda_kg)||0;
+  var precoUnd=parseFloat(ficha.preco_venda_und)||0;
+  // usa a base que tem preço cadastrado
+  var usaUnd=(precoUnd>0&&precoKg<=0);
+  return{
+    custo: usaUnd?custoUnd:custoKg,
+    preco: usaUnd?precoUnd:precoKg,
+    base: usaUnd?'und':'kg',
+    cmv: (usaUnd?precoUnd:precoKg)>0 ? (usaUnd?custoUnd:custoKg)/(usaUnd?precoUnd:precoKg) : null,
+    temFicha:true
+  };
 }
 
 function totaisVendas(){
@@ -1174,6 +1230,213 @@ function drawGargalosCharts(){
 
 // ════════ PRODUTOS (operacional - só admin) ════════
 let prodFiltroClasse='TODOS',prodFiltroSetor='TODOS',prodBusca='',prodSort='fat',prodSortDir=-1;
+// ════════ ABA PREÇOS / CMV ════════
+var precoFiltroSetor='TODOS';
+var precoFiltroAlerta='TODOS';
+
+// Monta a lista cruzando FICHAS (custo teórico) x ABC (custo e preço reais)
+function montarListaPrecos(){
+  var lista=[];
+  FICHAS.forEach(function(f){
+    var t=custoTeoricoFicha(f);
+    if(!t.preco&&!t.custo)return; // ficha vazia, ignora
+    // Busca no ABC pelo código (ou nome)
+    var abc=null;
+    if(f.cod){abc=acharABCporCod(f.cod);}
+    if(!abc&&f.produto_nome){
+      var nm=normNome(f.produto_nome);
+      abc=(ABC.produtos||[]).find(function(p){return normNome(p.n)===nm;});
+    }
+    // Custo real e preço real (do ABC): custo/qtd e faturamento/qtd
+    var custoReal=null,precoReal=null,cmvReal=null;
+    if(abc&&abc.qtd>0){
+      custoReal=abc.cus/abc.qtd;
+      precoReal=abc.fat/abc.qtd;
+      cmvReal=abc.fat>0?abc.cus/abc.fat:null;
+    }
+    lista.push({
+      nome:f.produto_nome||'—',
+      cod:f.cod||'',
+      setor:(f.setor||'—').toUpperCase(),
+      base:t.base,
+      custoT:t.custo,       // custo teórico (ficha)
+      precoT:t.preco,       // preço cadastrado na ficha
+      cmvT:t.cmv,           // CMV teórico
+      custoR:custoReal,     // custo real (ABC)
+      precoR:precoReal,     // preço médio real (ABC)
+      cmvR:cmvReal,         // CMV real
+      fat:abc?abc.fat:0,
+      temABC:!!abc
+    });
+  });
+  return lista;
+}
+
+function renderPrecos(){
+  var box=document.getElementById('precosBox');
+  if(!box)return;
+  if(!FICHAS.length){
+    box.innerHTML='<div class="empty"><div class="empty-ico">📋</div><p>Carregando fichas técnicas... Se demorar, verifique se há fichas cadastradas no módulo Fichas Técnicas.</p></div>';
+    return;
+  }
+  var lista=montarListaPrecos();
+  if(!lista.length){
+    box.innerHTML='<div class="empty"><div class="empty-ico">📋</div><p>Nenhuma ficha com custo/preço cadastrado. Cadastre insumos e preço de venda nas Fichas Técnicas.</p></div>';
+    return;
+  }
+
+  // ── Alertas ──
+  var prejuizo=lista.filter(function(p){return p.cmvT!==null&&p.cmvT>=1;});      // CMV >= 100% = vende com prejuízo
+  var critico=lista.filter(function(p){return p.cmvT!==null&&p.cmvT>=0.60&&p.cmvT<1;}); // margem apertada
+  var semPreco=lista.filter(function(p){return !p.precoT;});
+  var divergentes=lista.filter(function(p){return p.cmvT!==null&&p.cmvR!==null&&Math.abs(p.cmvR-p.cmvT)>=0.10;}); // real vs teórico > 10pp
+
+  var h='';
+  h+='<div class="insight"><strong>💵 Preços e CMV.</strong> Compara o custo da ficha técnica com o preço praticado. Detecta produtos vendidos abaixo do custo e divergências entre o CMV teórico e o real.</div>';
+
+  // Cards de alerta
+  h+='<div class="kpi-grid">';
+  var estiloPrej=prejuizo.length?'background:linear-gradient(135deg,#C0392B,#8B2A1F);color:#fff':'';
+  h+='<div class="kpi'+(prejuizo.length?' dest':'')+'" style="'+estiloPrej+'"><div class="kpi-label" style="'+(prejuizo.length?'color:rgba(255,255,255,.85)':'')+'">🚨 Vendendo no prejuízo</div><div class="kpi-val" style="'+(prejuizo.length?'color:#fff':'color:var(--grn)')+'">'+prejuizo.length+'</div><div class="kpi-sub" style="'+(prejuizo.length?'color:rgba(255,255,255,.75)':'')+'">CMV ≥ 100%</div></div>';
+  h+='<div class="kpi"><div class="kpi-label">⚠️ Margem apertada</div><div class="kpi-val" style="color:var(--yellow)">'+critico.length+'</div><div class="kpi-sub">CMV 60–99%</div></div>';
+  h+='<div class="kpi"><div class="kpi-label">🔄 Teórico ≠ Real</div><div class="kpi-val" style="color:var(--orange)">'+divergentes.length+'</div><div class="kpi-sub">difere +10pp</div></div>';
+  h+='<div class="kpi"><div class="kpi-label">❓ Sem preço na ficha</div><div class="kpi-val" style="color:var(--gray)">'+semPreco.length+'</div><div class="kpi-sub">cadastrar</div></div>';
+  h+='</div>';
+
+  // Alerta destacado se houver prejuízo
+  if(prejuizo.length){
+    h+='<div class="insight alert" style="display:block"><div style="font-weight:800;margin-bottom:6px">🚨 '+prejuizo.length+' produto(s) com preço ABAIXO do custo</div>';
+    h+='<div style="font-size:.75rem;margin-bottom:8px">Cada venda desses produtos gera prejuízo. Corrigir o preço é a ação mais urgente.</div>';
+    prejuizo.slice(0,6).forEach(function(p){
+      h+='<div class="rank-item" style="background:rgba(255,255,255,.55);border-radius:8px;margin-bottom:4px;padding:8px 10px"><div class="rank-nome" style="font-size:.75rem">'+p.nome+'<div class="rank-sub">custo '+fmtR(p.custoT)+' · vende '+fmtR(p.precoT)+'</div></div><div class="rank-val" style="color:var(--red);font-weight:800">CMV '+(p.cmvT*100).toFixed(0)+'%</div></div>';
+    });
+    h+='</div>';
+  }
+
+  // ── Filtros ──
+  h+='<div class="card"><div class="card-title">🔎 Filtros</div>';
+  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">';
+  ['TODOS','PADARIA','CONFEITARIA','LANCHONETE','RESTAURANTE'].forEach(function(s){
+    h+='<button onclick="setPrecoSetor(\''+s+'\')" style="padding:6px 12px;border-radius:8px;border:1px solid '+(precoFiltroSetor===s?'var(--grn2)':'var(--border)')+';background:'+(precoFiltroSetor===s?'var(--grn2)':'#fff')+';color:'+(precoFiltroSetor===s?'#fff':'var(--brown)')+';font-size:.7rem;font-weight:600;cursor:pointer;font-family:inherit">'+(s==='TODOS'?'Todos':s.charAt(0)+s.slice(1).toLowerCase())+'</button>';
+  });
+  h+='</div><div style="display:flex;gap:6px;flex-wrap:wrap">';
+  var alertas=[['TODOS','Todos'],['PREJUIZO','🚨 Prejuízo'],['CRITICO','⚠️ Margem baixa'],['DIVERGENTE','🔄 Teórico≠Real'],['OK','✅ Saudável']];
+  alertas.forEach(function(a){
+    h+='<button onclick="setPrecoAlerta(\''+a[0]+'\')" style="padding:6px 12px;border-radius:8px;border:1px solid '+(precoFiltroAlerta===a[0]?'var(--grn2)':'var(--border)')+';background:'+(precoFiltroAlerta===a[0]?'var(--grn2)':'#fff')+';color:'+(precoFiltroAlerta===a[0]?'#fff':'var(--brown)')+';font-size:.7rem;font-weight:600;cursor:pointer;font-family:inherit">'+a[1]+'</button>';
+  });
+  h+='</div></div>';
+
+  // ── Tabela ──
+  var filtrada=filtrarPrecos(lista);
+  h+='<div class="card"><div class="card-title">📊 Análise de Preços <span class="sub">'+filtrada.length+' produtos</span>';
+  h+='<button onclick="imprimirPrecos()" style="float:right;padding:6px 12px;background:var(--grn2);color:#fff;border:none;border-radius:7px;font-size:.68rem;font-weight:600;cursor:pointer;font-family:inherit">🖨️ Imprimir</button></div>';
+  h+='<div class="pscroll"><table class="ptable"><thead><tr>';
+  h+='<th style="text-align:left">Produto</th><th>Setor</th><th>Custo ficha</th><th>Preço</th><th>CMV teórico</th><th>CMV real</th><th>Dif.</th><th>Status</th>';
+  h+='</tr></thead><tbody>';
+  filtrada.forEach(function(p){
+    var st=statusPreco(p);
+    h+='<tr>';
+    h+='<td title="'+p.nome+'">'+p.nome+' <span style="color:var(--gray);font-size:.62rem">'+p.base+'</span></td>';
+    h+='<td style="font-size:.62rem;color:var(--gray)">'+p.setor.slice(0,4)+'</td>';
+    h+='<td>'+(p.custoT?fmtR(p.custoT):'—')+'</td>';
+    h+='<td>'+(p.precoT?fmtR(p.precoT):'<span style="color:var(--gray)">sem preço</span>')+'</td>';
+    h+='<td style="font-weight:700;color:'+corCMV(p.cmvT)+'">'+(p.cmvT!==null?(p.cmvT*100).toFixed(0)+'%':'—')+'</td>';
+    h+='<td style="color:'+corCMV(p.cmvR)+'">'+(p.cmvR!==null?(p.cmvR*100).toFixed(0)+'%':'—')+'</td>';
+    var dif=(p.cmvT!==null&&p.cmvR!==null)?(p.cmvR-p.cmvT)*100:null;
+    h+='<td style="font-size:.68rem;color:'+(dif!==null&&Math.abs(dif)>=10?'var(--orange)':'var(--gray)')+'">'+(dif!==null?(dif>0?'+':'')+dif.toFixed(0)+'pp':'—')+'</td>';
+    h+='<td style="font-size:.62rem">'+st.ico+'</td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+  h+='<div class="insight" style="margin-top:10px;margin-bottom:0;font-size:.7rem">💡 <b>CMV teórico</b> = custo da ficha ÷ preço cadastrado. <b>CMV real</b> = custo ÷ faturamento no ABC do mês. Diferença grande (+10pp) sugere ficha desatualizada, desperdício não contabilizado ou erro de cadastro.</div>';
+  h+='</div>';
+
+  box.innerHTML=h;
+}
+
+function corCMV(c){
+  if(c===null)return 'var(--gray)';
+  if(c>=1)return 'var(--red)';
+  if(c>=0.6)return 'var(--yellow)';
+  if(c>=0.45)return 'var(--orange)';
+  return 'var(--grn)';
+}
+function statusPreco(p){
+  if(p.cmvT===null)return{k:'SEMPRECO',ico:'❓'};
+  if(p.cmvT>=1)return{k:'PREJUIZO',ico:'🚨'};
+  if(p.cmvT>=0.60)return{k:'CRITICO',ico:'⚠️'};
+  if(p.cmvR!==null&&Math.abs(p.cmvR-p.cmvT)>=0.10)return{k:'DIVERGENTE',ico:'🔄'};
+  return{k:'OK',ico:'✅'};
+}
+function filtrarPrecos(lista){
+  return lista.filter(function(p){
+    if(precoFiltroSetor!=='TODOS'&&p.setor!==precoFiltroSetor)return false;
+    if(precoFiltroAlerta==='TODOS')return true;
+    return statusPreco(p).k===precoFiltroAlerta;
+  }).sort(function(a,b){
+    // pior CMV primeiro
+    var ca=a.cmvT===null?-1:a.cmvT, cb=b.cmvT===null?-1:b.cmvT;
+    return cb-ca;
+  });
+}
+function setPrecoSetor(s){precoFiltroSetor=s;renderPrecos();}
+function setPrecoAlerta(a){precoFiltroAlerta=a;renderPrecos();}
+
+// ── Impressão do relatório de preços (estilo planilha de correção de CMV) ──
+function imprimirPrecos(){
+  var lista=filtrarPrecos(montarListaPrecos());
+  var dataStr=new Date().toLocaleDateString('pt-BR');
+  var prejuizo=lista.filter(function(p){return p.cmvT!==null&&p.cmvT>=1;}).length;
+  var critico=lista.filter(function(p){return p.cmvT!==null&&p.cmvT>=0.60&&p.cmvT<1;}).length;
+
+  var h='<div style="font-family:\'Plus Jakarta Sans\',sans-serif;color:#1C1C1A;max-width:820px;margin:0 auto;padding:24px;">';
+  h+='<div style="display:flex;align-items:center;gap:12px;border-bottom:3px solid #1B4332;padding-bottom:14px;margin-bottom:16px;">'
+    +'<div style="width:42px;height:42px;background:#1B4332;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:18px;">G</div>'
+    +'<div><div style="font-size:19px;font-weight:800;color:#1B4332;">Relatório de Preços e CMV</div>'
+    +'<div style="font-size:12px;color:#6B7280;">Supermercado MG · '+(precoFiltroSetor==='TODOS'?'Todos os setores':precoFiltroSetor)+' · '+dataStr+'</div></div></div>';
+
+  // Resumo
+  h+='<div style="display:flex;gap:10px;margin-bottom:16px;">';
+  h+='<div style="flex:1;background:'+(prejuizo?'#FDECEA':'#EAF4EF')+';border-radius:9px;padding:12px;"><div style="font-size:10px;color:'+(prejuizo?'#C0392B':'#1B4332')+';text-transform:uppercase;font-weight:700;">Vendendo no prejuízo</div><div style="font-size:20px;font-weight:800;color:'+(prejuizo?'#C0392B':'#2D6A4F')+';">'+prejuizo+'</div></div>';
+  h+='<div style="flex:1;background:#FDF1E3;border-radius:9px;padding:12px;"><div style="font-size:10px;color:#8B5A0E;text-transform:uppercase;font-weight:700;">Margem apertada</div><div style="font-size:20px;font-weight:800;color:#E67E22;">'+critico+'</div></div>';
+  h+='<div style="flex:1;background:#F4F4F2;border-radius:9px;padding:12px;"><div style="font-size:10px;color:#6B7280;text-transform:uppercase;font-weight:700;">Total analisado</div><div style="font-size:20px;font-weight:800;">'+lista.length+'</div></div>';
+  h+='</div>';
+
+  h+='<table style="width:100%;border-collapse:collapse;font-size:11.5px;">';
+  h+='<thead><tr style="background:#1B4332;color:#fff;">'
+    +'<th style="padding:7px;text-align:left;">Produto</th>'
+    +'<th style="padding:7px;">Setor</th>'
+    +'<th style="padding:7px;text-align:right;">Custo ficha</th>'
+    +'<th style="padding:7px;text-align:right;">Preço</th>'
+    +'<th style="padding:7px;text-align:center;">CMV teór.</th>'
+    +'<th style="padding:7px;text-align:center;">CMV real</th>'
+    +'<th style="padding:7px;text-align:center;">Dif.</th>'
+    +'</tr></thead><tbody>';
+  lista.forEach(function(p,i){
+    var cor=p.cmvT===null?'#999':(p.cmvT>=1?'#C0392B':p.cmvT>=0.6?'#E67E22':'#2D6A4F');
+    var bg=p.cmvT!==null&&p.cmvT>=1?'#FDECEA':(i%2?'#FAFAF8':'#fff');
+    var dif=(p.cmvT!==null&&p.cmvR!==null)?(p.cmvR-p.cmvT)*100:null;
+    h+='<tr style="background:'+bg+';">';
+    h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;font-weight:600;">'+p.nome+' <span style="color:#aaa;font-size:9px;">'+p.base+'</span></td>';
+    h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:center;font-size:10px;color:#666;">'+p.setor.slice(0,4)+'</td>';
+    h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:right;">'+(p.custoT?fmtR(p.custoT):'—')+'</td>';
+    h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:right;">'+(p.precoT?fmtR(p.precoT):'—')+'</td>';
+    h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:center;font-weight:800;color:'+cor+';">'+(p.cmvT!==null?(p.cmvT*100).toFixed(0)+'%':'—')+'</td>';
+    h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:center;">'+(p.cmvR!==null?(p.cmvR*100).toFixed(0)+'%':'—')+'</td>';
+    h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:center;font-size:10px;color:'+(dif!==null&&Math.abs(dif)>=10?'#E67E22':'#999')+';">'+(dif!==null?(dif>0?'+':'')+dif.toFixed(0)+'pp':'—')+'</td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table>';
+  h+='<div style="margin-top:14px;padding:11px;background:#F4F4F2;border-radius:8px;font-size:10.5px;color:#444;line-height:1.6;">'
+    +'<b>CMV teórico</b> = custo da ficha técnica ÷ preço cadastrado. <b>CMV real</b> = custo ÷ faturamento registrado no ABC do mês.<br>'
+    +'Linhas em vermelho: preço abaixo do custo (CMV ≥ 100%) — cada venda gera prejuízo. Diferença ≥ 10pp entre teórico e real sugere ficha desatualizada, desperdício não contabilizado ou erro de cadastro no PDV.</div>';
+  h+='<div style="font-size:10px;color:#999;margin-top:16px;text-align:center;border-top:1px solid #eee;padding-top:10px;">GestFood · Relatório de Preços e CMV · '+dataStr+'</div>';
+  h+='</div>';
+
+  document.getElementById('printArea').innerHTML=h;
+  setTimeout(function(){window.print();},400);
+}
+
 function renderProdutos(){
   let h='<div class="insight"><strong>📋 Visão operacional por produto.</strong> Dados para gestão do dia a dia: dias sem venda, venda perdida, CMV e classe ABC. Toque nos títulos das colunas para ordenar.</div>';
   h+='<input class="psearch" type="text" inputmode="search" placeholder="🔍 Buscar produto..." value="'+prodBusca+'" oninput="prodBusca=this.value;renderProdTabela()">';
