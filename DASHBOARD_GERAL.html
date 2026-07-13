@@ -1233,6 +1233,22 @@ let prodFiltroClasse='TODOS',prodFiltroSetor='TODOS',prodBusca='',prodSort='fat'
 // ════════ ABA PREÇOS / CMV ════════
 var precoFiltroSetor='TODOS';
 var precoFiltroAlerta='TODOS';
+var precoSort='cmvT', precoSortDir=-1; // ordenação clicável
+var precoBusca='';
+
+// Formatação SEM arredondar (mostra o valor real)
+function fmtRx(v){
+  if(v===null||v===undefined||isNaN(v))return '—';
+  return 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:4});
+}
+function fmtPct(v){
+  if(v===null||v===undefined||isNaN(v))return '—';
+  return (Number(v)*100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%';
+}
+function fmtPP(v){
+  if(v===null||v===undefined||isNaN(v))return '—';
+  return (v>0?'+':'')+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'pp';
+}
 
 // Monta a lista cruzando FICHAS (custo teórico) x ABC (custo e preço reais)
 function montarListaPrecos(){
@@ -1308,7 +1324,7 @@ function renderPrecos(){
     h+='<div class="insight alert" style="display:block"><div style="font-weight:800;margin-bottom:6px">🚨 '+prejuizo.length+' produto(s) com preço ABAIXO do custo</div>';
     h+='<div style="font-size:.75rem;margin-bottom:8px">Cada venda desses produtos gera prejuízo. Corrigir o preço é a ação mais urgente.</div>';
     prejuizo.slice(0,6).forEach(function(p){
-      h+='<div class="rank-item" style="background:rgba(255,255,255,.55);border-radius:8px;margin-bottom:4px;padding:8px 10px"><div class="rank-nome" style="font-size:.75rem">'+p.nome+'<div class="rank-sub">custo '+fmtR(p.custoT)+' · vende '+fmtR(p.precoT)+'</div></div><div class="rank-val" style="color:var(--red);font-weight:800">CMV '+(p.cmvT*100).toFixed(0)+'%</div></div>';
+      h+='<div class="rank-item" style="background:rgba(255,255,255,.55);border-radius:8px;margin-bottom:4px;padding:8px 10px"><div class="rank-nome" style="font-size:.75rem">'+p.nome+'<div class="rank-sub">custo '+fmtRx(p.custoT)+' · vende '+fmtRx(p.precoT)+'</div></div><div class="rank-val" style="color:var(--red);font-weight:800">CMV '+fmtPct(p.cmvT)+'</div></div>';
     });
     h+='</div>';
   }
@@ -1326,29 +1342,42 @@ function renderPrecos(){
   });
   h+='</div></div>';
 
+  // ── Busca ──
+  h+='<div class="card" style="padding:10px 12px"><input type="text" value="'+precoBusca.replace(/"/g,'&quot;')+'" oninput="setPrecoBusca(this.value)" placeholder="🔍 Buscar produto ou código..." style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px;font-family:inherit;color:var(--brown)"></div>';
+
   // ── Tabela ──
   var filtrada=filtrarPrecos(lista);
+  function seta(c){return precoSort===c?(precoSortDir===-1?' ▼':' ▲'):'';}
   h+='<div class="card"><div class="card-title">📊 Análise de Preços <span class="sub">'+filtrada.length+' produtos</span>';
   h+='<button onclick="imprimirPrecos()" style="float:right;padding:6px 12px;background:var(--grn2);color:#fff;border:none;border-radius:7px;font-size:.68rem;font-weight:600;cursor:pointer;font-family:inherit">🖨️ Imprimir</button></div>';
   h+='<div class="pscroll"><table class="ptable"><thead><tr>';
-  h+='<th style="text-align:left">Produto</th><th>Setor</th><th>Custo ficha</th><th>Preço</th><th>CMV teórico</th><th>CMV real</th><th>Dif.</th><th>Status</th>';
+  h+='<th style="text-align:left;cursor:pointer" onclick="setPrecoSort(\'nome\')">Produto'+seta('nome')+'</th>';
+  h+='<th style="cursor:pointer" onclick="setPrecoSort(\'setor\')">Setor'+seta('setor')+'</th>';
+  h+='<th style="cursor:pointer" onclick="setPrecoSort(\'custoT\')">Custo ficha'+seta('custoT')+'</th>';
+  h+='<th style="cursor:pointer" onclick="setPrecoSort(\'precoT\')">Preço'+seta('precoT')+'</th>';
+  h+='<th style="cursor:pointer" onclick="setPrecoSort(\'cmvT\')">CMV teórico'+seta('cmvT')+'</th>';
+  h+='<th style="cursor:pointer" onclick="setPrecoSort(\'custoR\')">Custo real'+seta('custoR')+'</th>';
+  h+='<th style="cursor:pointer" onclick="setPrecoSort(\'cmvR\')">CMV real'+seta('cmvR')+'</th>';
+  h+='<th style="cursor:pointer" onclick="setPrecoSort(\'dif\')">Dif.'+seta('dif')+'</th>';
+  h+='<th>Status</th>';
   h+='</tr></thead><tbody>';
   filtrada.forEach(function(p){
     var st=statusPreco(p);
+    var dif=(p.cmvT!==null&&p.cmvR!==null)?(p.cmvR-p.cmvT)*100:null;
     h+='<tr>';
     h+='<td title="'+p.nome+'">'+p.nome+' <span style="color:var(--gray);font-size:.62rem">'+p.base+'</span></td>';
     h+='<td style="font-size:.62rem;color:var(--gray)">'+p.setor.slice(0,4)+'</td>';
-    h+='<td>'+(p.custoT?fmtR(p.custoT):'—')+'</td>';
-    h+='<td>'+(p.precoT?fmtR(p.precoT):'<span style="color:var(--gray)">sem preço</span>')+'</td>';
-    h+='<td style="font-weight:700;color:'+corCMV(p.cmvT)+'">'+(p.cmvT!==null?(p.cmvT*100).toFixed(0)+'%':'—')+'</td>';
-    h+='<td style="color:'+corCMV(p.cmvR)+'">'+(p.cmvR!==null?(p.cmvR*100).toFixed(0)+'%':'—')+'</td>';
-    var dif=(p.cmvT!==null&&p.cmvR!==null)?(p.cmvR-p.cmvT)*100:null;
-    h+='<td style="font-size:.68rem;color:'+(dif!==null&&Math.abs(dif)>=10?'var(--orange)':'var(--gray)')+'">'+(dif!==null?(dif>0?'+':'')+dif.toFixed(0)+'pp':'—')+'</td>';
+    h+='<td>'+fmtRx(p.custoT)+'</td>';
+    h+='<td>'+(p.precoT?fmtRx(p.precoT):'<span style="color:var(--gray)">sem preço</span>')+'</td>';
+    h+='<td style="font-weight:700;color:'+corCMV(p.cmvT)+'">'+fmtPct(p.cmvT)+'</td>';
+    h+='<td style="color:var(--gray)">'+fmtRx(p.custoR)+'</td>';
+    h+='<td style="color:'+corCMV(p.cmvR)+'">'+fmtPct(p.cmvR)+'</td>';
+    h+='<td style="font-size:.68rem;color:'+(dif!==null&&Math.abs(dif)>=10?'var(--orange)':'var(--gray)')+'">'+fmtPP(dif)+'</td>';
     h+='<td style="font-size:.62rem">'+st.ico+'</td>';
     h+='</tr>';
   });
   h+='</tbody></table></div>';
-  h+='<div class="insight" style="margin-top:10px;margin-bottom:0;font-size:.7rem">💡 <b>CMV teórico</b> = custo da ficha ÷ preço cadastrado. <b>CMV real</b> = custo ÷ faturamento no ABC do mês. Diferença grande (+10pp) sugere ficha desatualizada, desperdício não contabilizado ou erro de cadastro.</div>';
+  h+='<div class="insight" style="margin-top:10px;margin-bottom:0;font-size:.7rem">💡 <b>CMV teórico</b> = custo da ficha ÷ preço cadastrado. <b>CMV real</b> = custo ÷ faturamento no ABC do mês. Clique nos cabeçalhos para ordenar. Diferença ≥ 10pp sugere ficha desatualizada, desperdício não contabilizado ou erro de cadastro.</div>';
   h+='</div>';
 
   box.innerHTML=h;
@@ -1369,16 +1398,32 @@ function statusPreco(p){
   return{k:'OK',ico:'✅'};
 }
 function filtrarPrecos(lista){
+  var termo=precoBusca.trim().toLowerCase();
   return lista.filter(function(p){
     if(precoFiltroSetor!=='TODOS'&&p.setor!==precoFiltroSetor)return false;
-    if(precoFiltroAlerta==='TODOS')return true;
-    return statusPreco(p).k===precoFiltroAlerta;
+    if(precoFiltroAlerta!=='TODOS'&&statusPreco(p).k!==precoFiltroAlerta)return false;
+    if(termo&&p.nome.toLowerCase().indexOf(termo)<0&&(p.cod||'').indexOf(termo)<0)return false;
+    return true;
   }).sort(function(a,b){
-    // pior CMV primeiro
-    var ca=a.cmvT===null?-1:a.cmvT, cb=b.cmvT===null?-1:b.cmvT;
-    return cb-ca;
+    var va,vb;
+    if(precoSort==='nome'){va=a.nome;vb=b.nome;return precoSortDir*(va<vb?-1:va>vb?1:0);}
+    if(precoSort==='setor'){va=a.setor;vb=b.setor;return precoSortDir*(va<vb?-1:va>vb?1:0);}
+    if(precoSort==='dif'){
+      va=(a.cmvT!==null&&a.cmvR!==null)?(a.cmvR-a.cmvT):-999;
+      vb=(b.cmvT!==null&&b.cmvR!==null)?(b.cmvR-b.cmvT):-999;
+    }else{
+      va=a[precoSort]; vb=b[precoSort];
+      if(va===null||va===undefined)va=-1;
+      if(vb===null||vb===undefined)vb=-1;
+    }
+    return precoSortDir*(va-vb);
   });
 }
+function setPrecoSort(campo){
+  if(precoSort===campo){precoSortDir=-precoSortDir;}else{precoSort=campo;precoSortDir=-1;}
+  renderPrecos();
+}
+function setPrecoBusca(v){precoBusca=v;renderPrecos();}
 function setPrecoSetor(s){precoFiltroSetor=s;renderPrecos();}
 function setPrecoAlerta(a){precoFiltroAlerta=a;renderPrecos();}
 
@@ -1419,11 +1464,11 @@ function imprimirPrecos(){
     h+='<tr style="background:'+bg+';">';
     h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;font-weight:600;">'+p.nome+' <span style="color:#aaa;font-size:9px;">'+p.base+'</span></td>';
     h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:center;font-size:10px;color:#666;">'+p.setor.slice(0,4)+'</td>';
-    h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:right;">'+(p.custoT?fmtR(p.custoT):'—')+'</td>';
-    h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:right;">'+(p.precoT?fmtR(p.precoT):'—')+'</td>';
-    h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:center;font-weight:800;color:'+cor+';">'+(p.cmvT!==null?(p.cmvT*100).toFixed(0)+'%':'—')+'</td>';
-    h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:center;">'+(p.cmvR!==null?(p.cmvR*100).toFixed(0)+'%':'—')+'</td>';
-    h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:center;font-size:10px;color:'+(dif!==null&&Math.abs(dif)>=10?'#E67E22':'#999')+';">'+(dif!==null?(dif>0?'+':'')+dif.toFixed(0)+'pp':'—')+'</td>';
+    h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:right;">'+fmtRx(p.custoT)+'</td>';
+    h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:right;">'+fmtRx(p.precoT)+'</td>';
+    h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:center;font-weight:800;color:'+cor+';">'+fmtPct(p.cmvT)+'</td>';
+    h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:center;">'+fmtPct(p.cmvR)+'</td>';
+    h+='<td style="padding:6px 7px;border-bottom:1px solid #eee;text-align:center;font-size:10px;color:'+(dif!==null&&Math.abs(dif)>=10?'#E67E22':'#999')+';">'+fmtPP(dif)+'</td>';
     h+='</tr>';
   });
   h+='</tbody></table>';
