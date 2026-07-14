@@ -1239,7 +1239,7 @@ var precoBusca='';
 // Formatação SEM arredondar (mostra o valor real)
 function fmtRx(v){
   if(v===null||v===undefined||isNaN(v))return '—';
-  return 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:4});
+  return 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 }
 function fmtPct(v){
   if(v===null||v===undefined||isNaN(v))return '—';
