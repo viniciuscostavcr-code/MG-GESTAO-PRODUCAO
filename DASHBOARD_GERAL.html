@@ -1310,13 +1310,14 @@ function renderPrecos(){
   var h='';
   h+='<div class="insight"><strong>💵 Preços e CMV.</strong> Compara o custo da ficha técnica com o preço praticado. Detecta produtos vendidos abaixo do custo e divergências entre o CMV teórico e o real.</div>';
 
-  // Cards de alerta
+  // Cards de alerta — CLICÁVEIS (funcionam como filtro; clicar de novo desativa)
+  function cardSel(k){return precoFiltroAlerta===k?'outline:3px solid var(--grn2);outline-offset:-3px;':'';}
   h+='<div class="kpi-grid">';
-  var estiloPrej=prejuizo.length?'background:linear-gradient(135deg,#C0392B,#8B2A1F);color:#fff':'';
-  h+='<div class="kpi'+(prejuizo.length?' dest':'')+'" style="'+estiloPrej+'"><div class="kpi-label" style="'+(prejuizo.length?'color:rgba(255,255,255,.85)':'')+'">🚨 Vendendo no prejuízo</div><div class="kpi-val" style="'+(prejuizo.length?'color:#fff':'color:var(--grn)')+'">'+prejuizo.length+'</div><div class="kpi-sub" style="'+(prejuizo.length?'color:rgba(255,255,255,.75)':'')+'">CMV ≥ 100%</div></div>';
-  h+='<div class="kpi"><div class="kpi-label">⚠️ Margem apertada</div><div class="kpi-val" style="color:var(--yellow)">'+critico.length+'</div><div class="kpi-sub">CMV 60–99%</div></div>';
-  h+='<div class="kpi"><div class="kpi-label">🔄 Teórico ≠ Real</div><div class="kpi-val" style="color:var(--orange)">'+divergentes.length+'</div><div class="kpi-sub">difere +10pp</div></div>';
-  h+='<div class="kpi"><div class="kpi-label">❓ Sem preço na ficha</div><div class="kpi-val" style="color:var(--gray)">'+semPreco.length+'</div><div class="kpi-sub">cadastrar</div></div>';
+  var estiloPrej=prejuizo.length?'background:linear-gradient(135deg,#C0392B,#8B2A1F);color:#fff;':'';
+  h+='<div class="kpi'+(prejuizo.length?' dest':'')+'" onclick="togglePrecoAlerta(\'PREJUIZO\')" style="cursor:pointer;'+estiloPrej+cardSel('PREJUIZO')+'"><div class="kpi-label" style="'+(prejuizo.length?'color:rgba(255,255,255,.85)':'')+'">🚨 Vendendo no prejuízo</div><div class="kpi-val" style="'+(prejuizo.length?'color:#fff':'color:var(--grn)')+'">'+prejuizo.length+'</div><div class="kpi-sub" style="'+(prejuizo.length?'color:rgba(255,255,255,.75)':'')+'">CMV ≥ 100% · toque p/ filtrar</div></div>';
+  h+='<div class="kpi" onclick="togglePrecoAlerta(\'CRITICO\')" style="cursor:pointer;'+cardSel('CRITICO')+'"><div class="kpi-label">⚠️ Margem apertada</div><div class="kpi-val" style="color:var(--yellow)">'+critico.length+'</div><div class="kpi-sub">CMV 60–99% · toque p/ filtrar</div></div>';
+  h+='<div class="kpi" onclick="togglePrecoAlerta(\'DIVERGENTE\')" style="cursor:pointer;'+cardSel('DIVERGENTE')+'"><div class="kpi-label">🔄 Teórico ≠ Real</div><div class="kpi-val" style="color:var(--orange)">'+divergentes.length+'</div><div class="kpi-sub">difere +10pp · toque p/ filtrar</div></div>';
+  h+='<div class="kpi" onclick="togglePrecoAlerta(\'SEMPRECO\')" style="cursor:pointer;'+cardSel('SEMPRECO')+'"><div class="kpi-label">❓ Sem preço na ficha</div><div class="kpi-val" style="color:var(--gray)">'+semPreco.length+'</div><div class="kpi-sub">cadastrar · toque p/ filtrar</div></div>';
   h+='</div>';
 
   // Alerta destacado se houver prejuízo
@@ -1329,16 +1330,10 @@ function renderPrecos(){
     h+='</div>';
   }
 
-  // ── Filtros ──
-  h+='<div class="card"><div class="card-title">🔎 Filtros</div>';
-  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">';
+  // ── Filtro de setor (como na aba Produtos) ──
+  h+='<div class="card" style="padding:12px"><div style="display:flex;gap:6px;flex-wrap:wrap">';
   ['TODOS','PADARIA','CONFEITARIA','LANCHONETE','RESTAURANTE'].forEach(function(s){
     h+='<button onclick="setPrecoSetor(\''+s+'\')" style="padding:6px 12px;border-radius:8px;border:1px solid '+(precoFiltroSetor===s?'var(--grn2)':'var(--border)')+';background:'+(precoFiltroSetor===s?'var(--grn2)':'#fff')+';color:'+(precoFiltroSetor===s?'#fff':'var(--brown)')+';font-size:.7rem;font-weight:600;cursor:pointer;font-family:inherit">'+(s==='TODOS'?'Todos':s.charAt(0)+s.slice(1).toLowerCase())+'</button>';
-  });
-  h+='</div><div style="display:flex;gap:6px;flex-wrap:wrap">';
-  var alertas=[['TODOS','Todos'],['PREJUIZO','🚨 Prejuízo'],['CRITICO','⚠️ Margem baixa'],['DIVERGENTE','🔄 Teórico≠Real'],['OK','✅ Saudável']];
-  alertas.forEach(function(a){
-    h+='<button onclick="setPrecoAlerta(\''+a[0]+'\')" style="padding:6px 12px;border-radius:8px;border:1px solid '+(precoFiltroAlerta===a[0]?'var(--grn2)':'var(--border)')+';background:'+(precoFiltroAlerta===a[0]?'var(--grn2)':'#fff')+';color:'+(precoFiltroAlerta===a[0]?'#fff':'var(--brown)')+';font-size:.7rem;font-weight:600;cursor:pointer;font-family:inherit">'+a[1]+'</button>';
   });
   h+='</div></div>';
 
@@ -1426,6 +1421,11 @@ function setPrecoSort(campo){
 function setPrecoBusca(v){precoBusca=v;renderPrecos();}
 function setPrecoSetor(s){precoFiltroSetor=s;renderPrecos();}
 function setPrecoAlerta(a){precoFiltroAlerta=a;renderPrecos();}
+function togglePrecoAlerta(a){
+  // clicar no card ativa o filtro; clicar de novo desativa (volta pra TODOS)
+  precoFiltroAlerta=(precoFiltroAlerta===a)?'TODOS':a;
+  renderPrecos();
+}
 
 // ── Impressão do relatório de preços (estilo planilha de correção de CMV) ──
 function imprimirPrecos(){
