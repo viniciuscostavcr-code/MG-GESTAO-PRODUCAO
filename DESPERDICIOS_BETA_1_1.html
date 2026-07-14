@@ -2455,7 +2455,7 @@ function expConsolidadoDesp(){
     return '<tr>'
       +'<td>'+it.prod+'</td>'
       +'<td style="text-align:center">'+it.set+'</td>'
-      +'<td style="text-align:right;font-weight:700;color:#7B1E1E;">'+it.total.toFixed(2)+'</td>'
+      +'<td style="text-align:right;font-weight:700;color:#1B4332;">'+qtd3(it.total)+'</td>'
       +'<td style="text-align:center;font-weight:600;color:'+undCor+';">'+it.und+'</td>'
       +'<td style="font-size:10px;color:#666;">'+motPrincipal(it.motivos)+'</td>'
       +'</tr>';
@@ -2465,7 +2465,7 @@ function expConsolidadoDesp(){
     var pct=totalGeral>0?(e[1]/totalGeral*100).toFixed(1):'0.0';
     return '<tr>'
       +'<td>'+e[0]+'</td>'
-      +'<td style="text-align:right;font-weight:700;">'+e[1].toFixed(2)+'</td>'
+      +'<td style="text-align:right;font-weight:700;">'+qtd3(e[1])+'</td>'
       +'<td style="text-align:right;color:#666;">'+pct+'%</td>'
       +'</tr>';
   }).join('');
@@ -2473,28 +2473,28 @@ function expConsolidadoDesp(){
   var rowsSet=itemsSet.map(function(e){
     return '<tr>'
       +'<td>'+(ICO[e[0]]||'📦')+' '+e[0]+'</td>'
-      +'<td style="text-align:right;font-weight:700;">'+e[1].toFixed(2)+'</td>'
+      +'<td style="text-align:right;font-weight:700;">'+qtd3(e[1])+'</td>'
       +'</tr>';
   }).join('');
 
   var html='<style>'
     +'body{font-family:Arial,sans-serif;padding:0;color:#1C1C1A;}'
-    +'h1{font-size:18px;color:#7B1E1E;margin:0 0 4px;}'
-    +'h2{font-size:13px;color:#A93226;margin:14px 0 6px;border-bottom:2px solid #F5E0C8;padding-bottom:4px;}'
+    +'h1{font-size:18px;color:#1B4332;margin:0 0 4px;}'
+    +'h2{font-size:13px;color:#2D6A4F;margin:14px 0 6px;border-bottom:2px solid #EAF4EF;padding-bottom:4px;}'
     +'.info{font-size:11px;color:#555;margin-bottom:14px;}'
     +'.kpis{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}'
-    +'.kpi{flex:1;min-width:110px;background:#FDF2E9;border-radius:8px;padding:10px;text-align:center;}'
-    +'.kpi-v{font-size:18px;font-weight:800;color:#7B1E1E;}'
+    +'.kpi{flex:1;min-width:110px;background:#EAF4EF;border-radius:8px;padding:10px;text-align:center;}'
+    +'.kpi-v{font-size:18px;font-weight:800;color:#1B4332;}'
     +'.kpi-l{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}'
     +'table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px;}'
-    +'th{background:#7B1E1E;color:#fff;padding:8px;text-align:left;font-size:11px;}'
+    +'th{background:#1B4332;color:#fff;padding:8px;text-align:left;font-size:11px;}'
     +'td{padding:6px 8px;border-bottom:1px solid #eee;}'
-    +'.tot{background:#FDF2E9;font-weight:700;}'
+    +'.tot{background:#EAF4EF;font-weight:700;}'
     +'</style>'
     +'<h1>📊 Consolidado de Desperdícios</h1>'
     +'<div class="info">Período: '+dtDeFmt+' até '+dtAteFmt+' · Gerado em '+new Date().toLocaleString('pt-BR')+'</div>'
     +'<div class="kpis">'
-    +'<div class="kpi"><div class="kpi-v">'+totalGeral.toFixed(2)+'</div><div class="kpi-l">Total desperdiçado</div></div>'
+    +'<div class="kpi"><div class="kpi-v">'+qtd3(totalGeral)+'</div><div class="kpi-l">Total desperdiçado</div></div>'
     +'<div class="kpi"><div class="kpi-v">'+totalItens+'</div><div class="kpi-l">Itens</div></div>'
     +'<div class="kpi"><div class="kpi-v">'+itemsProd.length+'</div><div class="kpi-l">Produtos</div></div>'
     +'<div class="kpi"><div class="kpi-v">'+diasSet.size+'</div><div class="kpi-l">Dias</div></div>'
@@ -2503,7 +2503,7 @@ function expConsolidadoDesp(){
     +'<table>'
     +'<thead><tr><th>Produto</th><th>Setor</th><th style="text-align:right">Qtd</th><th>Und</th><th>Motivo principal</th></tr></thead>'
     +'<tbody>'+rowsProd
-    +'<tr class="tot"><td colspan="2">TOTAL</td><td style="text-align:right">'+totalGeral.toFixed(2)+'</td><td colspan="2"></td></tr>'
+    +'<tr class="tot"><td colspan="2">TOTAL</td><td style="text-align:right">'+qtd3(totalGeral)+'</td><td colspan="2"></td></tr>'
     +'</tbody></table>'
     +'<h2>📌 Por motivo</h2>'
     +'<table>'
@@ -2513,7 +2513,7 @@ function expConsolidadoDesp(){
     +'<table>'
     +'<thead><tr><th>Setor</th><th style="text-align:right">Qtd total</th></tr></thead>'
     +'<tbody>'+rowsSet
-    +'<tr class="tot"><td>TOTAL GERAL</td><td style="text-align:right">'+totalGeral.toFixed(2)+'</td></tr>'
+    +'<tr class="tot"><td>TOTAL GERAL</td><td style="text-align:right">'+qtd3(totalGeral)+'</td></tr>'
     +'</tbody></table>'
     +'<div style="font-size:9px;color:#aaa;text-align:center;margin-top:14px;">GestFood — Supermercado MG · Desperdícios</div>';
 
