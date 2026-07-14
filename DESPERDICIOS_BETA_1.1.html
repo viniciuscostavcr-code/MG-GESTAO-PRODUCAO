@@ -807,6 +807,8 @@ const UND_COR='#E67E22';  // UND = laranja — design system (= var(--orange))
 const pk=p=>`${p.s}|${p.c}|${p.n}`;
 function getU(p){return(p&&(p.u||'').toLowerCase()==='und')?'und':'kg';}
 function fmtQ(v,u){return u==='und'?Number(v).toFixed(0)+' un':Number(v).toFixed(3)+' kg';}
+// Quantidade exata: até 3 casas, sem zeros desnecessários (não arredonda o valor real)
+function qtd3(v){v=Number(v)||0;return v.toLocaleString('pt-BR',{maximumFractionDigits:3});}
 
 let Q={},QF={},SF='TODOS',nFoto=''; // QF = fotos de evidência por produto (key→base64)
 let HFILT={de:'',ate:'',set:''};
@@ -823,10 +825,10 @@ const MOTS_DEFAULT=[
 let D={
   hist:[],extra:[],
   resps:['FUNCIONÁRIO 1','FUNCIONÁRIO 2'],
-  sets:['PADARIA','CONFEITARIA','LANCHONETE'],
+  sets:['PADARIA','CONFEITARIA','LANCHONETE','PASTELARIA'],
   motivos:[...MOTS_DEFAULT],
   fotos:{},overrides:{},
-  alertas:{PADARIA:5,CONFEITARIA:5,LANCHONETE:5}
+  alertas:{PADARIA:5,CONFEITARIA:5,LANCHONETE:5,PASTELARIA:5}
 };
 let PRODS_SUPA=[];  // catálogo carregado do Supabase
 
@@ -871,7 +873,7 @@ async function load(){
         const dataFmt=isNaN(dtObj)?dataISO:dtObj.toLocaleDateString('pt-BR');
         const k=`${dataISO}|${r.motivo}|${r.responsavel}`;
         if(!map[k])map[k]={id:k,data:dataISO,dataFmt,dia:r.dia_semana,resp:r.responsavel,mot:r.motivo,regs:[]};
-        map[k].regs.push({id:r.id,prod:r.produto,cod:r.cod||'',set:r.setor,qty:r.quantidade,u:r.unidade||'',mot:r.motivo,resp:r.responsavel,data:dataISO,dataFmt,dia:r.dia_semana});
+        map[k].regs.push({id:r.id,prod:r.produto,cod:r.cod||'',set:r.setor,qty:parseFloat(r.quantidade)||0,u:r.unidade||'',mot:r.motivo,resp:r.responsavel,data:dataISO,dataFmt,dia:r.dia_semana});
       });
       D.hist=Object.values(map).sort((a,b)=>b.data.localeCompare(a.data));
       D.extra=[];  // extras agora vão direto na tabela produtos via Config
@@ -1097,7 +1099,7 @@ function adj(k,d,e){
   const isUnd=getU(p)==='und';
   const step=isUnd?1:0.5;
   const cur=parseDecBR(el.value)||0;
-  const nv=Math.max(0,isUnd?Math.round(cur+d*step):parseFloat((cur+d*step).toFixed(1)));
+  const nv=Math.max(0,isUnd?Math.round(cur+d*step):parseFloat((cur+d*step).toFixed(3)));
   el.value=nv>0?nv:'';chg(k,el);
 }
 function upBar(){
@@ -1299,8 +1301,8 @@ function expDashPDF(){
     const pct=Math.round(d.qty/maxQty*85);
     const cor=setColors[d.set]||'#7B1E1E';
     return`<tr><td style="padding:5px 8px;font-size:10px;max-width:160px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${i+1}. ${n}</td>
-      <td style="padding:5px 8px;"><div style="width:${pct}%;background:${cor};height:14px;border-radius:3px;min-width:4px;display:flex;align-items:center;padding-left:4px"><span style="font-size:8px;color:#fff;white-space:nowrap">${d.qty.toFixed(1)}</span></div></td>
-      <td style="padding:5px 8px;font-size:10px;font-weight:700;color:${cor};text-align:right">${d.qty.toFixed(2)}</td>
+      <td style="padding:5px 8px;"><div style="width:${pct}%;background:${cor};height:14px;border-radius:3px;min-width:4px;display:flex;align-items:center;padding-left:4px"><span style="font-size:8px;color:#fff;white-space:nowrap">${qtd3(d.qty)}</span></div></td>
+      <td style="padding:5px 8px;font-size:10px;font-weight:700;color:${cor};text-align:right">${qtd3(d.qty)}</td>
       <td style="padding:5px 8px;"><span style="font-size:8px;background:${cor}22;color:${cor};padding:2px 6px;border-radius:4px;font-weight:700">${d.set}</span></td></tr>`;
   }).join('');
 
@@ -1316,9 +1318,9 @@ function expDashPDF(){
     ${ultimos14.map((d,i)=>i%2===0?`<text x="${pad+i*stepX}" y="${H-4}" text-anchor="middle" font-size="8" fill="#888">${new Date(d+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</text>`:'').join('')}`:'<text x="250" y="40" text-anchor="middle" font-size="12" fill="#888">Dados insuficientes</text>';
 
   // Motivos
-  const motRows=Object.entries(porMot).sort((a,b)=>b[1]-a[1]).map(([m,v])=>`<tr><td style="padding:4px 8px;font-size:10px">${m}</td><td style="padding:4px 8px;text-align:right;font-weight:700;font-size:10px">${v.toFixed(2)}</td><td style="padding:4px 8px;text-align:right;font-size:9px;color:#888">${(v/tot*100).toFixed(1)}%</td></tr>`).join('');
+  const motRows=Object.entries(porMot).sort((a,b)=>b[1]-a[1]).map(([m,v])=>`<tr><td style="padding:4px 8px;font-size:10px">${m}</td><td style="padding:4px 8px;text-align:right;font-weight:700;font-size:10px">${qtd3(v)}</td><td style="padding:4px 8px;text-align:right;font-size:9px;color:#888">${(v/tot*100).toFixed(1)}%</td></tr>`).join('');
 
-  const setRows=D.sets.map(s=>`<tr><td style="padding:5px 8px;font-size:10px">${ICO[s]||''} ${s}</td><td style="padding:5px 8px;text-align:right;font-weight:700;font-size:10px;color:${setColors[s]||'#333'}">⚖️ ${(pSKg[s]||0).toFixed(3)} kg</td><td style="padding:5px 8px;text-align:right;font-weight:700;font-size:10px;color:#6A1B9A">📦 ${(pSUnd[s]||0).toFixed(0)} un</td><td style="padding:5px 8px;text-align:right;font-size:9px;color:#888">${((pS[s]||0)/tot*100).toFixed(1)}%</td></tr>`).join('');
+  const setRows=D.sets.map(s=>`<tr><td style="padding:5px 8px;font-size:10px">${ICO[s]||''} ${s}</td><td style="padding:5px 8px;text-align:right;font-weight:700;font-size:10px;color:${setColors[s]||'#333'}">⚖️ ${qtd3(pSKg[s]||0)} kg</td><td style="padding:5px 8px;text-align:right;font-weight:700;font-size:10px;color:#6A1B9A">📦 ${(pSUnd[s]||0).toFixed(0)} un</td><td style="padding:5px 8px;text-align:right;font-size:9px;color:#888">${((pS[s]||0)/tot*100).toFixed(1)}%</td></tr>`).join('');
 
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
@@ -1346,10 +1348,10 @@ function expDashPDF(){
 
   <h2>📊 Indicadores Gerais</h2>
   <div class="kpi-row">
-    <div class="kpi k1"><span class="kpi-v">${tot.toFixed(1)}</span><div class="kpi-l">Total geral (kg)</div></div>
-    <div class="kpi k2"><span class="kpi-v">${mediaDia.toFixed(1)}</span><div class="kpi-l">Média/dia (kg)</div></div>
+    <div class="kpi k1"><span class="kpi-v">${qtd3(tot)}</span><div class="kpi-l">Total geral (kg)</div></div>
+    <div class="kpi k2"><span class="kpi-v">${qtd3(mediaDia)}</span><div class="kpi-l">Média/dia (kg)</div></div>
     <div class="kpi k3"><span class="kpi-v">${dias.length}</span><div class="kpi-l">Dias registrados</div></div>
-    <div class="kpi k4"><span class="kpi-v">${totHoje.toFixed(1)}</span><div class="kpi-l">Hoje (kg)</div></div>
+    <div class="kpi k4"><span class="kpi-v">${qtd3(totHoje)}</span><div class="kpi-l">Hoje (kg)</div></div>
   </div>
 
   <div class="col2">
@@ -1368,7 +1370,7 @@ function expDashPDF(){
 
   <h2>📅 Tendência Diária — Últimos 14 Dias</h2>
   <svg width="100%" height="80" viewBox="0 0 500 80" style="background:#FBF5EE;border-radius:6px;margin-bottom:4px">${sparkline}</svg>
-  ${ultimos14.length?`<div style="font-size:8px;color:#888;text-align:right">Pico: ${Math.max(...vals14).toFixed(2)} kg · Média: ${(vals14.reduce((a,v)=>a+v,0)/vals14.length).toFixed(2)} kg/dia</div>`:''}
+  ${ultimos14.length?`<div style="font-size:8px;color:#888;text-align:right">Pico: ${qtd3(Math.max(...vals14))} kg · Média: ${qtd3(vals14.reduce((a,v)=>a+v,0)/vals14.length)} kg/dia</div>`:''}
 
   <div class="footer">Supermercado MG · Sistema de Controle de Desperdícios · ${new Date().toLocaleDateString('pt-BR')}</div>
   <a href="GESTFOOD_CONFIG.html" style="position:fixed;bottom:80px;left:16px;z-index:9998;display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #E8E8E4;border-radius:10px;padding:8px 13px;font-size:.72rem;font-weight:600;color:#6B7280;text-decoration:none;box-shadow:0 2px 12px rgba(0,0,0,.10);">⚙️ Config</a>
@@ -1387,9 +1389,9 @@ function expTudoPDF(){
   const w=window.open('','_blank');
   const rows=hist.flatMap(h=>h.regs.map(function(r){
     var und=r.u||r.und||inferirUnidade(r.prod);
-    return '<tr><td>'+(r.dataFmt||r.data)+'</td><td>'+r.prod+'</td><td>'+r.set+'</td><td style="text-align:right">'+Number(r.qty).toFixed(2)+'</td><td>'+und+'</td><td>'+r.mot+'</td><td>'+r.resp+'</td></tr>';
+    return '<tr><td>'+(r.dataFmt||r.data)+'</td><td>'+r.prod+'</td><td>'+r.set+'</td><td style="text-align:right">'+qtd3(r.qty)+'</td><td>'+und+'</td><td>'+r.mot+'</td><td>'+r.resp+'</td></tr>';
   })).join('');
-  const setRows=D.sets.map(s=>`<tr><td>${ICO[s]||'📦'} ${s}</td><td style="text-align:right"><b>${(pS[s]||0).toFixed(2)}</b></td></tr>`).join('');
+  const setRows=D.sets.map(s=>`<tr><td>${ICO[s]||'📦'} ${s}</td><td style="text-align:right"><b>${qtd3(pS[s]||0)}</b></td></tr>`).join('');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Relatório Desperdícios</title>
   <style>body{font-family:Arial,sans-serif;font-size:11px;color:#222;padding:20px;}
   h1{color:#7B1E1E;font-size:16px;margin-bottom:4px;}
@@ -1404,7 +1406,7 @@ function expTudoPDF(){
   <h1>🗑️ Relatório de Desperdícios — Supermercado MG</h1>
   <p style="color:#666;font-size:10px;">Gerado em: ${new Date().toLocaleString('pt-BR')} · Total de registros: ${hist.length} dias · ${hist.reduce((a,h)=>a+h.regs.length,0)} itens</p>
   <h2>📊 Resumo por Setor</h2>
-  <table><tr><th>Setor</th><th>Total</th></tr>${setRows}<tr class="tot"><td>🏪 TOTAL GERAL</td><td style="text-align:right">${tot.toFixed(2)}</td></tr></table>
+  <table><tr><th>Setor</th><th>Total</th></tr>${setRows}<tr class="tot"><td>🏪 TOTAL GERAL</td><td style="text-align:right">${qtd3(tot)}</td></tr></table>
   <h2>📋 Registros Detalhados</h2>
   <table><tr><th>Data</th><th>Produto</th><th>Setor</th><th>Qtd</th><th>Und</th><th>Motivo</th><th>Responsável</th></tr>${rows}</table>
   <div class="footer">Supermercado MG · Controle de Desperdícios BETA · ${new Date().toLocaleDateString('pt-BR')}</div>
@@ -1419,7 +1421,7 @@ function gerarPDF(titulo,resp,mot,itens){
   const w=window.open('','_blank');
   const rows=itens.map(function(p){
     var und=p.u||p.und||inferirUnidade(p.n);
-    return '<tr><td>'+p.n+'</td><td>'+(p.c||'—')+'</td><td>'+p.s+'</td><td style="text-align:right">'+Number(p.qty).toFixed(2)+'</td><td>'+und+'</td></tr>';
+    return '<tr><td>'+p.n+'</td><td>'+(p.c||'—')+'</td><td>'+p.s+'</td><td style="text-align:right">'+qtd3(p.qty)+'</td><td>'+und+'</td></tr>';
   }).join('');
   const tot=itens.reduce((a,p)=>a+p.qty,0);
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${titulo}</title>
@@ -1429,9 +1431,9 @@ function gerarPDF(titulo,resp,mot,itens){
   td{padding:5px 8px;border-bottom:1px solid #F5E6C0;}tr:nth-child(even){background:#FBF5EE;}
   .tot{background:#FAF0DC;font-weight:bold;}@media print{body{padding:0;}}</style></head><body>
   <h1>🗑️ ${titulo}</h1>
-  <p><b>Responsável:</b> ${resp} · <b>Motivo:</b> ${mot} · <b>Total:</b> ${tot.toFixed(2)}</p>
+  <p><b>Responsável:</b> ${resp} · <b>Motivo:</b> ${mot} · <b>Total:</b> ${qtd3(tot)}</p>
   <table><tr><th>Produto</th><th>Cód</th><th>Setor</th><th>Qtd</th><th>Und</th></tr>
-  ${rows}<tr class="tot"><td colspan="3"><b>TOTAL</b></td><td style="text-align:right"><b>${tot.toFixed(2)}</b></td><td></td></tr></table>
+  ${rows}<tr class="tot"><td colspan="3"><b>TOTAL</b></td><td style="text-align:right"><b>${qtd3(tot)}</b></td><td></td></tr></table>
   <p style="font-size:9px;color:#888;margin-top:16px;">Supermercado MG · ${new Date().toLocaleString('pt-BR')}</p>
   <a href="GESTFOOD_CONFIG.html" style="position:fixed;bottom:80px;left:16px;z-index:9998;display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #E8E8E4;border-radius:10px;padding:8px 13px;font-size:.72rem;font-weight:600;color:#6B7280;text-decoration:none;box-shadow:0 2px 12px rgba(0,0,0,.10);">⚙️ Config</a>
 </body></html>`);
@@ -2401,7 +2403,7 @@ function expConsolidadoDesp(){
   if(!lista.length){toast('Sem dados para exportar','er');return;}
 
   // Agregações
-  var aggProd={};   // por setor+produto+unidade (pra consolidado PDV)
+  var aggProd={};   // por produto+unidade
   var aggMot={};    // por motivo
   var aggSet={};    // por setor
   var diasSet=new Set();
@@ -2415,21 +2417,17 @@ function expConsolidadoDesp(){
       var qty=parseFloat(r.qty)||0;
       totalGeral+=qty;
       var und=r.u||r.und||inferirUnidade(r.prod);
-      // Pastelaria é tratada como Confeitaria (setores unificados)
-      var setor=(r.set==='PASTELARIA')?'CONFEITARIA':r.set;
-      // Por produto (agrupado por setor + produto + unidade), guardando o código
-      var keyP=setor+'|'+r.prod+'|'+und;
+      // Por produto
+      var keyP=r.prod+'|'+und;
       if(!aggProd[keyP]){
-        aggProd[keyP]={prod:r.prod,cod:r.cod||'',set:setor,und:und,total:0,motivos:{}};
+        aggProd[keyP]={prod:r.prod,set:r.set,und:und,total:0,motivos:{}};
       }
-      // Se algum registro tiver o código e o primeiro não tinha, completa
-      if(!aggProd[keyP].cod && r.cod){aggProd[keyP].cod=r.cod;}
       aggProd[keyP].total+=qty;
       aggProd[keyP].motivos[r.mot]=(aggProd[keyP].motivos[r.mot]||0)+qty;
       // Por motivo
       aggMot[r.mot]=(aggMot[r.mot]||0)+qty;
-      // Por setor (pastelaria somada em confeitaria)
-      aggSet[setor]=(aggSet[setor]||0)+qty;
+      // Por setor
+      aggSet[r.set]=(aggSet[r.set]||0)+qty;
     });
   });
 
@@ -2438,43 +2436,36 @@ function expConsolidadoDesp(){
   var itemsMot=Object.entries(aggMot).sort(function(a,b){return b[1]-a[1];});
   var itemsSet=Object.entries(aggSet).sort(function(a,b){return b[1]-a[1];});
 
+  // Para cada produto, descobre motivo principal
+  function motPrincipal(motObj){
+    var maior=null,maxV=0;
+    Object.entries(motObj).forEach(function(e){
+      if(e[1]>maxV){maxV=e[1];maior=e[0];}
+    });
+    return maior||'—';
+  }
+
   var dtDe=HFILT.de||(lista[lista.length-1].data||'');
   var dtAte=HFILT.ate||(lista[0].data||'');
   var dtDeFmt=dtDe?(dtDe.split('-').reverse().join('/')):'—';
   var dtAteFmt=dtAte?(dtAte.split('-').reverse().join('/')):'—';
 
-  // Monta blocos por setor (cada setor com seus produtos + código), pra dar entrada no PDV
-  var produtosPorSetor={};
-  Object.values(aggProd).forEach(function(it){
-    if(!produtosPorSetor[it.set])produtosPorSetor[it.set]=[];
-    produtosPorSetor[it.set].push(it);
-  });
-  // Ordem dos setores: maior desperdício primeiro
-  var setoresOrd=Object.keys(produtosPorSetor).sort(function(a,b){return (aggSet[b]||0)-(aggSet[a]||0);});
-
-  var blocosSetor=setoresOrd.map(function(setor){
-    var prods=produtosPorSetor[setor].sort(function(a,b){return b.total-a.total;});
-    var totSetor=aggSet[setor]||0;
-    var linhas=prods.map(function(it){
-      var undCor=it.und==='und'?'#E67E22':'#C0392B';
-      return '<tr>'
-        +'<td style="font-weight:700;color:#1B4332;">'+(it.cod||'—')+'</td>'
-        +'<td>'+it.prod+'</td>'
-        +'<td style="text-align:right;font-weight:700;color:#7B1E1E;">'+it.total.toFixed(2)+'</td>'
-        +'<td style="text-align:center;font-weight:600;color:'+undCor+';">'+it.und+'</td>'
-        +'</tr>';
-    }).join('');
-    return '<h2>'+(ICO[setor]||'📦')+' '+setor+' <span style="font-size:10px;font-weight:400;color:#888;">('+prods.length+' produtos · '+totSetor.toFixed(2)+' total)</span></h2>'
-      +'<table>'
-      +'<thead><tr><th style="width:70px;">Código</th><th>Produto</th><th style="text-align:right;width:80px;">Qtd</th><th style="text-align:center;width:50px;">Und</th></tr></thead>'
-      +'<tbody>'+linhas+'</tbody></table>';
+  var rowsProd=itemsProd.map(function(it){
+    var undCor=it.und==='und'?'#E67E22':'#C0392B';
+    return '<tr>'
+      +'<td>'+it.prod+'</td>'
+      +'<td style="text-align:center">'+it.set+'</td>'
+      +'<td style="text-align:right;font-weight:700;color:#1B4332;">'+qtd3(it.total)+'</td>'
+      +'<td style="text-align:center;font-weight:600;color:'+undCor+';">'+it.und+'</td>'
+      +'<td style="font-size:10px;color:#666;">'+motPrincipal(it.motivos)+'</td>'
+      +'</tr>';
   }).join('');
 
   var rowsMot=itemsMot.map(function(e){
     var pct=totalGeral>0?(e[1]/totalGeral*100).toFixed(1):'0.0';
     return '<tr>'
       +'<td>'+e[0]+'</td>'
-      +'<td style="text-align:right;font-weight:700;">'+e[1].toFixed(2)+'</td>'
+      +'<td style="text-align:right;font-weight:700;">'+qtd3(e[1])+'</td>'
       +'<td style="text-align:right;color:#666;">'+pct+'%</td>'
       +'</tr>';
   }).join('');
@@ -2482,34 +2473,38 @@ function expConsolidadoDesp(){
   var rowsSet=itemsSet.map(function(e){
     return '<tr>'
       +'<td>'+(ICO[e[0]]||'📦')+' '+e[0]+'</td>'
-      +'<td style="text-align:right;font-weight:700;">'+e[1].toFixed(2)+'</td>'
+      +'<td style="text-align:right;font-weight:700;">'+qtd3(e[1])+'</td>'
       +'</tr>';
   }).join('');
 
   var html='<style>'
     +'body{font-family:Arial,sans-serif;padding:0;color:#1C1C1A;}'
-    +'h1{font-size:18px;color:#7B1E1E;margin:0 0 4px;}'
-    +'h2{font-size:13px;color:#A93226;margin:14px 0 6px;border-bottom:2px solid #F5E0C8;padding-bottom:4px;}'
+    +'h1{font-size:18px;color:#1B4332;margin:0 0 4px;}'
+    +'h2{font-size:13px;color:#2D6A4F;margin:14px 0 6px;border-bottom:2px solid #EAF4EF;padding-bottom:4px;}'
     +'.info{font-size:11px;color:#555;margin-bottom:14px;}'
     +'.kpis{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}'
-    +'.kpi{flex:1;min-width:110px;background:#FDF2E9;border-radius:8px;padding:10px;text-align:center;}'
-    +'.kpi-v{font-size:18px;font-weight:800;color:#7B1E1E;}'
+    +'.kpi{flex:1;min-width:110px;background:#EAF4EF;border-radius:8px;padding:10px;text-align:center;}'
+    +'.kpi-v{font-size:18px;font-weight:800;color:#1B4332;}'
     +'.kpi-l{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}'
     +'table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px;}'
-    +'th{background:#7B1E1E;color:#fff;padding:8px;text-align:left;font-size:11px;}'
+    +'th{background:#1B4332;color:#fff;padding:8px;text-align:left;font-size:11px;}'
     +'td{padding:6px 8px;border-bottom:1px solid #eee;}'
-    +'.tot{background:#FDF2E9;font-weight:700;}'
+    +'.tot{background:#EAF4EF;font-weight:700;}'
     +'</style>'
     +'<h1>📊 Consolidado de Desperdícios</h1>'
     +'<div class="info">Período: '+dtDeFmt+' até '+dtAteFmt+' · Gerado em '+new Date().toLocaleString('pt-BR')+'</div>'
     +'<div class="kpis">'
-    +'<div class="kpi"><div class="kpi-v">'+totalGeral.toFixed(2)+'</div><div class="kpi-l">Total desperdiçado</div></div>'
+    +'<div class="kpi"><div class="kpi-v">'+qtd3(totalGeral)+'</div><div class="kpi-l">Total desperdiçado</div></div>'
     +'<div class="kpi"><div class="kpi-v">'+totalItens+'</div><div class="kpi-l">Itens</div></div>'
     +'<div class="kpi"><div class="kpi-v">'+itemsProd.length+'</div><div class="kpi-l">Produtos</div></div>'
     +'<div class="kpi"><div class="kpi-v">'+diasSet.size+'</div><div class="kpi-l">Dias</div></div>'
     +'</div>'
-    +'<h2 style="border:none;color:#7B1E1E;font-size:14px;margin-top:18px;">📦 Consolidado por setor <span style="font-size:10px;font-weight:400;color:#888;">(para dar entrada no PDV)</span></h2>'
-    +blocosSetor
+    +'<h2>📋 Por produto (maior → menor)</h2>'
+    +'<table>'
+    +'<thead><tr><th>Produto</th><th>Setor</th><th style="text-align:right">Qtd</th><th>Und</th><th>Motivo principal</th></tr></thead>'
+    +'<tbody>'+rowsProd
+    +'<tr class="tot"><td colspan="2">TOTAL</td><td style="text-align:right">'+qtd3(totalGeral)+'</td><td colspan="2"></td></tr>'
+    +'</tbody></table>'
     +'<h2>📌 Por motivo</h2>'
     +'<table>'
     +'<thead><tr><th>Motivo</th><th style="text-align:right">Qtd total</th><th style="text-align:right">% do total</th></tr></thead>'
@@ -2518,7 +2513,7 @@ function expConsolidadoDesp(){
     +'<table>'
     +'<thead><tr><th>Setor</th><th style="text-align:right">Qtd total</th></tr></thead>'
     +'<tbody>'+rowsSet
-    +'<tr class="tot"><td>TOTAL GERAL</td><td style="text-align:right">'+totalGeral.toFixed(2)+'</td></tr>'
+    +'<tr class="tot"><td>TOTAL GERAL</td><td style="text-align:right">'+qtd3(totalGeral)+'</td></tr>'
     +'</tbody></table>'
     +'<div style="font-size:9px;color:#aaa;text-align:center;margin-top:14px;">GestFood — Supermercado MG · Desperdícios</div>';
 
