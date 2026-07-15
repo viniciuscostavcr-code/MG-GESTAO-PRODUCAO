@@ -78,11 +78,12 @@ td{padding:6px;border-bottom:1px solid #eee;}
         </select>
       </div>
       <div>
-        <label>Mês de referência</label>
-        <input type="month" id="mesRef" style="padding:12px;font-size:16px;border:2px solid var(--border);border-radius:10px;">
+        <label>Meses no arquivo (detecção automática)</label>
+        <div id="mesesDetectados" style="padding:12px;font-size:14px;border:2px solid var(--border);border-radius:10px;background:#F7F7F5;color:#1B4332;font-weight:600;min-height:20px;">—</div>
+        <input type="month" id="mesRef" style="display:none;">
       </div>
     </div>
-    <div class="hint">O mês é detectado automaticamente do arquivo, mas confira se está certo.</div>
+    <div class="hint">Cada linha é atribuída ao mês da sua data — pode importar 1 mês, um trimestre ou o período que quiser num arquivo só. Dados antigos de cada mês/setor são substituídos automaticamente.</div>
   </div>
 
   <!-- PASSO 3: prévia -->
@@ -199,7 +200,15 @@ function parseCSV(texto){
 
   if(dadosParsed.length===0){ showStatus('❌ Nenhuma linha válida encontrada.','err'); return; }
 
-  // Preencher mês detectado
+  // Mostrar os meses detectados no arquivo (multi-mês)
+  var mesesArq={};
+  dadosParsed.forEach(function(d){var m=(d.data||'').slice(0,7);if(/^20\d\d-\d\d$/.test(m))mesesArq[m]=(mesesArq[m]||0)+1;});
+  var listaMeses=Object.keys(mesesArq).sort();
+  var elMeses=document.getElementById('mesesDetectados');
+  if(elMeses){
+    if(listaMeses.length)elMeses.innerHTML=listaMeses.map(function(m){return m+' ('+mesesArq[m]+' linhas)';}).join(' · ');
+    else elMeses.innerHTML='⚠️ nenhuma data válida encontrada';
+  }
   if(mesDetectado)document.getElementById('mesRef').value=mesDetectado;
 
   // Resumo
@@ -229,44 +238,61 @@ function parseCSV(texto){
 
 async function importar(){
   var setor=document.getElementById('setorSel').value;
-  var mesRef=document.getElementById('mesRef').value;
-  if(!mesRef){ showStatus('❌ Selecione o mês de referência.','err'); return; }
   if(dadosParsed.length===0){ showStatus('❌ Nenhum dado pra importar.','err'); return; }
+
+  // Deriva o mes_ref da DATA de cada linha (suporta arquivo com 1 mês, trimestre ou período qualquer)
+  var porMes={};
+  var semData=0;
+  dadosParsed.forEach(function(d){
+    var m=(d.data||'').slice(0,7); // 'AAAA-MM'
+    if(!/^20\d\d-\d\d$/.test(m)){ semData++; return; }
+    if(!porMes[m])porMes[m]=[];
+    porMes[m].push(d);
+  });
+  var meses=Object.keys(porMes).sort();
+  if(meses.length===0){ showStatus('❌ Nenhuma linha com data válida.','err'); return; }
+  if(semData>0 && !confirm(semData+' linha(s) sem data válida serão ignoradas. Continuar?')){ return; }
 
   var btn=document.getElementById('btnImportar');
   btn.disabled=true;
-  showStatus('⏳ Importando... apagando dados antigos desse mês/setor...','info');
 
   try{
-    // 1. Apagar dados existentes desse mês+setor (evita duplicar)
-    var delUrl=SUPA_URL+'/rest/v1/vendas_abc?mes_ref=eq.'+encodeURIComponent(mesRef)+'&setor=eq.'+encodeURIComponent(setor);
-    var rDel=await fetch(delUrl,{method:'DELETE',headers:SH});
-    if(!rDel.ok && rDel.status!==404){ throw new Error('Falha ao limpar: '+await rDel.text()); }
+    var totalInseridos=0;
+    for(var mi=0;mi<meses.length;mi++){
+      var mesRef=meses[mi];
+      var linhas=porMes[mesRef];
+      showStatus('⏳ Mês '+(mi+1)+'/'+meses.length+' ('+mesRef+'): apagando dados antigos...','info');
 
-    // 2. Inserir em lotes de 500
-    var rows=dadosParsed.map(function(d){
-      return {
-        cod:d.cod, produto:d.produto, setor:setor, data:d.data,
-        dia_semana:d.dia_semana, quantidade:d.quantidade, faturamento:d.faturamento,
-        preco_medio:d.preco_medio, custo_total:d.custo_total, lucro:d.lucro,
-        margem:d.margem, classe_abc:d.classe_abc, mes_ref:mesRef
-      };
-    });
+      // 1. Apagar dados existentes desse mês+setor (evita duplicar)
+      var delUrl=SUPA_URL+'/rest/v1/vendas_abc?mes_ref=eq.'+encodeURIComponent(mesRef)+'&setor=eq.'+encodeURIComponent(setor);
+      var rDel=await fetch(delUrl,{method:'DELETE',headers:SH});
+      if(!rDel.ok && rDel.status!==404){ throw new Error('Falha ao limpar '+mesRef+': '+await rDel.text()); }
 
-    var lote=500, inseridos=0;
-    for(var i=0;i<rows.length;i+=lote){
-      var bloco=rows.slice(i,i+lote);
-      showStatus('⏳ Importando... '+inseridos+'/'+rows.length,'info');
-      var rIns=await fetch(SUPA_URL+'/rest/v1/vendas_abc',{
-        method:'POST',
-        headers:Object.assign({},SH,{'Prefer':'return=minimal'}),
-        body:JSON.stringify(bloco)
+      // 2. Inserir em lotes de 500
+      var rows=linhas.map(function(d){
+        return {
+          cod:d.cod, produto:d.produto, setor:setor, data:d.data,
+          dia_semana:d.dia_semana, quantidade:d.quantidade, faturamento:d.faturamento,
+          preco_medio:d.preco_medio, custo_total:d.custo_total, lucro:d.lucro,
+          margem:d.margem, classe_abc:d.classe_abc, mes_ref:mesRef
+        };
       });
-      if(!rIns.ok){ throw new Error('Falha ao inserir: '+await rIns.text()); }
-      inseridos+=bloco.length;
+      var lote=500, inseridos=0;
+      for(var i=0;i<rows.length;i+=lote){
+        var bloco=rows.slice(i,i+lote);
+        showStatus('⏳ Mês '+(mi+1)+'/'+meses.length+' ('+mesRef+'): '+inseridos+'/'+rows.length,'info');
+        var rIns=await fetch(SUPA_URL+'/rest/v1/vendas_abc',{
+          method:'POST',
+          headers:Object.assign({},SH,{'Prefer':'return=minimal'}),
+          body:JSON.stringify(bloco)
+        });
+        if(!rIns.ok){ throw new Error('Falha ao inserir '+mesRef+': '+await rIns.text()); }
+        inseridos+=bloco.length;
+      }
+      totalInseridos+=inseridos;
     }
 
-    showStatus('✅ Importação concluída! '+inseridos+' registros de '+setor+' em '+mesRef+' salvos no sistema.','ok');
+    showStatus('✅ Importação concluída! '+totalInseridos+' registros de '+setor+' em '+meses.length+' mês(es): '+meses.join(', ')+'.','ok');
     btn.disabled=false;
   }catch(err){
     showStatus('❌ Erro: '+err.message,'err');
