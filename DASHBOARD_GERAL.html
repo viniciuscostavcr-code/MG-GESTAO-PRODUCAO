@@ -160,7 +160,7 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
     <button class="tab" onclick="mudarTab('ruptura',this)">🔴 Ruptura</button>
     <button class="tab" onclick="mudarTab('produtos',this)">📋 Produtos</button>
     <button class="tab" onclick="mudarTab('precos',this)">💵 Preços/CMV</button>
-    <button class="tab" onclick="mudarTab('comparativo',this)">📈 25v26</button>
+    <button class="tab" onclick="mudarTab('comparativo',this)">📈 Comparativo</button>
     <button class="tab" onclick="mudarTab('operacao',this)">🏭 Operação</button>
     <button class="tab" onclick="mudarTab('gargalos',this)">🗑️ Desperdício</button>
   </div>
@@ -311,6 +311,8 @@ async function sbGet(t,p){const r=await fetch(SUPA_URL+'/rest/v1/'+t+'?'+p,{head
 // ════════════════════════════════════════════════════
 let ABC = ABC_EMBUTIDO;
 let MES_ATUAL = '';  // ex: '2026-05' — preenchido ao carregar
+function anoComp(){return parseInt((MES_ATUAL||'2026-06').slice(0,4),10);}
+function anoAntComp(){return anoComp()-1;}
 
 // Converte MES_ATUAL (ex '2026-06') em nome legível (ex 'Junho 2026')
 function nomeMesAtual(){
@@ -421,9 +423,12 @@ async function montarABCdoBanco(mesEscolhido){
     return [f,l,c];
   }
   var rupturaTotal=0;
-  // Ruptura conta só produtos relevantes (faturamento > R$300/mês),
-  // mesma régua do cálculo original — evita inflar com itens marginais
-  produtos.forEach(function(p){if(p.fat>300)rupturaTotal+=p.perda;});
+  // Ruptura conta só produtos RELEVANTES e de GIRO REGULAR:
+  //  - faturamento > R$300/mês (ignora itens marginais)
+  //  - vendeu em pelo menos METADE dos dias do mês (produto de produção regular)
+  // Produto esporádico/sazonal (vende poucos dias) NÃO é ruptura — é decisão de produção.
+  // Sem essa régua, um produto que vende 1 dia "estima" perda de 30x o próprio faturamento.
+  produtos.forEach(function(p){if(p.fat>300&&p.dv>=totalDias*0.5)rupturaTotal+=p.perda;});
 
   // 6. Buscar o MESMO MÊS do ano anterior (ex: 2026-06 → 2025-06) pra comparação real
   var mesAnoAnterior=(parseInt(mes.slice(0,4),10)-1)+mes.slice(4); // '2025-06'
@@ -433,11 +438,11 @@ async function montarABCdoBanco(mesEscolhido){
   return {
     pad26: totSetor('PADARIA'),
     conf26: totSetor('CONFEITARIA'),
-    pad25: (tot25&&tot25.PADARIA)?tot25.PADARIA:ABC_EMBUTIDO.pad25,
-    conf25: (tot25&&tot25.CONFEITARIA)?tot25.CONFEITARIA:ABC_EMBUTIDO.conf25,
+    pad25: (tot25&&tot25.PADARIA)?tot25.PADARIA:[0,0,0],
+    conf25: (tot25&&tot25.CONFEITARIA)?tot25.CONFEITARIA:[0,0,0],
     produtos: produtos,
     ruptura_total: rupturaTotal,
-    padaria_prod: ABC_EMBUTIDO.padaria_prod,
+    _dias: totalDias,
     und_map: undMap,
     _origem: 'supabase',
     _mes: mes,
@@ -490,7 +495,7 @@ async function carregarOperacao(){
   }catch(e){console.error(e);PRODUCAO=[];DESPERDICIO=[];}
   renderGeral();renderOperacao();renderGargalos();
   setTimeout(drawGeralCharts,80);
-  carregarFichas(); // carrega em paralelo, pra aba Preços
+  if(!FICHAS||FICHAS.length===0)carregarFichas(); // carrega 1x em paralelo, pra aba Preços
 }
 
 // ════════ FICHAS TÉCNICAS (para CMV teórico) ════════
@@ -660,9 +665,14 @@ function filtrarRupturas(){
   }).sort(function(a,b){return b.perda-a.perda;});
 }
 
+// Régua única da ruptura: relevante (fat>300) + giro regular (vendeu em ≥ metade dos dias)
+function ehRupturaValida(p){
+  var td=ABC._dias||30;
+  return p.fat>300&&p.ds>0&&p.dv>=td*0.5;
+}
 function renderRuptura(){
   const rupt=ABC.ruptura_total||0;
-  let h='<div class="insight alert"><strong>🔴 Ruptura = venda perdida por falta de produto.</strong> Calculada pelos dias sem venda de cada produto. É o vazamento invisível — o cliente que não achou o produto e foi embora.</div>';
+  let h='<div class="insight alert"><strong>🔴 Ruptura = venda perdida por falta de produto.</strong> Conta apenas produtos de giro regular (venderam em pelo menos metade dos dias) com faturamento relevante — produto esporádico não entra, pois dias sem venda dele são decisão de produção, não falta. É o vazamento invisível — o cliente que não achou o produto e foi embora.</div>';
 
   h+='<div class="kpi-grid">';
   h+='<div class="kpi alerta"><div class="kpi-label">Venda perdida estimada</div><div class="kpi-val">'+fmtR(rupt)+'</div><div class="kpi-sub">no mês de '+nomeMesAtual()+'</div></div>';
@@ -676,7 +686,7 @@ function renderRuptura(){
   h+='<div class="card"><div class="card-title">🔴 Top 12 Rupturas <span class="sub">maior venda perdida</span></div><div class="chart-box tall"><canvas id="chRuptura"></canvas></div></div>';
 
   // Lista detalhada (top 15 por venda perdida)
-  const rupturas=ABC.produtos.filter(function(p){return p.fat>300&&p.ds>0;}).sort(function(a,b){return b.perda-a.perda;}).slice(0,15);
+  const rupturas=ABC.produtos.filter(ehRupturaValida).sort(function(a,b){return b.perda-a.perda;}).slice(0,15);
   h+='<div class="card"><div class="card-title">📋 Detalhe das Rupturas <span class="sub">top 15</span></div>';
   rupturas.forEach(function(p,i){
     h+='<div class="rank-item"><div class="rank-num bad">'+(i+1)+'</div>'
@@ -689,7 +699,7 @@ function renderRuptura(){
   setTimeout(drawRupturaChart,50);
 }
 function drawRupturaChart(){
-  const rupturas=ABC.produtos.filter(function(p){return p.fat>300&&p.ds>0;}).sort(function(a,b){return b.perda-a.perda;}).slice(0,12);
+  const rupturas=ABC.produtos.filter(ehRupturaValida).sort(function(a,b){return b.perda-a.perda;}).slice(0,12);
   destroyChart('chRuptura');
   const el=document.getElementById('chRuptura');
   if(el)charts['chRuptura']=new Chart(el,{type:'bar',data:{labels:rupturas.map(function(p){return p.n.length>16?p.n.slice(0,16)+'…':p.n;}),datasets:[{data:rupturas.map(function(p){return p.perda;}),backgroundColor:CORES.red,borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return fmtR(c.parsed.x)+' perdido';}}}},scales:{x:{ticks:{font:{size:10},callback:function(v){return 'R$'+(v/1000)+'k';}}},y:{ticks:{font:{size:10}}}}}});
@@ -937,7 +947,13 @@ async function drawLinhaTempoGestao(){
 // ════════ COMPARATIVO ════════
 function renderComparativo(){
   const v=totaisVendas();
-  let h='<div class="insight"><strong>📅 '+nomeMesAtual()+' vs mesmo mês de 2025</strong> — mesmo mês, um ano depois.</div>';
+  var tem25=(ABC._tem25!==false);
+  let h='';
+  if(tem25){
+    h+='<div class="insight"><strong>📅 '+nomeMesAtual()+' vs mesmo mês de '+anoAntComp()+'</strong> — mesmo mês, um ano depois.</div>';
+  }else{
+    h+='<div class="insight alert" style="display:block"><strong>⚠️ Sem dados de '+nomeMesAtual().split(' ')[0]+'/'+anoAntComp()+' no banco.</strong> A comparação ano a ano fica indisponível até você importar esse mês. Os valores "ano anterior" abaixo aparecem zerados. A linha do tempo no fim da página continua correta.</div>';
+  }
   h+='<div class="card"><div class="card-title">📊 Faturamento e Lucro</div><div class="chart-box"><canvas id="chComp"></canvas></div></div>';
   h+='<div class="card"><div class="card-title">💵 Faturamento</div>';
   h+=cRow('Padaria',ABC.pad26[0],ABC.pad25[0]);
@@ -952,7 +968,7 @@ function renderComparativo(){
   const varFat=varPct(v.fat26,v.fat25),varLuc=varPct(v.luc26,v.luc25);
   h+='<div class="insight"><strong>Resumo:</strong> faturamento '+(varFat>=0?'+':'')+varFat.toFixed(1)+'%, lucro '+(varLuc>=0?'+':'')+varLuc.toFixed(1)+'%. '+(varLuc>varFat?'Lucro cresceu mais que faturamento — ganho de eficiência.':'')+'</div>';
   // Gráfico de evolução mês a mês (2025 vs 2026)
-  h+='<div class="card"><div class="card-title">📈 Evolução do Faturamento <span class="sub">2025 vs 2026, mês a mês</span></div><div class="chart-box tall"><canvas id="chEvolucao"></canvas></div><div id="evolucaoNota" style="font-size:.7rem;color:var(--gray);margin-top:8px"></div></div>';
+  h+='<div class="card"><div class="card-title">📈 Evolução do Faturamento <span class="sub">'+anoAntComp()+' vs '+anoComp()+', mês a mês</span></div><div class="chart-box tall"><canvas id="chEvolucao"></canvas></div><div id="evolucaoNota" style="font-size:.7rem;color:var(--gray);margin-top:8px"></div></div>';
 
   // ── LINHA DO TEMPO DA GESTÃO ──
   h+='<div class="insight"><strong>🗓️ Linha do Tempo da Gestão.</strong> Faturamento, margem e CMV mês a mês, desde o início do histórico no sistema — com marcos dos principais eventos da gestão.</div>';
@@ -1061,7 +1077,7 @@ function drawCompChart(){
   const v=totaisVendas();
   destroyChart('chComp');
   const el=document.getElementById('chComp');
-  if(el)charts['chComp']=new Chart(el,{type:'bar',data:{labels:['Faturamento','Lucro'],datasets:[{label:nomeMesAtual().split(' ')[0]+'/2025',data:[v.fat25,v.luc25],backgroundColor:CORES.gray,borderRadius:4},{label:nomeMesAtual(),data:[v.fat26,v.luc26],backgroundColor:CORES.grn,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:11}}},tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+fmtR(c.parsed.y);}}}},scales:{y:{ticks:{font:{size:10},callback:function(v){return 'R$'+(v/1000)+'k';}}},x:{ticks:{font:{size:11}}}}}});
+  if(el)charts['chComp']=new Chart(el,{type:'bar',data:{labels:['Faturamento','Lucro'],datasets:[{label:nomeMesAtual().split(' ')[0]+'/'+anoAntComp(),data:[v.fat25,v.luc25],backgroundColor:CORES.gray,borderRadius:4},{label:nomeMesAtual(),data:[v.fat26,v.luc26],backgroundColor:CORES.grn,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:11}}},tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+fmtR(c.parsed.y);}}}},scales:{y:{ticks:{font:{size:10},callback:function(v){return 'R$'+(v/1000)+'k';}}},x:{ticks:{font:{size:11}}}}}});
 }
 
 // ════════ OPERAÇÃO ════════
@@ -1829,7 +1845,7 @@ function imprimirDashboard(){
     {plugins:{legend:{position:'right',labels:{font:fontBase}}},cutout:'60%'},420,260);
   // 2. Comparativo 25 vs 26
   const imgComp=gerarGraficoImg('bar',
-    {labels:['Faturamento','Lucro'],datasets:[{label:nomeMesAtual().split(' ')[0]+'/2025',data:[v.fat25,v.luc25],backgroundColor:CORES.gray,borderRadius:4},{label:nomeMesAtual(),data:[v.fat26,v.luc26],backgroundColor:CORES.grn,borderRadius:4}]},
+    {labels:['Faturamento','Lucro'],datasets:[{label:nomeMesAtual().split(' ')[0]+'/'+anoAntComp(),data:[v.fat25,v.luc25],backgroundColor:CORES.gray,borderRadius:4},{label:nomeMesAtual(),data:[v.fat26,v.luc26],backgroundColor:CORES.grn,borderRadius:4}]},
     {plugins:{legend:{position:'top',labels:{font:fontBase}}},scales:{y:{ticks:{callback:function(x){return 'R$'+(x/1000)+'k';}}}}},520,280);
 
   function kpiCard(label,val,sub,cor){
@@ -1850,7 +1866,7 @@ function imprimirDashboard(){
   h+='<div style="display:flex;gap:10px;margin-bottom:20px;">';
   h+=kpiCard('Faturamento',fmtR(v.fat26),(varFat>=0?'▲ +':'▼ ')+varFat.toFixed(1)+'% vs 2025','#1B4332');
   h+=kpiCard('Lucro Bruto',fmtR(v.luc26),(varLuc>=0?'▲ +':'▼ ')+varLuc.toFixed(1)+'%','#2D6A4F');
-  h+=kpiCard('Margem',pct(v.margem26),'2025: '+pct(v.margem25),'#1C1C1A');
+  h+=kpiCard('Margem',pct(v.margem26),anoAntComp()+': '+pct(v.margem25),'#1C1C1A');
   h+=kpiCard('CMV',pct(v.cmv26),'custo ÷ venda','#E67E22');
   h+='</div>';
 
@@ -1862,7 +1878,7 @@ function imprimirDashboard(){
 
   // Comparativo tabela
   h+='<div style="page-break-inside:avoid;break-inside:avoid;">';
-  h+='<h2 style="color:#2D6A4F;font-size:15px;margin:20px 0 8px;">Comparativo 2025 vs 2026</h2>';
+  h+='<h2 style="color:#2D6A4F;font-size:15px;margin:20px 0 8px;">Comparativo '+anoAntComp()+' vs '+anoComp()+'</h2>';
   h+='<table style="width:100%;border-collapse:collapse;font-size:13px;">';
   h+='<tr style="background:#1B4332;color:#fff;"><th style="padding:8px;text-align:left;">Indicador</th><th style="padding:8px;text-align:right;">'+nomeMesAtual().split(' ')[0]+'/25</th><th style="padding:8px;text-align:right;">'+nomeMesAtual().split(' ')[0]+'/26</th><th style="padding:8px;text-align:right;">Var.</th></tr>';
   h+='<tr><td style="padding:8px;border-bottom:1px solid #eee;">Faturamento</td><td style="padding:8px;text-align:right;border-bottom:1px solid #eee;">'+fmtR(v.fat25)+'</td><td style="padding:8px;text-align:right;border-bottom:1px solid #eee;"><b>'+fmtR(v.fat26)+'</b></td><td style="padding:8px;text-align:right;border-bottom:1px solid #eee;color:#2D6A4F;font-weight:700;">'+(varFat>=0?'+':'')+varFat.toFixed(1)+'%</td></tr>';
