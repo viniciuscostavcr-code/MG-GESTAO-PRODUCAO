@@ -260,9 +260,10 @@ function acharABC(nome){
 // Acha produto no ABC pelo CÓDIGO (mais confiável que nome)
 function acharABCporCod(cod){
   if(!cod)return null;
-  var c=String(cod).trim();
+  // Normaliza: remove zeros à esquerda (ficha tem '1544', ABC tem '00000000001544')
+  var c=String(cod).trim().replace(/^0+/,'');
   if(!c)return null;
-  return ABC.produtos.find(function(x){return String(x.cod||'').trim()===c;})||null;
+  return ABC.produtos.find(function(x){return String(x.cod||'').trim().replace(/^0+/,'')===c;})||null;
 }
 
 // Busca preço: 1º por código no ABC → 2º por nome no ABC → 3º lista manual → null
@@ -796,6 +797,118 @@ async function faturamentoMensalAno(ano){
   return achou?meses:null;
 }
 
+// Busca TODOS os meses disponíveis no banco (qualquer ano) com faturamento, lucro e custo
+// Usada pela "Linha do Tempo da Gestão" — se preenche conforme mais meses são importados
+async function serieMensalCompleta(){
+  var porMes={}; // {'2025-03': {fat:0,luc:0,cus:0}, ...}
+  try{
+    var offset=0,bloco=1000,linhas=[];
+    while(true){
+      var parte=await sbGet('vendas_abc','select=mes_ref,faturamento,lucro,custo_total&order=id.asc&limit='+bloco+'&offset='+offset);
+      if(!parte||parte.length===0)break;
+      linhas=linhas.concat(parte);
+      if(parte.length<bloco)break;
+      offset+=bloco;
+      if(offset>200000)break;
+    }
+    linhas.forEach(function(v){
+      var m=v.mes_ref;
+      if(!m)return;
+      if(!porMes[m])porMes[m]={fat:0,luc:0,cus:0};
+      porMes[m].fat+=Number(v.faturamento)||0;
+      porMes[m].luc+=Number(v.lucro)||0;
+      porMes[m].cus+=Number(v.custo_total)||0;
+    });
+  }catch(e){console.log('Erro série mensal completa:',e.message);}
+  return porMes;
+}
+
+// ════════ LINHA DO TEMPO DA GESTÃO (faturamento, margem %, CMV % com marcos) ════════
+var MARCOS_GESTAO=[
+  {mes:'2025-03',label:'Início da gestão',emoji:'📍'},
+  {mes:'2025-09',label:'Consolidação da correção de preços',emoji:'📍'}
+];
+
+async function drawLinhaTempoGestao(){
+  var dados=await serieMensalCompleta();
+  var meses=Object.keys(dados).sort(); // ordem cronológica real (AAAA-MM ordena certo)
+  if(meses.length===0)return;
+
+  var labels=meses.map(function(m){
+    var nomes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    var ano=m.slice(2,4), mm=parseInt(m.slice(5,7),10)-1;
+    return nomes[mm]+'/'+ano;
+  });
+  var fat=meses.map(function(m){return dados[m].fat;});
+  var margem=meses.map(function(m){return dados[m].fat>0?(dados[m].luc/dados[m].fat*100):null;});
+  var cmv=meses.map(function(m){return dados[m].fat>0?(dados[m].cus/dados[m].fat*100):null;});
+
+  // índices dos marcos (pra desenhar linha vertical/anotação)
+  var marcosIdx=MARCOS_GESTAO.map(function(mk){
+    var idx=meses.indexOf(mk.mes);
+    return idx>=0?{idx:idx,label:mk.label,emoji:mk.emoji}:null;
+  }).filter(Boolean);
+
+  function pluginMarcos(corLinha){
+    return {
+      id:'marcosPlugin',
+      afterDraw:function(chart){
+        var ctx=chart.ctx, xScale=chart.scales.x, area=chart.chartArea;
+        marcosIdx.forEach(function(mk){
+          var x=xScale.getPixelForValue(mk.idx);
+          ctx.save();
+          ctx.strokeStyle=corLinha||'#C0392B';
+          ctx.setLineDash([5,4]);
+          ctx.lineWidth=1.5;
+          ctx.beginPath();ctx.moveTo(x,area.top);ctx.lineTo(x,area.bottom);ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle=corLinha||'#C0392B';
+          ctx.font='9px sans-serif';
+          ctx.textAlign='center';
+          ctx.fillText(mk.emoji,x,area.top-2);
+          ctx.restore();
+        });
+      }
+    };
+  }
+
+  // Gráfico 1: Faturamento mensal (linha do tempo completa, todos os anos)
+  destroyChart('chLTFat');
+  var elFat=document.getElementById('chLTFat');
+  if(elFat){
+    charts['chLTFat']=new Chart(elFat,{type:'line',data:{labels:labels,datasets:[{label:'Faturamento',data:fat,borderColor:CORES.grn,backgroundColor:'rgba(45,106,79,.08)',borderWidth:3,tension:.3,fill:true,pointRadius:3}]},
+      plugins:[pluginMarcos('#8B5A0E')],
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return 'Faturamento: '+fmtR(c.parsed.y);}}}},scales:{y:{ticks:{font:{size:10},callback:function(v){return 'R$'+(v/1000)+'k';}}},x:{ticks:{font:{size:10}}}}}});
+  }
+
+  // Gráfico 2: Margem % mensal
+  destroyChart('chLTMargem');
+  var elM=document.getElementById('chLTMargem');
+  if(elM){
+    charts['chLTMargem']=new Chart(elM,{type:'line',data:{labels:labels,datasets:[{label:'Margem %',data:margem,borderColor:'#1B4332',backgroundColor:'rgba(27,67,50,.08)',borderWidth:3,tension:.3,fill:true,pointRadius:3,spanGaps:true}]},
+      plugins:[pluginMarcos('#8B5A0E')],
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return 'Margem: '+c.parsed.y.toFixed(1)+'%';}}}},scales:{y:{ticks:{font:{size:10},callback:function(v){return v+'%';}}},x:{ticks:{font:{size:10}}}}}});
+  }
+
+  // Gráfico 3: CMV % mensal
+  destroyChart('chLTCmv');
+  var elC=document.getElementById('chLTCmv');
+  if(elC){
+    charts['chLTCmv']=new Chart(elC,{type:'line',data:{labels:labels,datasets:[{label:'CMV %',data:cmv,borderColor:'#C0392B',backgroundColor:'rgba(192,57,43,.08)',borderWidth:3,tension:.3,fill:true,pointRadius:3,spanGaps:true}]},
+      plugins:[pluginMarcos('#8B5A0E')],
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return 'CMV: '+c.parsed.y.toFixed(1)+'%';}}}},scales:{y:{ticks:{font:{size:10},callback:function(v){return v+'%';}}},x:{ticks:{font:{size:10}}}}}});
+  }
+
+  var nota=document.getElementById('linhaTempoNota');
+  if(nota){
+    var listaMarcos=MARCOS_GESTAO.map(function(mk){
+      var achou=meses.indexOf(mk.mes)>=0;
+      return mk.emoji+' '+mk.label+' ('+mk.mes+')'+(achou?'':' — mês ainda não importado');
+    }).join(' · ');
+    nota.innerHTML='📊 '+meses.length+' mês(es) no banco: '+meses[0]+' a '+meses[meses.length-1]+'.<br>'+listaMarcos;
+  }
+}
+
 // ════════ COMPARATIVO ════════
 function renderComparativo(){
   const v=totaisVendas();
@@ -815,6 +928,12 @@ function renderComparativo(){
   h+='<div class="insight"><strong>Resumo:</strong> faturamento '+(varFat>=0?'+':'')+varFat.toFixed(1)+'%, lucro '+(varLuc>=0?'+':'')+varLuc.toFixed(1)+'%. '+(varLuc>varFat?'Lucro cresceu mais que faturamento — ganho de eficiência.':'')+'</div>';
   // Gráfico de evolução mês a mês (2025 vs 2026)
   h+='<div class="card"><div class="card-title">📈 Evolução do Faturamento <span class="sub">2025 vs 2026, mês a mês</span></div><div class="chart-box tall"><canvas id="chEvolucao"></canvas></div><div id="evolucaoNota" style="font-size:.7rem;color:var(--gray);margin-top:8px"></div></div>';
+
+  // ── LINHA DO TEMPO DA GESTÃO ──
+  h+='<div class="insight"><strong>🗓️ Linha do Tempo da Gestão.</strong> Faturamento, margem e CMV mês a mês, desde o início do histórico no sistema — com marcos dos principais eventos da gestão.</div>';
+  h+='<div class="card"><div class="card-title">💵 Faturamento — linha do tempo completa</div><div class="chart-box tall"><canvas id="chLTFat"></canvas></div></div>';
+  h+='<div class="card"><div class="card-title">📊 Margem % — mês a mês</div><div class="chart-box tall"><canvas id="chLTMargem"></canvas></div></div>';
+  h+='<div class="card"><div class="card-title">🔻 CMV % — mês a mês</div><div class="chart-box tall"><canvas id="chLTCmv"></canvas></div><div id="linhaTempoNota" style="font-size:.7rem;color:var(--gray);margin-top:8px"></div></div>';
   // Botão imprimir
   h+='<div style="display:flex;gap:8px;margin-top:4px">'
     +'<button onclick="imprimirComparativo()" style="flex:1;padding:12px;background:var(--grn2);color:#fff;border:none;border-radius:9px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit">🖨️ Imprimir comparativo 25 vs 26</button>'
@@ -822,6 +941,7 @@ function renderComparativo(){
   document.getElementById('compBox').innerHTML=h;
   setTimeout(drawCompChart,50);
   setTimeout(drawEvolucaoChart,80);
+  setTimeout(drawLinhaTempoGestao,110);
 }
 
 // Desenha o gráfico de evolução mês a mês (2 linhas: 2025 e 2026)
@@ -1338,12 +1458,19 @@ function renderPrecos(){
   h+='</div></div>';
 
   // ── Busca ──
-  h+='<div class="card" style="padding:10px 12px"><input type="text" value="'+precoBusca.replace(/"/g,'&quot;')+'" oninput="setPrecoBusca(this.value)" placeholder="🔍 Buscar produto ou código..." style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px;font-family:inherit;color:var(--brown)"></div>';
+  h+='<div class="card" style="padding:10px 12px"><input type="text" id="precoBuscaInp" value="'+precoBusca.replace(/"/g,'&quot;')+'" oninput="setPrecoBusca(this.value)" placeholder="🔍 Buscar produto ou código..." style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px;font-family:inherit;color:var(--brown)"></div>';
 
-  // ── Tabela ──
+  // ── Tabela (container separado — a busca atualiza só ele, sem perder o foco) ──
+  h+='<div id="precosTabelaBox">'+htmlTabelaPrecos(lista)+'</div>';
+
+  box.innerHTML=h;
+}
+
+// Gera só o HTML da tabela (chamada pelo render completo E pela busca)
+function htmlTabelaPrecos(lista){
   var filtrada=filtrarPrecos(lista);
   function seta(c){return precoSort===c?(precoSortDir===-1?' ▼':' ▲'):'';}
-  h+='<div class="card"><div class="card-title">📊 Análise de Preços <span class="sub">'+filtrada.length+' produtos</span>';
+  var h='<div class="card"><div class="card-title">📊 Análise de Preços <span class="sub">'+filtrada.length+' produtos</span>';
   h+='<button onclick="imprimirPrecos()" style="float:right;padding:6px 12px;background:var(--grn2);color:#fff;border:none;border-radius:7px;font-size:.68rem;font-weight:600;cursor:pointer;font-family:inherit">🖨️ Imprimir</button></div>';
   h+='<div class="pscroll"><table class="ptable"><thead><tr>';
   h+='<th style="text-align:left;cursor:pointer" onclick="setPrecoSort(\'nome\')">Produto'+seta('nome')+'</th>';
@@ -1374,8 +1501,13 @@ function renderPrecos(){
   h+='</tbody></table></div>';
   h+='<div class="insight" style="margin-top:10px;margin-bottom:0;font-size:.7rem">💡 <b>CMV teórico</b> = custo da ficha ÷ preço cadastrado. <b>CMV real</b> = custo ÷ faturamento no ABC do mês. Clique nos cabeçalhos para ordenar. Diferença ≥ 10pp sugere ficha desatualizada, desperdício não contabilizado ou erro de cadastro.</div>';
   h+='</div>';
+  return h;
+}
 
-  box.innerHTML=h;
+// Atualiza SÓ a tabela (mantém o campo de busca intacto, com foco)
+function atualizarTabelaPrecos(){
+  var el=document.getElementById('precosTabelaBox');
+  if(el)el.innerHTML=htmlTabelaPrecos(montarListaPrecos());
 }
 
 function corCMV(c){
@@ -1416,9 +1548,9 @@ function filtrarPrecos(lista){
 }
 function setPrecoSort(campo){
   if(precoSort===campo){precoSortDir=-precoSortDir;}else{precoSort=campo;precoSortDir=-1;}
-  renderPrecos();
+  atualizarTabelaPrecos();
 }
-function setPrecoBusca(v){precoBusca=v;renderPrecos();}
+function setPrecoBusca(v){precoBusca=v;atualizarTabelaPrecos();}
 function setPrecoSetor(s){precoFiltroSetor=s;renderPrecos();}
 function setPrecoAlerta(a){precoFiltroAlerta=a;renderPrecos();}
 function togglePrecoAlerta(a){
