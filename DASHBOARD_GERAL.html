@@ -147,6 +147,7 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
     <div class="topbar-logo">G</div>
     <div class="topbar-title">Gest<span>Food</span> — Dashboard</div>
     <div class="topbar-right">
+      <select id="mesGlobalSel" onchange="trocarMesGlobal(this.value)" title="Mês em análise" style="background:rgba(167,217,188,.22);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:6px 8px;font-size:.78rem;font-family:inherit;cursor:pointer;max-width:150px;display:none;"></select>
       <a href="IMPORTAR_VENDAS.html" class="btn-hub" style="background:rgba(167,217,188,.22);">📥 Importar vendas</a>
       <button class="btn-print-top" onclick="imprimirDashboard()">🖨️</button>
       <div class="user-badge" id="userBadge"></div>
@@ -352,11 +353,14 @@ async function totaisDoMes(mesRef){
   }catch(e){console.log('Erro ao buscar mês '+mesRef+':',e.message);return null;}
 }
 
-async function montarABCdoBanco(){
-  // 1. Descobrir o mês mais recente que tem dados
-  var meses=await sbGet('vendas_abc','select=mes_ref&order=mes_ref.desc&limit=1');
-  if(!meses||meses.length===0){ return null; } // sem dados → usa embutido
-  var mes=meses[0].mes_ref;
+async function montarABCdoBanco(mesEscolhido){
+  // 1. Usa o mês escolhido no seletor, ou descobre o mais recente que tem dados
+  var mes=mesEscolhido;
+  if(!mes){
+    var meses=await sbGet('vendas_abc','select=mes_ref&order=mes_ref.desc&limit=1');
+    if(!meses||meses.length===0){ return null; } // sem dados → usa embutido
+    mes=meses[0].mes_ref;
+  }
   MES_ATUAL=mes;
 
   // 2. Buscar todas as vendas desse mês (paginado: Supabase limita 1000/req)
@@ -797,14 +801,20 @@ async function faturamentoMensalAno(ano){
   return achou?meses:null;
 }
 
+// Cache da série completa (evita re-varrer o banco) + dias por mês (detecta parcial)
+let SERIE_CACHE=null;
+let DIAS_POR_MES={};
+
 // Busca TODOS os meses disponíveis no banco (qualquer ano) com faturamento, lucro e custo
-// Usada pela "Linha do Tempo da Gestão" — se preenche conforme mais meses são importados
-async function serieMensalCompleta(){
+// Usada pela "Linha do Tempo da Gestão" e pelo seletor de mês — se preenche conforme mais meses são importados
+async function serieMensalCompleta(forcar){
+  if(SERIE_CACHE&&!forcar)return SERIE_CACHE;
   var porMes={}; // {'2025-03': {fat:0,luc:0,cus:0}, ...}
+  var diasSet={};
   try{
     var offset=0,bloco=1000,linhas=[];
     while(true){
-      var parte=await sbGet('vendas_abc','select=mes_ref,faturamento,lucro,custo_total&order=id.asc&limit='+bloco+'&offset='+offset);
+      var parte=await sbGet('vendas_abc','select=mes_ref,data,faturamento,lucro,custo_total&order=id.asc&limit='+bloco+'&offset='+offset);
       if(!parte||parte.length===0)break;
       linhas=linhas.concat(parte);
       if(parte.length<bloco)break;
@@ -818,9 +828,22 @@ async function serieMensalCompleta(){
       porMes[m].fat+=Number(v.faturamento)||0;
       porMes[m].luc+=Number(v.lucro)||0;
       porMes[m].cus+=Number(v.custo_total)||0;
+      if(v.data){
+        if(!diasSet[m])diasSet[m]={};
+        diasSet[m][v.data]=true;
+      }
     });
+    DIAS_POR_MES={};
+    Object.keys(diasSet).forEach(function(m){DIAS_POR_MES[m]=Object.keys(diasSet[m]).length;});
   }catch(e){console.log('Erro série mensal completa:',e.message);}
+  SERIE_CACHE=porMes;
   return porMes;
+}
+
+// Um mês é "parcial" se tem menos de 25 dias com venda (ex: quinzena)
+function mesEhParcial(m){
+  var d=DIAS_POR_MES[m];
+  return d!==undefined&&d<25;
 }
 
 // ════════ LINHA DO TEMPO DA GESTÃO (faturamento, margem %, CMV % com marcos) ════════
@@ -837,7 +860,7 @@ async function drawLinhaTempoGestao(){
   var labels=meses.map(function(m){
     var nomes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
     var ano=m.slice(2,4), mm=parseInt(m.slice(5,7),10)-1;
-    return nomes[mm]+'/'+ano;
+    return nomes[mm]+'/'+ano+(mesEhParcial(m)?'*':'');
   });
   var fat=meses.map(function(m){return dados[m].fat;});
   var margem=meses.map(function(m){return dados[m].fat>0?(dados[m].luc/dados[m].fat*100):null;});
@@ -905,7 +928,9 @@ async function drawLinhaTempoGestao(){
       var achou=meses.indexOf(mk.mes)>=0;
       return mk.emoji+' '+mk.label+' ('+mk.mes+')'+(achou?'':' — mês ainda não importado');
     }).join(' · ');
-    nota.innerHTML='📊 '+meses.length+' mês(es) no banco: '+meses[0]+' a '+meses[meses.length-1]+'.<br>'+listaMarcos;
+    var parciais=meses.filter(mesEhParcial);
+    var notaParcial=parciais.length?'<br>⚠️ Meses com * são parciais (menos de 25 dias de venda): a queda no gráfico é o mês incompleto, não venda menor.':'';
+    nota.innerHTML='📊 '+meses.length+' mês(es) no banco: '+meses[0]+' a '+meses[meses.length-1]+'.<br>'+listaMarcos+notaParcial;
   }
 }
 
@@ -1879,8 +1904,48 @@ async function iniciarDashboard(){
   }
   // Renderiza tudo (com ABC do banco ou embutido)
   renderVendas();renderRuptura();renderComparativo();carregarOperacao();
+  // Em paralelo: varre a série completa e popula o seletor de mês
+  serieMensalCompleta().then(popularSeletorMes).catch(function(){});
 }
 iniciarDashboard();
+
+// ════════ SELETOR DE MÊS GLOBAL ════════
+function popularSeletorMes(){
+  var sel=document.getElementById('mesGlobalSel');
+  if(!sel||!SERIE_CACHE)return;
+  var meses=Object.keys(SERIE_CACHE).sort().reverse(); // mais recente primeiro
+  if(meses.length===0)return;
+  var nomes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  sel.innerHTML=meses.map(function(m){
+    var mm=parseInt(m.slice(5,7),10)-1, ano=m.slice(0,4);
+    var label=nomes[mm]+'/'+ano+(mesEhParcial(m)?' ⚠ parcial':'');
+    return '<option value="'+m+'"'+(m===MES_ATUAL?' selected':'')+'>'+label+'</option>';
+  }).join('');
+  sel.style.display='inline-block';
+}
+
+async function trocarMesGlobal(mes){
+  if(!mes||mes===MES_ATUAL)return;
+  var sel=document.getElementById('mesGlobalSel');
+  if(sel)sel.disabled=true;
+  try{
+    var abcBanco=await montarABCdoBanco(mes);
+    if(abcBanco&&abcBanco.produtos&&abcBanco.produtos.length>0){
+      ABC=abcBanco;
+      // Re-renderiza TODAS as abas com o novo mês (elas conversam entre si)
+      renderVendas();renderRuptura();renderComparativo();carregarOperacao();
+      renderPrecos&&document.getElementById('pane-precos')&&document.getElementById('pane-precos').classList.contains('on')&&renderPrecos();
+      // Redesenha gráficos da aba visível
+      setTimeout(function(){
+        if(document.getElementById('pane-geral').classList.contains('on'))drawGeralCharts();
+        if(document.getElementById('pane-vendas').classList.contains('on'))drawVendasCharts();
+        if(document.getElementById('pane-ruptura').classList.contains('on'))drawRupturaChart();
+        if(document.getElementById('pane-comparativo').classList.contains('on'))drawCompChart();
+      },100);
+    }
+  }catch(e){console.log('Erro ao trocar mês:',e.message);}
+  if(sel)sel.disabled=false;
+}
 
 </script>
 </body>
