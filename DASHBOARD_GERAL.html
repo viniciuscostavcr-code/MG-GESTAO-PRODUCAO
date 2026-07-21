@@ -423,12 +423,15 @@ async function montarABCdoBanco(mesEscolhido){
     return [f,l,c];
   }
   var rupturaTotal=0;
-  // Ruptura conta só produtos RELEVANTES e de GIRO REGULAR:
-  //  - faturamento > R$300/mês (ignora itens marginais)
-  //  - vendeu em pelo menos METADE dos dias do mês (produto de produção regular)
-  // Produto esporádico/sazonal (vende poucos dias) NÃO é ruptura — é decisão de produção.
-  // Sem essa régua, um produto que vende 1 dia "estima" perda de 30x o próprio faturamento.
-  produtos.forEach(function(p){if(p.fat>300&&p.dv>=totalDias*0.5)rupturaTotal+=p.perda;});
+  // Ruptura conta produtos de GIRO REAL que faltaram:
+  //  - vendeu em pelo menos 2 dias (1 dia = evento isolado)
+  //  - fatura R$50+/dia NOS DIAS que aparece (produto relevante, não esporádico)
+  // Usa fat/dia (não nº de dias) pra NÃO excluir os piores casos de ruptura,
+  // que são justamente os produtos que faltaram muitos dias.
+  produtos.forEach(function(p){
+    var fatDia=p.dv>0?(p.fat/p.dv):0;
+    if(p.dv>=2&&p.ds>0&&fatDia>=50)rupturaTotal+=p.perda;
+  });
 
   // 6. Buscar o MESMO MÊS do ano anterior (ex: 2026-06 → 2025-06) pra comparação real
   var mesAnoAnterior=(parseInt(mes.slice(0,4),10)-1)+mes.slice(4); // '2025-06'
@@ -666,9 +669,15 @@ function filtrarRupturas(){
 }
 
 // Régua única da ruptura: relevante (fat>300) + giro regular (vendeu em ≥ metade dos dias)
+// Régua da ruptura: produto de GIRO REAL que faltou.
+// Critério: fatura bem NOS DIAS que aparece (fat/dia alto) — não o total de dias.
+// Isso captura produtos que faltaram MUITO (os piores casos) sem incluir
+// esporádicos/encomenda, que faturam pouco por dia.
+// Exige também ter vendido em pelo menos 2 dias (1 dia só = evento isolado, perda não confiável).
 function ehRupturaValida(p){
-  var td=ABC._dias||30;
-  return p.fat>300&&p.ds>0&&p.dv>=td*0.5;
+  if(p.ds<=0||p.dv<2)return false;
+  var fatDia=p.dv>0?(p.fat/p.dv):0;
+  return fatDia>=50; // fatura R$50+/dia quando está na gôndola = produto de giro relevante
 }
 function renderRuptura(){
   const rupt=ABC.ruptura_total||0;
