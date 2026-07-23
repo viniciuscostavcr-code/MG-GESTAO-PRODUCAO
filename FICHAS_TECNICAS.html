@@ -439,6 +439,7 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
     <div id="previewCMV" style="margin-top:16px;background:var(--grn-l);border-radius:10px;padding:12px;display:none;">
       <div style="font-size:.75rem;font-weight:700;color:var(--grn2);margin-bottom:8px;">📊 Preview do CMV</div>
       <div class="kpi-grid" style="margin-bottom:0;" id="previewKpis"></div>
+      <div id="previewAvisos"></div>
     </div>
   </div>
 </div>
@@ -1203,6 +1204,28 @@ function removerIngrediente(idx){
   atualizarPreviewCMV();
 }
 
+// ── Conversão de unidades para KG (peso real da massa crua) ──
+// Insumos vendidos por unidade precisam do peso médio de cada uma.
+var PESO_UNITARIO={'OVO':0.05,'OVOS':0.05};
+function pesoUnitarioDe(nomeInsumo){
+  var n=(nomeInsumo||'').toUpperCase();
+  var chaves=Object.keys(PESO_UNITARIO);
+  for(var i=0;i<chaves.length;i++){ if(n.indexOf(chaves[i])>=0)return PESO_UNITARIO[chaves[i]]; }
+  return null; // sem peso conhecido
+}
+// Converte a quantidade de um item para KG. Retorna null se não souber converter.
+function qtdEmKg(qtd,unidade,nomeInsumo){
+  var q=parseFloat(qtd)||0;
+  var u=(unidade||'kg').toLowerCase();
+  if(u==='kg'||u==='l')return q;      // litro ≈ kg (densidade ~1)
+  if(u==='g'||u==='ml')return q/1000;
+  if(u==='und'){
+    var pu=pesoUnitarioDe(nomeInsumo);
+    return pu!==null?q*pu:null;
+  }
+  return q;
+}
+
 function atualizarPreviewCMV(){
   const rendimento=parseDecBR(document.getElementById('fichaRendimento').value)||0;
   const rendUnid=parseDecBR(document.getElementById('fichaRendimentoUnid').value)||0;
@@ -1210,6 +1233,7 @@ function atualizarPreviewCMV(){
   const preco=parseDecBR(document.getElementById('fichaPrecoVenda').value)||0;
   const precoUnd=parseDecBR(document.getElementById('fichaPrecoVendaUnd').value)||0;
   let custoTotal=0,pesoBruto=0;
+  let pesoCruKg=0, semConversao=false, alertaOvo=false;
   ingredientesModal.forEach(function(it){
     const ins=INSUMOS.find(function(i){return i.id===it.insumo_id;});
     if(!ins)return;
@@ -1217,6 +1241,12 @@ function atualizarPreviewCMV(){
     const qtdBruta=(parseFloat(it.qtd_liquida)||0)*(parseFloat(it.fator_correcao)||1);
     pesoBruto+=qtdBruta;
     custoTotal+=qtdBruta*custoKg;
+    // Peso cru real (convertido para kg)
+    var emKg=qtdEmKg(qtdBruta,it.unidade,ins.nome);
+    if(emKg===null){semConversao=true;}else{pesoCruKg+=emKg;}
+    // Regra: ovo só existe em unidade
+    var nomeUp=(ins.nome||'').toUpperCase();
+    if(nomeUp.indexOf('OVO')>=0&&(it.unidade||'kg').toLowerCase()!=='und')alertaOvo=true;
   });
   const rendFinal=rendimento>0?rendimento:pesoBruto*fa;
   // Por kg
@@ -1248,7 +1278,27 @@ function atualizarPreviewCMV(){
       h+='<div class="kpi-card"><div class="kpi-label">Custo/kg</div><div class="kpi-val">R$ '+fmtBR(custoKg, 2)+'</div></div>'
         +'<div class="kpi-card"><div class="kpi-label">CMV</div><div class="kpi-val">—</div></div>';
     }
+    // ── Perda de forno / fator de cocção (calculado automaticamente) ──
+    if(pesoCruKg>0&&rendFinal>0&&!semConversao){
+      var fcReal=rendFinal/pesoCruKg;
+      var perdaPct=(1-fcReal)*100;
+      var corPerda=(perdaPct<0)?'var(--red)':(perdaPct>30?'var(--orange)':'var(--grn)');
+      h+='<div class="kpi-card"><div class="kpi-label">Peso cru</div><div class="kpi-val">'+fmtBR(pesoCruKg,3)+' kg</div></div>'
+       +'<div class="kpi-card"><div class="kpi-label">Perda de forno</div><div class="kpi-val" style="color:'+corPerda+'">'+fmtBR(perdaPct,1)+'%</div></div>'
+       +'<div class="kpi-card"><div class="kpi-label">Fator de cocção</div><div class="kpi-val">'+fmtBR(fcReal,3)+'</div></div>';
+    }
     document.getElementById('previewKpis').innerHTML=h;
+
+    // ── Avisos de conferência ──
+    var avisos=[];
+    if(alertaOvo)avisos.push('⚠️ Ovo deve ser cadastrado em <b>und</b> (unidade), não em kg/g.');
+    if(semConversao)avisos.push('ℹ️ Algum insumo em "und" não tem peso unitário conhecido — a perda de forno não pôde ser calculada.');
+    if(pesoCruKg>0&&rendFinal>pesoCruKg)avisos.push('⚠️ O rendimento ('+fmtBR(rendFinal,3)+' kg) é <b>maior</b> que o peso cru ('+fmtBR(pesoCruKg,3)+' kg). Confira: o rendimento deve ser o peso já assado.');
+    if(rendimento<=0)avisos.push('ℹ️ Sem rendimento cadastrado — o custo/kg está sendo estimado pelo peso dos ingredientes.');
+    var elAv=document.getElementById('previewAvisos');
+    if(elAv){
+      elAv.innerHTML=avisos.length?avisos.map(function(a){return '<div style="font-size:.78rem;color:var(--brown);background:#FEF3C7;border-radius:8px;padding:8px 10px;margin-top:8px">'+a+'</div>';}).join(''):'';
+    }
   }else{
     div.style.display='none';
   }
