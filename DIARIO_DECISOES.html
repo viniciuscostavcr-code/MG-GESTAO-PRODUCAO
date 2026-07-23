@@ -130,6 +130,14 @@ textarea{min-height:60px;resize:vertical;}
 </div>
 
 <script>
+// ── SESSÃO — somente admin ──
+(function(){
+  const k='gf_session',max=8*60*60*1000;
+  const s=JSON.parse(localStorage.getItem(k)||'null');
+  if(!s||Date.now()-s.loggedAt>max){localStorage.removeItem(k);window.location.replace('LOGIN.html');return;}
+  if(s.role!=='admin'){window.location.replace('GESTFOOD_INDEX.html');}
+})();
+
 const SUPA_URL='https://rjkseydseuotdkavskss.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqa3NleWRzZXVvdGRrYXZza3NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTE4OTAsImV4cCI6MjA4Nzc4Nzg5MH0.wEzZ9sZhXJhu0jjNx2OeW7RacGi8djUj-9r9u1-8KYY';
 const SH={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'};

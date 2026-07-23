@@ -407,6 +407,9 @@ details[open] .legacy-summary::before{transform:rotate(90deg);}
     <div class="nav-item" onclick="irMod('FICHAS_TECNICAS.html')">
       <span class="nav-ico">📋</span> Fichas Técnicas
     </div>
+    <div class="nav-item" onclick="irMod('DIARIO_DECISOES.html')">
+      <span class="nav-ico">📓</span> Diário de Decisões
+    </div>
 
     <div class="sidebar-section">Sistema</div>
     <div class="nav-item" onclick="irMod('GESTFOOD_CONFIG.html')">
@@ -475,6 +478,18 @@ details[open] .legacy-summary::before{transform:rotate(90deg);}
         <div class="mod-desc">CMV, custos e receitas de produção</div>
         <div class="mod-foot">
           <span>Custos · Receitas · CMV</span>
+          <span>→</span>
+        </div>
+      </div>
+
+      <!-- Diário de Decisões -->
+      <div class="mod-card m-fichas wide" onclick="irMod('DIARIO_DECISOES.html')">
+        <div class="mod-chip">📓 Gestão</div>
+        <span class="mod-ico">📓</span>
+        <div class="mod-title">Diário de Decisões</div>
+        <div class="mod-desc">Registro das ações de gestão e seus resultados</div>
+        <div class="mod-foot">
+          <span>Decisões · Impacto · Resultados</span>
           <span>→</span>
         </div>
       </div>
@@ -600,13 +615,13 @@ if(CONFIG.logoUrl){
 
 // Restrições de acesso por role
 if(!IS_ADMIN){
-  // Ocultar Configurações na sidebar
+  // Módulos exclusivos de administrador
+  const SO_ADMIN=['Configurações','Diário de Decisões'];
   document.querySelectorAll('.nav-item').forEach(el=>{
-    if(el.textContent.includes('Configurações'))el.style.display='none';
+    if(SO_ADMIN.some(t=>el.textContent.includes(t)))el.style.display='none';
   });
-  // Ocultar card de Configurações no conteúdo
   document.querySelectorAll('.mod-card').forEach(el=>{
-    if(el.textContent.includes('Configurações'))el.style.display='none';
+    if(SO_ADMIN.some(t=>el.textContent.includes(t)))el.style.display='none';
   });
 }
 
