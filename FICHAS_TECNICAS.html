@@ -1137,6 +1137,7 @@ function abrirModalFicha(id){
     });
   }
   renderIngredientesModal();
+  atualizarPreviewCMV(); // calcula os KPIs (incl. perda de forno) já ao abrir, sem precisar tocar em nada
   document.getElementById('modalFicha').classList.remove('hidden');
 }
 
