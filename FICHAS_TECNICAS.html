@@ -327,6 +327,11 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
         <input type="text" inputmode="decimal" id="insPrecoEmbalagem" step="0.01" placeholder="0,00">
       </div>
     </div>
+    <div class="fg">
+      <label>Peso médio por unidade (kg) — só para insumos contados por unidade</label>
+      <input type="text" inputmode="decimal" id="insPesoUnitario" step="0.001" placeholder="ex: 0,050 para ovo · 0,250 para espiga de milho">
+      <div style="font-size:.72rem;color:var(--gray);margin-top:4px;">Preencha quando o insumo for usado em "und" nas fichas. Serve para calcular o peso cru e a perda de forno.</div>
+    </div>
     <div class="fg" id="custoPreviw" style="background:var(--grn-l);padding:10px;border-radius:8px;font-size:.82rem;font-weight:600;color:var(--grn2);display:none;">
       Custo por kg/und: <span id="custoKgVal">—</span>
     </div>
@@ -692,6 +697,7 @@ function abrirModalInsumo(id){
   document.getElementById('insUnidadeCompra').value='';
   document.getElementById('insQtdEmbalagem').value='';
   document.getElementById('insPrecoEmbalagem').value='';
+  document.getElementById('insPesoUnitario').value='';
   document.getElementById('custoPreviw').style.display='none';
   document.getElementById('modalInsumoTitulo').textContent='Novo Insumo';
   if(id){
@@ -704,6 +710,7 @@ function abrirModalInsumo(id){
     document.getElementById('insUnidadeCompra').value=ins.unidade_compra||'';
     document.getElementById('insQtdEmbalagem').value=ins.qtd_embalagem||'';
     document.getElementById('insPrecoEmbalagem').value=ins.preco_embalagem||'';
+    document.getElementById('insPesoUnitario').value=ins.peso_unitario_kg||'';
     document.getElementById('modalInsumoTitulo').textContent='Editar Insumo';
     atualizarCustoPreview();
   }
@@ -737,10 +744,11 @@ async function salvarInsumo(){
   const unidade_compra=document.getElementById('insUnidadeCompra').value.trim();
   const qtd_embalagem=parseDecBR(document.getElementById('insQtdEmbalagem').value)||0;
   const preco_embalagem=parseDecBR(document.getElementById('insPrecoEmbalagem').value)||0;
+  const peso_unitario_kg=parseDecBR(document.getElementById('insPesoUnitario').value)||null;
   if(!nome){toast('⚠️ Nome obrigatório','er');return;}
   if(!unidade_compra){toast('⚠️ Embalagem obrigatória','er');return;}
   if(qtd_embalagem<=0){toast('⚠️ Quantidade inválida','er');return;}
-  const body={nome,setor:setor||null,fornecedor:fornecedor||null,unidade_compra,qtd_embalagem,preco_embalagem,ativo:true,atualizado_em:new Date().toISOString()};
+  const body={nome,setor:setor||null,fornecedor:fornecedor||null,unidade_compra,qtd_embalagem,preco_embalagem,peso_unitario_kg,ativo:true,atualizado_em:new Date().toISOString()};
   try{
     if(id){await sbPatch('insumos',id,body);}
     else{await sbPost('insumos',body);}
@@ -1206,23 +1214,15 @@ function removerIngrediente(idx){
 }
 
 // ── Conversão de unidades para KG (peso real da massa crua) ──
-// Insumos vendidos por unidade precisam do peso médio de cada uma.
-var PESO_UNITARIO={'OVO':0.05,'OVOS':0.05};
-function pesoUnitarioDe(nomeInsumo){
-  var n=(nomeInsumo||'').toUpperCase();
-  var chaves=Object.keys(PESO_UNITARIO);
-  for(var i=0;i<chaves.length;i++){ if(n.indexOf(chaves[i])>=0)return PESO_UNITARIO[chaves[i]]; }
-  return null; // sem peso conhecido
-}
-// Converte a quantidade de um item para KG. Retorna null se não souber converter.
-function qtdEmKg(qtd,unidade,nomeInsumo){
+// Insumos contados por unidade usam o "peso médio por unidade" cadastrado no insumo.
+function qtdEmKg(qtd,unidade,ins){
   var q=parseFloat(qtd)||0;
   var u=(unidade||'kg').toLowerCase();
   if(u==='kg'||u==='l')return q;      // litro ≈ kg (densidade ~1)
   if(u==='g'||u==='ml')return q/1000;
   if(u==='und'){
-    var pu=pesoUnitarioDe(nomeInsumo);
-    return pu!==null?q*pu:null;
+    var pu=ins?parseFloat(ins.peso_unitario_kg):NaN;
+    return (pu&&pu>0)?q*pu:null;      // sem peso cadastrado → não dá pra converter
   }
   return q;
 }
@@ -1234,7 +1234,7 @@ function atualizarPreviewCMV(){
   const preco=parseDecBR(document.getElementById('fichaPrecoVenda').value)||0;
   const precoUnd=parseDecBR(document.getElementById('fichaPrecoVendaUnd').value)||0;
   let custoTotal=0,pesoBruto=0;
-  let pesoCruKg=0, semConversao=false, alertaOvo=false;
+  let pesoCruKg=0, semConversao=false, alertaOvo=false, insumosSemPeso=[];
   ingredientesModal.forEach(function(it){
     const ins=INSUMOS.find(function(i){return i.id===it.insumo_id;});
     if(!ins)return;
@@ -1243,8 +1243,8 @@ function atualizarPreviewCMV(){
     pesoBruto+=qtdBruta;
     custoTotal+=qtdBruta*custoKg;
     // Peso cru real (convertido para kg)
-    var emKg=qtdEmKg(qtdBruta,it.unidade,ins.nome);
-    if(emKg===null){semConversao=true;}else{pesoCruKg+=emKg;}
+    var emKg=qtdEmKg(qtdBruta,it.unidade,ins);
+    if(emKg===null){semConversao=true;insumosSemPeso.push(ins.nome);}else{pesoCruKg+=emKg;}
     // Regra: ovo só existe em unidade
     var nomeUp=(ins.nome||'').toUpperCase();
     if(nomeUp.indexOf('OVO')>=0&&(it.unidade||'kg').toLowerCase()!=='und')alertaOvo=true;
@@ -1293,7 +1293,7 @@ function atualizarPreviewCMV(){
     // ── Avisos de conferência ──
     var avisos=[];
     if(alertaOvo)avisos.push('⚠️ Ovo deve ser cadastrado em <b>und</b> (unidade), não em kg/g.');
-    if(semConversao)avisos.push('ℹ️ Algum insumo em "und" não tem peso unitário conhecido — a perda de forno não pôde ser calculada.');
+    if(semConversao)avisos.push('ℹ️ Sem peso por unidade cadastrado em: <b>'+insumosSemPeso.join(', ')+'</b>. Cadastre o peso médio no insumo para calcular a perda de forno.');
     if(pesoCruKg>0&&rendFinal>pesoCruKg)avisos.push('⚠️ O rendimento ('+fmtBR(rendFinal,3)+' kg) é <b>maior</b> que o peso cru ('+fmtBR(pesoCruKg,3)+' kg). Confira: o rendimento deve ser o peso já assado.');
     if(rendimento<=0)avisos.push('ℹ️ Sem rendimento cadastrado — o custo/kg está sendo estimado pelo peso dos ingredientes.');
     var elAv=document.getElementById('previewAvisos');
