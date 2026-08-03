@@ -758,6 +758,81 @@ const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 let SUPA_OK=false;
 const K='mg_desp3';
 
+// ── VALORES: custo e preço por produto (ficha técnica → fallback ABC de vendas) ──
+// Calculado na hora, nunca gravado: corrigir uma ficha ou importar novo ABC
+// atualiza automaticamente todos os relatórios, inclusive os antigos.
+var VALORES={};        // { codNormalizado: {custo, preco, fonte} }
+var VALORES_OK=false;
+
+function normCod(c){return String(c||'').trim().replace(/^0+/,'');}
+
+async function carregarValores(){
+  if(VALORES_OK)return VALORES;
+  var mapa={};
+  try{
+    // 1) Fichas técnicas — fonte preferencial
+    var fichas=await sbSelect('fichas_tecnicas','select=id,cod,produto_nome,rendimento_kg,preco_venda_kg&ativo=eq.true&limit=1000');
+    var itens =await sbSelect('ficha_itens','select=ficha_id,insumo_id,qtd_bruta,qtd_liquida&limit=5000');
+    var insumos=await sbSelect('insumos','select=id,custo_kg_l&limit=2000');
+    var custoIns={};
+    (insumos||[]).forEach(function(i){custoIns[i.id]=parseFloat(i.custo_kg_l)||0;});
+    var custoReceita={};
+    (itens||[]).forEach(function(it){
+      var q=parseFloat(it.qtd_bruta)||parseFloat(it.qtd_liquida)||0;
+      custoReceita[it.ficha_id]=(custoReceita[it.ficha_id]||0)+q*(custoIns[it.insumo_id]||0);
+    });
+    (fichas||[]).forEach(function(f){
+      var cn=normCod(f.cod);
+      if(!cn)return;
+      var rend=parseFloat(f.rendimento_kg)||0;
+      var custoKg=rend>0?(custoReceita[f.id]||0)/rend:0;
+      if(custoKg>0){
+        mapa[cn]={custo:custoKg,preco:parseFloat(f.preco_venda_kg)||0,fonte:'ficha'};
+      }
+    });
+    // 2) ABC de vendas — preenche o que a ficha não cobre
+    var mesR=await sbSelect('vendas_abc','select=mes_ref&order=mes_ref.desc&limit=1');
+    if(mesR&&mesR.length){
+      var mes=mesR[0].mes_ref, off=0, linhas=[];
+      while(true){
+        var parte=await sbSelect('vendas_abc','select=cod,quantidade,faturamento,custo_total&mes_ref=eq.'+mes+'&limit=1000&offset='+off);
+        if(!parte||!parte.length)break;
+        linhas=linhas.concat(parte);
+        if(parte.length<1000)break;
+        off+=1000; if(off>50000)break;
+      }
+      var agg={};
+      linhas.forEach(function(v){
+        var cn=normCod(v.cod); if(!cn)return;
+        if(!agg[cn])agg[cn]={q:0,f:0,c:0};
+        agg[cn].q+=parseFloat(v.quantidade)||0;
+        agg[cn].f+=parseFloat(v.faturamento)||0;
+        agg[cn].c+=parseFloat(v.custo_total)||0;
+      });
+      Object.keys(agg).forEach(function(cn){
+        var a=agg[cn]; if(a.q<=0)return;
+        var custoAbc=a.c/a.q, precoAbc=a.f/a.q;
+        if(!mapa[cn]){
+          mapa[cn]={custo:custoAbc,preco:precoAbc,fonte:'abc'};
+        }else if(!mapa[cn].preco||mapa[cn].preco<=0){
+          mapa[cn].preco=precoAbc; // ficha sem preço cadastrado → usa o do PDV
+        }
+      });
+    }
+  }catch(e){console.log('Valores indisponíveis:',e.message);}
+  VALORES=mapa; VALORES_OK=true;
+  return VALORES;
+}
+
+// Valor financeiro de um registro de desperdício
+function valorDesp(cod,qtd){
+  var v=VALORES[normCod(cod)];
+  var q=parseFloat(qtd)||0;
+  if(!v)return {custo:0,preco:0,temValor:false};
+  return {custo:v.custo*q, preco:(v.preco||0)*q, temValor:true, fonte:v.fonte};
+}
+function fmtRS(v){return 'R$ '+(Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
 // ── Supabase helpers ──
 async function sbSelect(t,f=''){const r=await fetch(`${SUPA_URL}/rest/v1/${t}?${f}`,{headers:{'apikey':SUPA_KEY,'Authorization':`Bearer ${SUPA_KEY}`,'Content-Type':'application/json'}});if(!r.ok){const m=await r.text();throw new Error(`${t} HTTP ${r.status}: ${m}`);}return r.json();}
 async function sbInsert(t,rows){const r=await fetch(`${SUPA_URL}/rest/v1/${t}`,{method:'POST',headers:{'apikey':SUPA_KEY,'Authorization':`Bearer ${SUPA_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(Array.isArray(rows)?rows:[rows])});if(!r.ok){const m=await r.text();throw new Error(`HTTP ${r.status}: ${m}`);}};
@@ -847,6 +922,8 @@ function allProds(){
   document.getElementById('iData').value=`${y}-${m}-${d}`;
   await load();
   syncHdr();renderAll();
+  // Carrega custos/preços em paralelo e re-renderiza quando chegarem
+  carregarValores().then(function(){renderAll();}).catch(function(){});
 })();
 
 async function load(){
@@ -2409,6 +2486,8 @@ function expConsolidadoDesp(){
   var diasSet=new Set();
   var totalItens=0;
   var totalGeral=0;
+  var totalCusto=0;
+  var totalPreco=0;
 
   lista.forEach(function(h){
     diasSet.add(h.data);
@@ -2425,6 +2504,10 @@ function expConsolidadoDesp(){
       if(!aggProd[keyP].cod && r.cod) aggProd[keyP].cod=r.cod;
       aggProd[keyP].total+=qty;
       aggProd[keyP].motivos[r.mot]=(aggProd[keyP].motivos[r.mot]||0)+qty;
+      var vv=valorDesp(r.cod,qty);
+      aggProd[keyP].vCusto=(aggProd[keyP].vCusto||0)+vv.custo;
+      aggProd[keyP].vPreco=(aggProd[keyP].vPreco||0)+vv.preco;
+      totalCusto+=vv.custo; totalPreco+=vv.preco;
       // Por motivo
       aggMot[r.mot]=(aggMot[r.mot]||0)+qty;
       // Por setor
@@ -2459,6 +2542,8 @@ function expConsolidadoDesp(){
       +'<td style="text-align:center">'+it.set+'</td>'
       +'<td style="text-align:right;font-weight:700;color:#1B4332;">'+qtd3(it.total)+'</td>'
       +'<td style="text-align:center;font-weight:600;color:'+undCor+';">'+it.und+'</td>'
+      +'<td style="text-align:right;font-weight:700;color:#C0392B;">'+fmtRS(it.vCusto||0)+'</td>'
+      +'<td style="text-align:right;color:#8B5A0E;">'+fmtRS(it.vPreco||0)+'</td>'
       +'<td style="font-size:10px;color:#666;">'+motPrincipal(it.motivos)+'</td>'
       +'</tr>';
   }).join('');
@@ -2497,15 +2582,17 @@ function expConsolidadoDesp(){
     +'<div class="info">Período: '+dtDeFmt+' até '+dtAteFmt+' · Gerado em '+new Date().toLocaleString('pt-BR')+'</div>'
     +'<div class="kpis">'
     +'<div class="kpi"><div class="kpi-v">'+qtd3(totalGeral)+'</div><div class="kpi-l">Total desperdiçado</div></div>'
+    +'<div class="kpi"><div class="kpi-v" style="color:#C0392B;font-size:16px;">'+fmtRS(totalCusto)+'</div><div class="kpi-l">Custo perdido</div></div>'
+    +'<div class="kpi"><div class="kpi-v" style="color:#8B5A0E;font-size:16px;">'+fmtRS(totalPreco)+'</div><div class="kpi-l">Venda perdida</div></div>'
     +'<div class="kpi"><div class="kpi-v">'+totalItens+'</div><div class="kpi-l">Itens</div></div>'
     +'<div class="kpi"><div class="kpi-v">'+itemsProd.length+'</div><div class="kpi-l">Produtos</div></div>'
     +'<div class="kpi"><div class="kpi-v">'+diasSet.size+'</div><div class="kpi-l">Dias</div></div>'
     +'</div>'
     +'<h2>📋 Por produto (maior → menor)</h2>'
     +'<table>'
-    +'<thead><tr><th>Cód</th><th>Produto</th><th>Setor</th><th style="text-align:right">Qtd</th><th>Und</th><th>Motivo principal</th></tr></thead>'
+    +'<thead><tr><th>Cód</th><th>Produto</th><th>Setor</th><th style="text-align:right">Qtd</th><th>Und</th><th style="text-align:right">Custo perdido</th><th style="text-align:right">Venda perdida</th><th>Motivo principal</th></tr></thead>'
     +'<tbody>'+rowsProd
-    +'<tr class="tot"><td colspan="3">TOTAL</td><td style="text-align:right">'+qtd3(totalGeral)+'</td><td colspan="2"></td></tr>'
+    +'<tr class="tot"><td colspan="3">TOTAL</td><td style="text-align:right">'+qtd3(totalGeral)+'</td><td></td><td style="text-align:right;color:#C0392B;">'+fmtRS(totalCusto)+'</td><td style="text-align:right;color:#8B5A0E;">'+fmtRS(totalPreco)+'</td><td></td></tr>'
     +'</tbody></table>'
     +'<h2>📌 Por motivo</h2>'
     +'<table>'
