@@ -574,6 +574,90 @@ function estimarDesperdicio(){
 }
 function estimarCustoDesperdicio(){return estimarDesperdicio().custo;}
 
+// ── EVOLUÇÃO MENSAL DO DESPERDÍCIO (R$ e % do faturamento) ──
+// Busca todos os registros e agrega por mês, valorizando pelo custo/preço de cada produto.
+var DESP_SERIE=null;
+async function serieDesperdicioMensal(){
+  if(DESP_SERIE)return DESP_SERIE;
+  var porMes={};
+  try{
+    var offset=0,bloco=1000,linhas=[];
+    while(true){
+      var parte=await sbGet('desperdicios','select=data,produto,cod,quantidade,unidade,setor&limit='+bloco+'&offset='+offset);
+      if(!parte||parte.length===0)break;
+      linhas=linhas.concat(parte);
+      if(parte.length<bloco)break;
+      offset+=bloco; if(offset>60000)break;
+    }
+    linhas.forEach(function(r){
+      var d=r.data||'';
+      if(d.indexOf('/')>=0){var p=d.split('/');d=p[2]+'-'+p[1]+'-'+p[0];}
+      var mes=d.slice(0,7);
+      if(!/^20\d\d-\d\d$/.test(mes))return;
+      if(!porMes[mes])porMes[mes]={qtd:0,custo:0,venda:0,semPreco:0};
+      var qty=parseFloat(r.quantidade)||0;
+      porMes[mes].qtd+=qty;
+      var pr=precoProduto({produto:r.produto||'',cod:(r.cod||'').toString().trim()});
+      if(pr){porMes[mes].custo+=qty*pr.ck;porMes[mes].venda+=qty*pr.vk;}
+      else{porMes[mes].semPreco++;}
+    });
+  }catch(e){console.log('Erro na série de desperdício:',e.message);}
+  DESP_SERIE=porMes;
+  return porMes;
+}
+
+async function drawDesperdicioEvolucao(){
+  var desp=await serieDesperdicioMensal();
+  var vendas=await serieMensalCompleta();
+  var meses=Object.keys(desp).sort();
+  if(meses.length===0)return;
+
+  var nomes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var labels=meses.map(function(m){
+    return nomes[parseInt(m.slice(5,7),10)-1]+'/'+m.slice(2,4);
+  });
+  var custos=meses.map(function(m){return desp[m].custo;});
+  var pcts=meses.map(function(m){
+    var fat=(vendas[m]&&vendas[m].fat)?vendas[m].fat:0;
+    return fat>0?(desp[m].custo/fat*100):null;
+  });
+
+  destroyChart('chDespEvol');
+  var el=document.getElementById('chDespEvol');
+  if(el){
+    charts['chDespEvol']=new Chart(el,{
+      data:{labels:labels,datasets:[
+        {type:'bar',label:'Custo perdido (R$)',data:custos,backgroundColor:'rgba(192,57,43,.75)',borderRadius:5,yAxisID:'y'},
+        {type:'line',label:'% do faturamento',data:pcts,borderColor:'#8B5A0E',backgroundColor:'transparent',borderWidth:2.5,tension:.3,pointRadius:3,yAxisID:'y1',spanGaps:true}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:true,labels:{font:{size:10},boxWidth:12}},
+          tooltip:{callbacks:{label:function(c){
+            return c.dataset.yAxisID==='y1'
+              ? '% do faturamento: '+(c.parsed.y!==null?c.parsed.y.toFixed(2)+'%':'—')
+              : 'Custo perdido: '+fmtR(c.parsed.y);
+          }}}},
+        scales:{
+          y:{position:'left',ticks:{font:{size:10},callback:function(v){return 'R$'+(v>=1000?(v/1000)+'k':v);}}},
+          y1:{position:'right',grid:{drawOnChartArea:false},ticks:{font:{size:10},callback:function(v){return v+'%';}}},
+          x:{ticks:{font:{size:10}}}
+        }}
+    });
+  }
+
+  var nota=document.getElementById('despEvolNota');
+  if(nota){
+    var semPreco=meses.reduce(function(s,m){return s+desp[m].semPreco;},0);
+    var ultimo=meses[meses.length-1];
+    var txt='📊 '+meses.length+' mês(es) com registro. ';
+    if(vendas[ultimo]&&vendas[ultimo].fat>0){
+      txt+='Em '+labels[labels.length-1]+', o desperdício representou '+(desp[ultimo].custo/vendas[ultimo].fat*100).toFixed(2)+'% do faturamento.';
+    }
+    if(semPreco>0)txt+=' <br>⚠️ '+semPreco+' registro(s) sem preço identificado (produto sem ficha nem venda no ABC) — não entram no valor.';
+    nota.innerHTML=txt;
+  }
+}
+
 // ════════ GERAL ════════
 function renderGeral(){
   const v=totaisVendas();
@@ -1131,10 +1215,12 @@ function renderOperacao(){
   top.forEach(function(item,i){const val=item.un==='und'?fmtN(item.und)+' und':fmtKg(item.kg)+' kg';h+='<div class="rank-item"><div class="rank-num'+(i<3?' top':'')+'">'+(i+1)+'</div><div class="rank-nome">'+item.nome+'<div class="rank-sub">'+item.s.slice(0,4)+'</div></div><div class="rank-val" style="color:var(--grn2)">'+val+'</div></div>';});
   h+='</div>';
 
+  h+='<div class="card"><div class="card-title">🗑️ Evolução do Desperdício <span class="sub">custo perdido e % do faturamento</span></div><div class="chart-box tall"><canvas id="chDespEvol"></canvas></div><div id="despEvolNota" style="font-size:.7rem;color:var(--gray);margin-top:8px"></div></div>';
   h+='<div class="insight" style="margin-bottom:0">✅ Produção unificada: padaria e confeitaria registradas no mesmo sistema (GestFood — Gestão de Produção).</div>';
 
   document.getElementById('operacaoBox').innerHTML=h;
   setTimeout(drawOperacaoChart,50);
+  setTimeout(drawDesperdicioEvolucao,120);
 }
 function drawOperacaoChart(){
   let confKg=0,padKg=0;
