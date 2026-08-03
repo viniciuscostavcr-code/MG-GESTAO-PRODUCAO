@@ -2475,9 +2475,11 @@ function filtroUltimos30(){
 }
 
 // ═══ CONSOLIDADO DE DESPERDÍCIOS (agrupado por produto/motivo/setor) ═══
-function expConsolidadoDesp(){
+async function expConsolidadoDesp(){
   var lista=histFiltrado();
   if(!lista.length){toast('Sem dados para exportar','er');return;}
+  // Garante que custos e preços estejam carregados antes de montar o relatório
+  if(!VALORES_OK){toast('Carregando custos...','ok');await carregarValores();}
 
   // Agregações
   var aggProd={};   // por produto+unidade
