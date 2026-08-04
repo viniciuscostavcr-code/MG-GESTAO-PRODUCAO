@@ -1275,14 +1275,16 @@ async function imprimirPlanejamentoSemanal(){
   if(!linhas.length){toast('Nenhuma meta definida nesta semana','wa');return;}
 
   // Prioridade na impressão: classe A primeiro (não podem faltar), depois B e C
-  var ordCls={FOCO:-1,A:0,B:1,C:2};
+  // ATENÇÃO: usar checagem explícita — 0 é falsy em JS, então "|| 2" quebraria a classe A
+  var ordCls={FOCO:0,A:1,B:2,C:3};
+  function _pesoCls(c){ return (ordCls[c]===undefined) ? 3 : ordCls[c]; }
   linhas.sort(function(a,b){
-    var d=(ordCls[a.classe]||2)-(ordCls[b.classe]||2);
+    var d=_pesoCls(a.classe)-_pesoCls(b.classe);
     if(d!==0)return d;
     return (a.nome||'')<(b.nome||'')?-1:1;
   });
 
-  var h='<style>@media print{@page{size:A4 portrait;margin:8mm;} table{page-break-inside:auto;} tr{page-break-inside:avoid;} thead{display:table-header-group;}}</style>';
+  var h='<style>@media print{@page{size:A4 landscape;margin:8mm;} table{page-break-inside:auto;} tr{page-break-inside:avoid;} thead{display:table-header-group;}}</style>';
   h+='<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;color:'+C.brown+';">';
 
   // ── Cabeçalho no padrão do app ──
@@ -1312,9 +1314,9 @@ async function imprimirPlanejamentoSemanal(){
 
   // ── Tabela ──
   h+='<div style="border:1px solid '+C.border+';border-radius:12px;overflow:hidden;">';
-  h+='<table style="width:100%;border-collapse:collapse;font-size:10.5px;">';
+  h+='<table style="width:100%;border-collapse:collapse;font-size:11.5px;">';
   h+='<thead><tr style="background:'+C.grn2+';color:#fff;">'
-    +'<th style="padding:8px 9px;text-align:left;width:29%;font-weight:700;letter-spacing:.2px;">Produto</th>';
+    +'<th style="padding:8px 10px;text-align:left;width:26%;font-weight:700;letter-spacing:.2px;">Produto</th>';
   dias.forEach(function(d){
     var num=d.split('-')[2];
     var ehDom=(_diaSemNum(d)===0);
@@ -1350,10 +1352,10 @@ async function imprimirPlanejamentoSemanal(){
     l.metas.forEach(function(q,j){
       var ehDom=(_diaSemNum(dias[j])===0);
       h+='<td style="padding:6px 3px;text-align:center;'+(ehDom?'background:rgba(217,119,6,.05);':'')+'">'
-        +(q>0?'<span style="font-weight:800;color:'+cor+';font-size:12px;">'+_fmtMeta(q)+'</span>'
+        +(q>0?'<span style="font-weight:800;color:'+cor+';font-size:13.5px;">'+_fmtMeta(q)+'</span>'
              :'<span style="color:#D9DDD9;font-size:11px;">·</span>')+'</td>';
     });
-    h+='<td style="padding:6px 4px;text-align:center;font-weight:800;color:'+C.grn2+';background:'+C.grnL+';font-size:11.5px;">'+_fmtMeta(l.total)+'</td>';
+    h+='<td style="padding:6px 5px;text-align:center;font-weight:800;color:'+C.grn2+';background:'+C.grnL+';font-size:13px;">'+_fmtMeta(l.total)+'</td>';
     h+='</tr>';
   });
   h+='</tbody></table></div>';
@@ -1970,7 +1972,9 @@ function _getStatus(prodId) {
   const sf = _getStatusFrz(prodId);
   if (!sf) return sg;
   const ord = {cr:0,at:1,ok:2,sc:3,sem:4};
-  return (ord[sg]||4) <= (ord[sf]||4) ? sg : sf;
+  // 0 é falsy: precisa de checagem explícita, senão 'cr' (crítico) seria tratado como 'sem'
+  const pOrd = function(s){ return ord[s]===undefined ? 4 : ord[s]; };
+  return pOrd(sg) <= pOrd(sf) ? sg : sf;
 }
 
 function _getClasse(prodId) {
@@ -1984,7 +1988,10 @@ function _getClasse(prodId) {
 function _sortKey(p) {
   const clsOrd = {A:0, B:1, C:2};
   const ord = {cr:0, at:1, ok:2, sc:3, sem:4};
-  return (clsOrd[_getClasse(p.id)]||2) * 10 + (ord[_getStatus(p.id)]||4);
+  // 0 é falsy: sem checagem explícita, classe A e status crítico cairiam para o fim
+  const c = clsOrd[_getClasse(p.id)];
+  const s = ord[_getStatus(p.id)];
+  return (c===undefined ? 2 : c) * 10 + (s===undefined ? 4 : s);
 }
 
 // ══════════════════════════════════════════════════
@@ -3491,6 +3498,9 @@ async function renderTabelaSemanal() {
   // Carregar dados do Supabase
   await _carregarProdItens(PROD_SEM_ISO);
 
+  // Curva ABC de vendas (define a ordem de prioridade da tabela)
+  await carregarCurvaABC();
+
   // Preencher corpo com dados reais
   _popularBodyTabela(dias, hoje);
 
@@ -3555,15 +3565,15 @@ function _popularBodyTabela(dias, hoje) {
   console.log('[Tabela] Renderizando', prodsFiltrados.length,
     'de', TODOS_PRODS.length, 'produtos | PROJ_BASE:', Object.keys(PROJ_BASE).length);
 
-  // Agrupar por categoria
-  var grupos = {};
+  // Agrupar por PRIORIDADE (foco do mês → curva ABC de vendas)
+  var grupos = {FOCO:[], A:[], B:[], C:[]};
   prodsFiltrados.forEach(function(p) {
-    var g = _grupoParaCategoria(p.categoria);
+    var g = _ehFoco(p) ? 'FOCO' : _classeProduto(p, ABC_VENDAS);
     if (!grupos[g]) grupos[g] = [];
     grupos[g].push(p);
   });
 
-  // Ordenar cada grupo pelo semáforo (erros de sort não param a renderização)
+  // Dentro de cada grupo, ordena pelo semáforo de urgência
   Object.keys(grupos).forEach(function(g) {
     try {
       grupos[g].sort(function(a, b){ return _sortKeyProd(a) - _sortKeyProd(b); });
@@ -3572,19 +3582,30 @@ function _popularBodyTabela(dias, hoje) {
     }
   });
 
+  var GRUPOS_PRIORIDADE = [
+    {k:'FOCO', ico:'⭐', nome:'Foco do mês',   desc:'não podem faltar', cor:'#D97706'},
+    {k:'A',    ico:'🔥', nome:'Classe A',      desc:'alto giro',        cor:'#1B4332'},
+    {k:'B',    ico:'📦', nome:'Classe B',      desc:'importantes',      cor:'#6B7280'},
+    {k:'C',    ico:'📋', nome:'Classe C',      desc:'complementares',   cor:'#9CA3AF'}
+  ];
+
   var html = '';
   var _num = 1;
-  PROD_GRUPOS_DEF.forEach(function(gDef) {
-    var lista = grupos[gDef.nome];
+  GRUPOS_PRIORIDADE.forEach(function(gDef) {
+    var lista = grupos[gDef.k];
     if (!lista || !lista.length) return;
-    html += '<tr class="prod-grupo-header"><td colspan="9">'
-          + escHtml(gDef.ico) + ' ' + escHtml(gDef.nome) + '</td></tr>';
+    var ehDestaque = (gDef.k==='FOCO' || gDef.k==='A');
+    html += '<tr class="prod-grupo-header"><td colspan="9" style="'
+          + (ehDestaque ? 'background:'+gDef.cor+';color:#fff;font-weight:800;' : 'background:#F4F4F2;color:'+gDef.cor+';font-weight:700;')
+          + 'padding:6px 12px;font-size:.72rem;letter-spacing:.4px;">'
+          + gDef.ico + ' ' + gDef.nome
+          + ' <span style="opacity:.75;font-weight:600;">— ' + gDef.desc + ' (' + lista.length + ')</span>'
+          + '</td></tr>';
     lista.forEach(function(p) {
       try {
         html += _buildTabelaRow(p, dias, hoje, _num++);
       } catch(eRow) {
         console.error('[Tabela] Erro ao renderizar produto', p.nome, eRow.message);
-        // Linha de erro visível para diagnóstico
         html += '<tr><td colspan="9" style="color:#C0392B;padding:4px 10px;font-size:.75rem;">'
               + '⚠️ Erro: ' + escHtml(p.nome) + '</td></tr>';
       }
