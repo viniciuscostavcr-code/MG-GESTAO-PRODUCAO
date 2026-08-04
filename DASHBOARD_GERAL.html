@@ -1123,8 +1123,9 @@ async function drawSetoresEvolucao(){
       var cor=dif>=0?'var(--grn)':'var(--red)';
       // Dinheiro em destaque; percentual como apoio
       h+='<div class="kpi"><div class="kpi-label">'+(setor==='PADARIA'?'🥖 Padaria':'🎂 Confeitaria')+'</div>'
-       +'<div class="kpi-val" style="color:'+cor+';font-size:1.25rem">'+(dif>0?'+':'')+fmtR(dif)+'</div>'
-       +'<div class="kpi-sub">'+(varP>0?'+':'')+varP.toFixed(1)+'% · '+fmtR(anterior)+' → '+fmtR(atual)+'</div></div>';
+       +'<div class="kpi-val" style="color:'+cor+';font-size:1.2rem">'+(dif>0?'+':'')+fmtR(dif)+'</div>'
+       +'<div class="kpi-val" style="color:'+cor+';font-size:1.05rem;margin-top:1px">'+(varP>0?'+':'')+varP.toFixed(1)+'%</div>'
+       +'<div class="kpi-sub">'+fmtR(anterior)+' → '+fmtR(atual)+'</div></div>';
     });
     var totA=0,totB=0;
     comparaveis.forEach(function(m){
@@ -1134,8 +1135,9 @@ async function drawSetoresEvolucao(){
     var difT=totA-totB;
     var varT=totB>0?((difT)/totB*100):0;
     h+='<div class="kpi dest"><div class="kpi-label">Total a mais no período</div>'
-     +'<div class="kpi-val" style="font-size:1.35rem">'+(difT>0?'+':'')+fmtR(difT)+'</div>'
-     +'<div class="kpi-sub">'+(varT>0?'+':'')+varT.toFixed(1)+'% em '+comparaveis.length+' mês(es)</div></div>';
+     +'<div class="kpi-val" style="font-size:1.3rem">'+(difT>0?'+':'')+fmtR(difT)+'</div>'
+     +'<div class="kpi-val" style="font-size:1.15rem;margin-top:2px">'+(varT>0?'+':'')+varT.toFixed(1)+'%</div>'
+     +'<div class="kpi-sub">crescimento acumulado em '+comparaveis.length+' mês(es)</div></div>';
 
     // Projeção anual — conservadora, pela média já realizada
     if(comparaveis.length>=3){
@@ -1168,7 +1170,9 @@ async function drawSetoresEvolucao(){
     });
     if(tick){
       h+='<div class="card"><div class="card-title">🎯 Preço médio x volume</div>'+tick
-       +'<div style="font-size:.7rem;color:var(--gray);margin-top:8px">Mostra de onde vem o crescimento: preço maior ou mais volume vendido.</div></div>';
+       +'<div style="font-size:.72rem;color:var(--brown);margin-top:10px;background:var(--claro,#EAF4EF);border-radius:8px;padding:9px 11px;line-height:1.55">'
+       +'<b>Como ler:</b> faturamento = quantidade vendida × preço por kg. Se o <b>volume</b> cresce, mais produto saiu da loja (demanda real). '
+       +'Se só o <b>preço</b> cresce, o faturamento subiu por reajuste, não por vender mais — e isso tem limite.</div></div>';
     }
 
     h+='<div class="insight" style="font-size:.72rem;margin-bottom:0">Comparando '+comparaveis.length+' mês(es) presentes nos dois anos: '+labelsC.join(', ')+'. Meses sem par no ano anterior ficam de fora para a comparação ser justa.</div>';
@@ -1969,7 +1973,8 @@ async function imprimirComparativo(){
     h+='<div style="flex:1;background:#EAF4EF;border-radius:9px;padding:13px;">'
       +'<div style="font-size:10px;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;">'+setor+'</div>'
       +'<div style="font-size:19px;font-weight:800;color:'+cor+';margin:3px 0;">'+(dif>0?'+':'')+fmtR(dif)+'</div>'
-      +'<div style="font-size:11px;color:#444;">'+(pct>0?'+':'')+pct.toFixed(1)+'% · '+fmtR(b)+' → '+fmtR(a)+'</div></div>';
+      +'<div style="font-size:15px;font-weight:800;color:'+cor+';">'+(pct>0?'+':'')+pct.toFixed(1)+'%</div>'
+      +'<div style="font-size:10px;color:#444;">'+fmtR(b)+' → '+fmtR(a)+'</div></div>';
   });
   comparaveis.forEach(function(m){
     var ant=(parseInt(m.slice(0,4),10)-1)+m.slice(4);
@@ -1979,7 +1984,8 @@ async function imprimirComparativo(){
   h+='<div style="flex:1;background:#1B4332;border-radius:9px;padding:13px;color:#fff;">'
     +'<div style="font-size:10px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;">Total no período</div>'
     +'<div style="font-size:19px;font-weight:800;margin:3px 0;">'+(difT>0?'+':'')+fmtR(difT)+'</div>'
-    +'<div style="font-size:11px;opacity:.85;">'+(pctT>0?'+':'')+pctT.toFixed(1)+'% em '+comparaveis.length+' mês(es)</div></div>';
+    +'<div style="font-size:16px;font-weight:800;">'+(pctT>0?'+':'')+pctT.toFixed(1)+'%</div>'
+    +'<div style="font-size:10px;opacity:.85;">acumulado em '+comparaveis.length+' mês(es)</div></div>';
   h+='</div>';
 
   // Tabela mês a mês por setor
@@ -2039,8 +2045,8 @@ async function imprimirComparativo(){
 
   h+='<div style="margin-top:14px;padding:11px;background:#F4F4F2;border-radius:8px;font-size:10.5px;color:#444;line-height:1.6;">'
     +'Comparação limitada aos meses presentes nos dois anos, para que o total seja justo. '
-    +'<b>Var. preço</b> mostra quanto o preço médio por kg mudou; <b>var. volume</b>, quanto mudou a quantidade vendida — '
-    +'juntos indicam se o crescimento veio de reajuste ou de vender mais.</div>';
+    +'<b>Preço médio x volume:</b> faturamento = quantidade vendida × preço por kg. Volume crescendo significa mais produto saindo da loja (demanda real); '
+    +'crescimento só por preço vem de reajuste, e tem limite.</div>';
   h+='<div style="font-size:10px;color:#999;margin-top:16px;text-align:center;border-top:1px solid #eee;padding-top:10px;">GestFood · Supermercado MG</div>';
   h+='</div>';
 
