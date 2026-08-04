@@ -833,8 +833,12 @@ function renderFichas(){
   }
   el.innerHTML=lista.map(function(f){
     const c=calcCMV(f);
-    const cmvStr=c.cmv!==null?fmtBR(c.cmv*100, 2)+'%':'—';
-    const cmvColor2=cmvColor(c.cmv);
+    // Usa o CMV por kg; se o produto só tem preço por unidade, usa o CMV por unidade
+    const cmvUsado = (c.cmv!==null && c.cmv!==undefined) ? c.cmv
+                   : ((c.cmvUnd!==null && c.cmvUnd!==undefined) ? c.cmvUnd : null);
+    const cmvBase  = (c.cmv!==null && c.cmv!==undefined) ? 'CMV' : (cmvUsado!==null ? 'CMV (und)' : 'CMV');
+    const cmvStr=cmvUsado!==null?fmtBR(cmvUsado*100, 2)+'%':'—';
+    const cmvColor2=cmvColor(cmvUsado);
     const itens=FICHA_ITENS[f.id]||[];
     return '<div class="ficha-card">'
       +'<div class="ficha-card-header" onclick="toggleFicha(\'fc-'+f.id+'\')">'
@@ -844,7 +848,7 @@ function renderFichas(){
       +'</div>'
       +'<div class="ficha-cmv">'
       +'<div class="ficha-cmv-val" style="color:'+cmvColor2+'">'+cmvStr+'</div>'
-      +'<div class="ficha-cmv-label">CMV</div>'
+      +'<div class="ficha-cmv-label">'+cmvBase+'</div>'
       +'</div>'
       +'</div>'
       +'<div class="ficha-card-body" id="fc-'+f.id+'">'
@@ -875,8 +879,11 @@ function renderFichaBody(f,c,itens){
   }).join('');
 
   // Formação de preço com diferentes metas de CMV
-  const custoKg=c.custoKgFinal;
-  const pVenda=c.preco;
+  // Produto vendido por unidade usa o custo unitário como base
+  const porUnidade = (c.preco<=0 && c.precoUnd>0 && c.nUnid>0);
+  const custoKg = porUnidade ? c.custoUndFinal : c.custoKgFinal;
+  const pVenda  = porUnidade ? c.precoUnd : c.preco;
+  const sufixo  = porUnidade ? '/und' : '/kg';
   const metas=[0.20,0.30,0.40,0.45];
   const precoGrid=metas.map(function(m){
     const pSugerido=custoKg>0?custoKg/m:0;
@@ -887,10 +894,12 @@ function renderFichaBody(f,c,itens){
       +'</div>';
   }).join('');
 
-  const cmvAtual=c.cmv!==null?fmtBR(c.cmv*100, 2)+'%':'—';
-  const margemAtual=c.margem!==null?fmtBR(c.margem*100, 2)+'%':'—';
-  const barWidth=c.cmv!==null?Math.min(c.cmv*100,100):0;
-  const barClass=cmvClass(c.cmv);
+  const cmvUso    = porUnidade ? c.cmvUnd : c.cmv;
+  const margemUso = porUnidade ? c.margemUnd : c.margem;
+  const cmvAtual=(cmvUso!==null&&cmvUso!==undefined)?fmtBR(cmvUso*100, 2)+'%':'—';
+  const margemAtual=(margemUso!==null&&margemUso!==undefined)?fmtBR(margemUso*100, 2)+'%':'—';
+  const barWidth=(cmvUso!==null&&cmvUso!==undefined)?Math.min(cmvUso*100,100):0;
+  const barClass=cmvClass(cmvUso);
 
   return '<table class="ing-table">'
     +'<thead><tr><th>Ingrediente</th><th>Qtd Líq</th><th>FC</th><th>Qtd Bruta</th><th>Custo</th></tr></thead>'
@@ -903,8 +912,9 @@ function renderFichaBody(f,c,itens){
     +'</table>'
     +'<div style="margin-top:10px;font-size:.75rem;color:var(--gray);">'
     +'FA (cocção): '+fmtBR(parseFloat(f.fator_coccao)||1, 2)+' · '
-    +'Rendimento: '+fmtBR(c.rendimento, 2)+' kg · '
-    +'Custo/kg: R$ '+fmtBR(c.custoKgFinal, 2)
+    +'Rendimento: '+fmtBR(c.rendimento, 2)+' kg'
+    +(c.nUnid>0?' ('+fmtBR(c.nUnid,0)+' und)':'')+' · '
+    +'Custo'+sufixo+': R$ '+fmtBR(custoKg, 2)
     +'</div>'
     +'<div style="margin-top:6px;">'
     +'<div style="display:flex;justify-content:space-between;font-size:.75rem;font-weight:600;">'
