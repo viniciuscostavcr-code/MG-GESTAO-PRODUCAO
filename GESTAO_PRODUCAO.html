@@ -564,6 +564,18 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
 .col-meta-btn{display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;padding:4px 2px;border-radius:6px;transition:background .15s;}
 .col-meta-btn:active{background:#EAF4EF;}
 .col-meta-val{font-size:.78rem;font-weight:700;color:#2D6A4F;}
+
+/* ── Otimização de espaço no celular ── */
+@media (max-width:640px){
+  .prod-tabela{min-width:0;font-size:.78rem;}
+  .prod-tabela th{padding:8px 3px;font-size:.72rem;}
+  .prod-tabela td{padding:6px 2px;}
+  .prod-tabela .col-produto{min-width:104px;max-width:118px;padding:6px 5px;font-size:.72rem;line-height:1.2;}
+  .prod-tabela .col-meta{min-width:44px;padding:4px 2px;}
+  .prod-tabela .col-meta-val{font-size:.72rem;}
+  .prod-tabela-wrap{border-radius:8px;}
+  .prod-cell{min-width:38px;}
+}
 .col-meta-hint{font-size:.55rem;color:#9CA3AF;line-height:1;}
 /* ══ MODAL DETALHE PRODUTO (bottom-sheet genérico) ══ */
 .ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1050;align-items:flex-end;justify-content:center;padding:0;}
@@ -1156,55 +1168,208 @@ function _fmtMeta(v){
   return (Math.round(v*1000)/1000).toLocaleString('pt-BR',{maximumFractionDigits:3});
 }
 
-function imprimirPlanejamentoSemanal(){
+
+// ── CURVA ABC REAL, a partir do faturamento do mês mais recente ──
+// Critério de Pareto: A = até 80% do faturamento acumulado,
+// B = de 80% a 95%, C = os 5% restantes.
+var ABC_VENDAS=null;
+async function carregarCurvaABC(){
+  if(ABC_VENDAS)return ABC_VENDAS;
+  var mapa={_mes:null,_ok:false};
+  try{
+    var ult=await sbSelect('vendas_abc','select=mes_ref&order=mes_ref.desc&limit=1');
+    if(!ult||!ult.length)return (ABC_VENDAS=mapa);
+    var mes=ult[0].mes_ref;
+    mapa._mes=mes;
+
+    var linhas=[],off=0;
+    while(true){
+      var parte=await sbSelect('vendas_abc','select=cod,produto,faturamento,setor&mes_ref=eq.'+mes+'&limit=1000&offset='+off);
+      if(!parte||!parte.length)break;
+      linhas=linhas.concat(parte);
+      if(parte.length<1000)break;
+      off+=1000; if(off>50000)break;
+    }
+    // Agrega por código, dentro do setor atual
+    var agg={};
+    linhas.forEach(function(v){
+      if(v.setor&&SETOR&&String(v.setor).toUpperCase()!==String(SETOR).toUpperCase())return;
+      var cn=String(v.cod||'').trim().replace(/^0+/,'');
+      if(!cn)return;
+      if(!agg[cn])agg[cn]={fat:0,nome:v.produto||''};
+      agg[cn].fat+=Number(v.faturamento)||0;
+    });
+    var itens=Object.keys(agg).map(function(cn){return {cod:cn,fat:agg[cn].fat,nome:agg[cn].nome};})
+                   .filter(function(x){return x.fat>0;})
+                   .sort(function(a,b){return b.fat-a.fat;});
+    var total=itens.reduce(function(s,x){return s+x.fat;},0);
+    if(total<=0)return (ABC_VENDAS=mapa);
+
+    // Cortes da curva. Quando um produto domina o faturamento (caso do pão francês),
+    // o Pareto puro deixaria pouquíssimos itens em A — então também garantimos
+    // um mínimo por posição: os 20% de maior giro entram em A, os 50% seguintes em B.
+    var CORTE_A=0.65, CORTE_B=0.90;      // % do faturamento acumulado
+    var POS_A=Math.ceil(itens.length*0.20);
+    var POS_B=Math.ceil(itens.length*0.50);
+    var acum=0;
+    itens.forEach(function(x,i){
+      acum+=x.fat;
+      var pctAcum=acum/total;
+      var porValor = pctAcum<=CORTE_A ? 'A' : (pctAcum<=CORTE_B ? 'B' : 'C');
+      var porPos   = (i<POS_A) ? 'A' : ((i<POS_B) ? 'B' : 'C');
+      // Fica com a classificação mais alta das duas
+      var ord={A:0,B:1,C:2};
+      mapa[x.cod] = (ord[porValor]<=ord[porPos]) ? porValor : porPos;
+    });
+    mapa._ok=true;
+    mapa._total=total;
+    mapa._qtd=itens.length;
+  }catch(e){console.log('Curva ABC indisponível:',e.message);}
+  ABC_VENDAS=mapa;
+  return mapa;
+}
+
+// Classe do produto: curva de vendas quando disponível, senão o cadastro
+function _classeProduto(p,curva){
+  if(curva&&curva._ok){
+    var cod=String(p.cod||'').trim().replace(/^0+/,'');
+    if(cod&&curva[cod])return curva[cod];
+  }
+  return _getClasse(p.id);
+}
+
+async function imprimirPlanejamentoSemanal(){
   if(!PROD_SEM_ISO){toast('⚠️ Abra a projeção semanal primeiro','wa');return;}
   var dias=_diasSemana(PROD_SEM_ISO);
   var prods=_prodsOrdenados();
-  var nomesDia=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  var abrevDia=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+  var curva=await carregarCurvaABC();
   var dataStr=new Date().toLocaleDateString('pt-BR');
   var ini=dias[0].split('-').reverse().join('/');
   var fim=dias[6].split('-').reverse().join('/');
   var setorIco={PADARIA:'🍞',CONFEITARIA:'🎂',LANCHONETE:'🥪',RESTAURANTE:'🍽️'}[SETOR]||'🏭';
 
-  // @page paisagem só para esta impressão (mais largura = letra maior)
-  var h='<style>@media print{@page{size:A4 landscape;margin:10mm;}}</style>';
-  h+='<div style="font-family:sans-serif;color:#111;">';
-  h+='<div style="display:flex;align-items:center;gap:14px;border-bottom:4px solid #1B4332;padding-bottom:16px;margin-bottom:20px;">'
-    +'<div style="width:52px;height:52px;background:#1B4332;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:22px;">G</div>'
-    +'<div><div style="font-size:24px;font-weight:800;color:#1B4332;">'+setorIco+' Calendário Semanal — '+SETOR+'</div>'
-    +'<div style="font-size:15px;color:#666;margin-top:2px;">Semana '+ini+' a '+fim+' · impresso em '+dataStr+'</div></div></div>';
+  // Paleta do GestFood
+  var C={grn:'#2D6A4F',grn2:'#1B4332',grnL:'#EAF4EF',border:'#E2EDE8',
+         red:'#C0392B',redL:'#FDECEA',orange:'#E67E22',orangeL:'#FEF3EC',
+         brown:'#1C1C1A',gray:'#6B7280',grayL:'#F4F4F2',amber:'#D97706'};
 
-  // Grade de calendário: 7 cards (um por dia)
-  h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;">';
+  // Monta a matriz
+  var linhas=[],totKg=0,totUn=0,nA=0;
+  prods.forEach(function(p){
+    var ehUnd=(p.unidade==='UND');
+    var metas=dias.map(function(d){
+      var lote=getLoteProduto(p.nome,SETOR,_diaSemNum(d),d);
+      return (lote&&lote.qtd)?lote.qtd:0;
+    });
+    var total=metas.reduce(function(a,b){return a+b;},0);
+    if(total>0){
+      var cls=_classeProduto(p,curva);
+      var foco=_ehFoco(p);
+      if(foco)cls='FOCO';           // foco do mês tem prioridade sobre a curva
+      if(cls==='A')nA++;
+      linhas.push({nome:p.nome,ehUnd:ehUnd,un:(ehUnd?'un':'kg'),metas:metas,total:total,classe:cls,foco:foco});
+      if(ehUnd)totUn+=total;else totKg+=total;
+    }
+  });
+  if(!linhas.length){toast('Nenhuma meta definida nesta semana','wa');return;}
+
+  // Prioridade na impressão: classe A primeiro (não podem faltar), depois B e C
+  var ordCls={FOCO:-1,A:0,B:1,C:2};
+  linhas.sort(function(a,b){
+    var d=(ordCls[a.classe]||2)-(ordCls[b.classe]||2);
+    if(d!==0)return d;
+    return (a.nome||'')<(b.nome||'')?-1:1;
+  });
+
+  var h='<style>@media print{@page{size:A4 portrait;margin:8mm;} table{page-break-inside:auto;} tr{page-break-inside:avoid;} thead{display:table-header-group;}}</style>';
+  h+='<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;color:'+C.brown+';">';
+
+  // ── Cabeçalho no padrão do app ──
+  h+='<div style="display:flex;align-items:center;gap:12px;padding-bottom:12px;margin-bottom:14px;border-bottom:3px solid '+C.grn2+';">'
+    +'<div style="width:42px;height:42px;background:linear-gradient(135deg,'+C.grn2+','+C.grn+');border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:21px;font-weight:800;">G</div>'
+    +'<div style="flex:1;"><div style="font-size:17px;font-weight:800;color:'+C.grn2+';letter-spacing:-.2px;">Gest<span style="color:'+C.grn+';">Food</span> — Plano de Produção</div>'
+    +'<div style="font-size:11.5px;color:'+C.gray+';margin-top:2px;">'+setorIco+' '+SETOR+' · Semana '+ini+' a '+fim+'</div></div>'
+    +'<div style="text-align:right;font-size:10px;color:'+C.gray+';">impresso em<br><b style="color:'+C.brown+';">'+dataStr+'</b></div></div>';
+
+  // ── KPIs em cards, como na tela ──
+  h+='<div style="display:flex;gap:8px;margin-bottom:14px;">';
+  if(totKg>0){
+    h+='<div style="flex:1;background:'+C.redL+';border:1px solid '+C.red+'22;border-radius:12px;padding:10px 12px;">'
+      +'<div style="font-size:9.5px;color:'+C.gray+';text-transform:uppercase;letter-spacing:.5px;font-weight:600;">Total em peso</div>'
+      +'<div style="font-size:19px;font-weight:800;color:'+C.red+';line-height:1.2;">'+_fmtMeta(totKg)+' <span style="font-size:12px;">kg</span></div></div>';
+  }
+  if(totUn>0){
+    h+='<div style="flex:1;background:'+C.orangeL+';border:1px solid '+C.orange+'22;border-radius:12px;padding:10px 12px;">'
+      +'<div style="font-size:9.5px;color:'+C.gray+';text-transform:uppercase;letter-spacing:.5px;font-weight:600;">Total em unidades</div>'
+      +'<div style="font-size:19px;font-weight:800;color:'+C.orange+';line-height:1.2;">'+_fmtMeta(totUn)+' <span style="font-size:12px;">un</span></div></div>';
+  }
+  h+='<div style="flex:1;background:'+C.grnL+';border:1px solid '+C.grn+'22;border-radius:12px;padding:10px 12px;">'
+    +'<div style="font-size:9.5px;color:'+C.gray+';text-transform:uppercase;letter-spacing:.5px;font-weight:600;">Produtos</div>'
+    +'<div style="font-size:19px;font-weight:800;color:'+C.grn+';line-height:1.2;">'+linhas.length
+    +(nA>0?' <span style="font-size:11px;font-weight:700;color:'+C.amber+';">('+nA+' classe A)</span>':'')+'</div></div>';
+  h+='</div>';
+
+  // ── Tabela ──
+  h+='<div style="border:1px solid '+C.border+';border-radius:12px;overflow:hidden;">';
+  h+='<table style="width:100%;border-collapse:collapse;font-size:10.5px;">';
+  h+='<thead><tr style="background:'+C.grn2+';color:#fff;">'
+    +'<th style="padding:8px 9px;text-align:left;width:29%;font-weight:700;letter-spacing:.2px;">Produto</th>';
   dias.forEach(function(d){
     var num=d.split('-')[2];
-    var diaNome=nomesDia[_diaSemNum(d)];
-    var ehDomingo=(_diaSemNum(d)===0);
-    var itens=[];
-    prods.forEach(function(p){
-      var lote=getLoteProduto(p.nome,SETOR,_diaSemNum(d),d);
-      var q=lote&&lote.qtd?lote.qtd:0;
-      if(q>0){var un=(p.unidade==='UND'?'un':'kg');itens.push({nome:p.nome,q:q,un:un});}
-    });
-    var corHeader=ehDomingo?'#8B5A0E':'#1B4332';
-    h+='<div style="border:2px solid '+corHeader+';border-radius:10px;overflow:hidden;break-inside:avoid;">';
-    h+='<div style="background:'+corHeader+';color:#fff;padding:9px 4px;text-align:center;">'
-      +'<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">'+diaNome.slice(0,3)+'</div>'
-      +'<div style="font-size:22px;font-weight:900;line-height:1;margin-top:2px;">'+num+'</div></div>';
-    h+='<div style="padding:8px 7px;">';
-    if(itens.length===0){
-      h+='<div style="font-size:13px;color:#ccc;text-align:center;padding:16px 0;">—</div>';
-    }else{
-      itens.forEach(function(it){
-        h+='<div style="padding:7px 0;border-bottom:1px solid #eee;">'
-          +'<div style="font-size:13px;font-weight:700;color:#1a1a1a;line-height:1.25;">'+it.nome+'</div>'
-          +'<div style="font-size:15px;color:#2D6A4F;font-weight:800;margin-top:1px;">'+_fmtMeta(it.q)+' '+it.un+'</div></div>';
-      });
-    }
-    h+='</div></div>';
+    var ehDom=(_diaSemNum(d)===0);
+    h+='<th style="padding:7px 3px;text-align:center;width:9%;'+(ehDom?'background:'+C.amber+';':'')+'">'
+      +'<div style="font-size:9px;opacity:.85;letter-spacing:.4px;">'+abrevDia[_diaSemNum(d)]+'</div>'
+      +'<div style="font-size:14px;font-weight:900;line-height:1.1;">'+num+'</div></th>';
   });
-  h+='</div>';
-  h+='<div style="margin-top:18px;font-size:13px;color:#888;">Produção planejada de cada dia. Ajuste as metas na projeção semanal do sistema.</div>';
+  h+='<th style="padding:7px 5px;text-align:center;width:9%;background:'+C.grn+';font-size:10px;">SEMANA</th>';
+  h+='</tr></thead><tbody>';
+
+  var classeAnterior=null;
+  linhas.forEach(function(l,i){
+    var cor=l.ehUnd?C.orange:C.red;
+    var ehA=(l.classe==='A'||l.classe==='FOCO');
+    var bg=l.foco?'#FFF8E7':(ehA?'#FFFDF5':((i%2)?C.grayL:'#fff'));
+
+    // Separador quando muda de classe
+    var rotulos={FOCO:'⭐ Foco do mês — prioridade máxima',A:'Classe A — alto giro',B:'Classe B — importantes',C:'Classe C — complementares'};
+    if(l.classe!==classeAnterior){
+      var ehDestaque=(l.classe==='FOCO'||l.classe==='A');
+      h+='<tr><td colspan="9" style="padding:5px 9px;'
+        +(ehDestaque?'background:'+(l.classe==='FOCO'?C.amber:C.grn2)+';color:#fff;font-weight:800;'
+                    :'background:'+C.grayL+';color:'+C.gray+';font-weight:700;border-top:2px solid '+C.border+';')
+        +'font-size:9px;letter-spacing:.5px;text-transform:uppercase;">'+(rotulos[l.classe]||l.classe)+'</td></tr>';
+    }
+    classeAnterior=l.classe;
+
+    h+='<tr style="background:'+bg+';border-bottom:1px solid '+C.border+';">';
+    h+='<td style="padding:6px 9px;line-height:1.25;'+(ehA?'border-left:3px solid '+C.amber+';':'')+'">'
+      +(l.foco?'<span style="color:'+C.amber+';margin-right:2px;">⭐</span>':'')
+      +'<span style="font-weight:'+(ehA?'800':'700')+';">'+l.nome+'</span> '
+      +'<span style="display:inline-block;background:'+(l.ehUnd?C.orangeL:C.redL)+';color:'+cor+';font-size:8.5px;font-weight:800;padding:1px 5px;border-radius:4px;vertical-align:middle;">'+l.un.toUpperCase()+'</span></td>';
+    l.metas.forEach(function(q,j){
+      var ehDom=(_diaSemNum(dias[j])===0);
+      h+='<td style="padding:6px 3px;text-align:center;'+(ehDom?'background:rgba(217,119,6,.05);':'')+'">'
+        +(q>0?'<span style="font-weight:800;color:'+cor+';font-size:12px;">'+_fmtMeta(q)+'</span>'
+             :'<span style="color:#D9DDD9;font-size:11px;">·</span>')+'</td>';
+    });
+    h+='<td style="padding:6px 4px;text-align:center;font-weight:800;color:'+C.grn2+';background:'+C.grnL+';font-size:11.5px;">'+_fmtMeta(l.total)+'</td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+
+  // ── Legenda e rodapé ──
+  h+='<div style="margin-top:11px;font-size:10px;color:'+C.gray+';">'
+    +'<span style="display:inline-block;width:9px;height:9px;background:'+C.red+';border-radius:3px;margin-right:5px;vertical-align:middle;"></span>'
+    +'<span style="margin-right:18px;">peso (kg)</span>'
+    +'<span style="display:inline-block;width:9px;height:9px;background:'+C.orange+';border-radius:3px;margin-right:5px;vertical-align:middle;"></span>'
+    +'<span style="margin-right:18px;">unidades (un)</span>'
+    +'<span>O ponto (·) indica dia sem produção prevista</span></div>';
+  var origemABC = (curva&&curva._ok)
+    ? 'Classificação ABC calculada pelas vendas de '+(curva._mes||'')+' ('+curva._qtd+' produtos)'
+    : 'Classificação ABC conforme cadastro do sistema';
+  h+='<div style="margin-top:14px;padding-top:9px;border-top:1px solid '+C.border+';font-size:9.5px;color:#A0A5A0;display:flex;justify-content:space-between;">'
+    +'<span>GestFood · '+origemABC+'</span><span>Ajuste as metas na projeção semanal do sistema</span></div>';
   h+='</div>';
   abrirPrintModal(h);
 }
@@ -3267,7 +3432,7 @@ function _buildTabelaEsqueleto() {
     + '<button onclick="fecharMenuProd();imprimirPlanejamentoMensal();" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#1B4332;font-family:inherit;border-bottom:1px solid #F0F0EE;">🖨️ Imprimir Mensal</button>'
     + '<button onclick="fecharMenuProd();mostrarLegenda();" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#6B7280;font-family:inherit;">ℹ️ Legenda de cores</button>'
     + '</div>';
-  var search = '<div id="prodSearchWrap" class="ck-search" style="margin:0 12px 8px;">'
+  var search = '<div id="prodSearchWrap" class="ck-search" style="margin:0 6px 6px;">'
     + '<span>🔍</span>'
     + '<input type="text" id="buscaProdInp" placeholder="Buscar produto..." autocomplete="off"'
     + ' style="font-size:16px;"'
@@ -3275,7 +3440,7 @@ function _buildTabelaEsqueleto() {
     + '</div>';
   var resumo = '<div id="resumoSemana" style="display:none;"></div>'; // oculto (mantido pra não quebrar quem atualiza)
   var legenda = '';
-  var tabela = '<div class="prod-tabela-wrap" style="margin:0 12px 80px;">'
+  var tabela = '<div class="prod-tabela-wrap" style="margin:0 4px 80px;">'
     + '<table class="prod-tabela" id="tabelaSemanal">'
     + '<thead><tr id="headerSemana">'
     + '<th class="col-produto">Produto</th>'
@@ -3345,6 +3510,33 @@ function _atualizarHeaderTabela(dias, hoje) {
     html += `<th${cls}>${_DIAS_TH[i]}<br><span style="font-weight:400;font-size:.7rem;">${dd}/${mm}</span></th>`;
   });
   tr.innerHTML = html;
+}
+
+
+// ══════════════════════════════════════════════════
+// FOCO DO MÊS — produtos que não podem faltar
+// ══════════════════════════════════════════════════
+function _mesAtualISO(){
+  var d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+function _ehFoco(p){
+  return !!(p && p.foco_mes && p.foco_mes===_mesAtualISO());
+}
+async function alternarFoco(prodId, ev){
+  if(ev)ev.stopPropagation();
+  if(!IS_ADMIN){toast('Só administradores podem marcar foco','wa');return;}
+  var p=(TODOS_PRODS||[]).find(function(x){return x.id===prodId;});
+  if(!p)return;
+  var novo = _ehFoco(p) ? null : _mesAtualISO();
+  try{
+    await sbPatch('produtos',prodId,{foco_mes:novo});
+    p.foco_mes=novo;
+    toast(novo?('⭐ '+p.nome+' marcado como foco do mês'):('Foco removido de '+p.nome),'ok');
+    _popularBodyTabela(_diasSemana(PROD_SEM_ISO), _today());
+  }catch(e){
+    toast('Erro ao salvar: '+e.message,'er');
+  }
 }
 
 function _popularBodyTabela(dias, hoje) {
@@ -3481,10 +3673,17 @@ function _buildTabelaRow(p, dias, hoje, num) {
          <span class="col-meta-val" id="mp_meta_${p.id}">${metaVal || '—'}</span>
        </td>`;
 
+  var ehFoco=_ehFoco(p);
+  var estrela = IS_ADMIN
+    ? '<span onclick="alternarFoco(\''+p.id+'\',event)" title="'+(ehFoco?'Remover foco do mês':'Marcar como foco do mês')+'"'
+      +' style="cursor:pointer;margin-right:4px;font-size:.85rem;'+(ehFoco?'':'opacity:.25;')+'">'+(ehFoco?'⭐':'☆')+'</span>'
+    : (ehFoco?'<span style="margin-right:4px;font-size:.85rem;">⭐</span>':'');
+
   return '<tr style="' + corLinha + '">'
-    + '<td class="col-produto" style="cursor:pointer;' + corLinha + '" title="Toque para ver detalhes"'
+    + '<td class="col-produto" style="cursor:pointer;' + corLinha + (ehFoco?'border-left:3px solid #D97706;':'') + '" title="Toque para ver detalhes"'
     + ' onclick="event.stopPropagation();abrirDetalheProduto(\'' + p.id + '\')">'
-    + '<span class="prod-num">' + num + '</span>' + urgE + ' ' + escHtml(p.nome)
+    + '<span class="prod-num">' + num + '</span>' + estrela + urgE + ' '
+    + '<span style="'+(ehFoco?'font-weight:800;':'')+'">' + escHtml(p.nome) + '</span>'
     + '</td>'
     + metaCell
     + cells
