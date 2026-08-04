@@ -1239,7 +1239,8 @@ function renderComparativo(){
   h+='<div class="card"><div class="card-title">📈 Evolução do Faturamento <span class="sub">'+anoAntComp()+' vs '+anoComp()+', mês a mês</span></div><div class="chart-box tall"><canvas id="chEvolucao"></canvas></div><div id="evolucaoNota" style="font-size:.7rem;color:var(--gray);margin-top:8px"></div></div>';
 
   // ── EVOLUÇÃO POR SETOR ──
-  h+='<div class="insight"><strong>🏭 Desempenho por setor.</strong> Padaria e confeitaria têm dinâmicas diferentes — aqui elas aparecem separadas.</div>';
+  h+='<div class="insight"><strong>🏭 Desempenho por setor.</strong> Padaria e confeitaria têm dinâmicas diferentes — aqui elas aparecem separadas. '
+   +'<button onclick="imprimirComparativo()" style="float:right;padding:5px 11px;background:var(--grn2);color:#fff;border:none;border-radius:7px;font-size:.68rem;font-weight:600;cursor:pointer;font-family:inherit">🖨️ Imprimir</button></div>';
   h+='<div id="setorAcumulado"></div>';
   h+='<div class="card"><div class="card-title">📈 Faturamento por setor <span class="sub">mês a mês</span></div><div class="chart-box tall"><canvas id="chSetorLinha"></canvas></div></div>';
   h+='<div class="card"><div class="card-title">📊 Crescimento vs ano anterior <span class="sub">por setor</span></div><div class="chart-box tall"><canvas id="chSetorCresc"></canvas></div></div>';
@@ -1927,6 +1928,120 @@ function imprimirPrecos(){
     +'<b>CMV teórico</b> = custo da ficha técnica ÷ preço cadastrado. <b>CMV real</b> = custo ÷ faturamento registrado no ABC do mês.<br>'
     +'Linhas em vermelho: preço abaixo do custo (CMV ≥ 100%) — cada venda gera prejuízo. Diferença ≥ 10pp entre teórico e real sugere ficha desatualizada, desperdício não contabilizado ou erro de cadastro no PDV.</div>';
   h+='<div style="font-size:10px;color:#999;margin-top:16px;text-align:center;border-top:1px solid #eee;padding-top:10px;">GestFood · Relatório de Preços e CMV · '+dataStr+'</div>';
+  h+='</div>';
+
+  document.getElementById('printArea').innerHTML=h;
+  setTimeout(function(){window.print();},400);
+}
+
+// ── IMPRESSÃO DO COMPARATIVO POR SETOR ──
+async function imprimirComparativo(){
+  var dados=await serieMensalCompleta();
+  var meses=Object.keys(dados).sort();
+  var comparaveis=meses.filter(function(m){
+    var ant=(parseInt(m.slice(0,4),10)-1)+m.slice(4);
+    return dados[ant];
+  });
+  if(!comparaveis.length){alert('Sem meses comparáveis com o ano anterior.');return;}
+
+  var nomes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  function lbl(m){return nomes[parseInt(m.slice(5,7),10)-1]+'/'+m.slice(2,4);}
+  var dataStr=new Date().toLocaleDateString('pt-BR');
+  var anoA=anoComp(), anoB=anoAntComp();
+
+  var h='<div style="font-family:sans-serif;color:#1C1C1A;max-width:820px;margin:0 auto;padding:24px;">';
+  h+='<div style="border-bottom:3px solid #1B4332;padding-bottom:14px;margin-bottom:18px;">'
+    +'<div style="font-size:20px;font-weight:800;color:#1B4332;">Desempenho por Setor — '+anoB+' vs '+anoA+'</div>'
+    +'<div style="font-size:12px;color:#6B7280;">Supermercado MG · '+comparaveis.length+' mês(es) comparáveis · emitido em '+dataStr+'</div></div>';
+
+  // Cards de resumo
+  var totA=0,totB=0;
+  h+='<div style="display:flex;gap:10px;margin-bottom:18px;">';
+  ['PADARIA','CONFEITARIA'].forEach(function(setor){
+    var a=0,b=0;
+    comparaveis.forEach(function(m){
+      var ant=(parseInt(m.slice(0,4),10)-1)+m.slice(4);
+      a+=(dados[m].setores||{})[setor]||0;
+      b+=(dados[ant].setores||{})[setor]||0;
+    });
+    var dif=a-b, pct=b>0?(dif/b*100):0;
+    var cor=dif>=0?'#1B4332':'#C0392B';
+    h+='<div style="flex:1;background:#EAF4EF;border-radius:9px;padding:13px;">'
+      +'<div style="font-size:10px;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;">'+setor+'</div>'
+      +'<div style="font-size:19px;font-weight:800;color:'+cor+';margin:3px 0;">'+(dif>0?'+':'')+fmtR(dif)+'</div>'
+      +'<div style="font-size:11px;color:#444;">'+(pct>0?'+':'')+pct.toFixed(1)+'% · '+fmtR(b)+' → '+fmtR(a)+'</div></div>';
+  });
+  comparaveis.forEach(function(m){
+    var ant=(parseInt(m.slice(0,4),10)-1)+m.slice(4);
+    totA+=dados[m].fat; totB+=dados[ant].fat;
+  });
+  var difT=totA-totB, pctT=totB>0?(difT/totB*100):0;
+  h+='<div style="flex:1;background:#1B4332;border-radius:9px;padding:13px;color:#fff;">'
+    +'<div style="font-size:10px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;">Total no período</div>'
+    +'<div style="font-size:19px;font-weight:800;margin:3px 0;">'+(difT>0?'+':'')+fmtR(difT)+'</div>'
+    +'<div style="font-size:11px;opacity:.85;">'+(pctT>0?'+':'')+pctT.toFixed(1)+'% em '+comparaveis.length+' mês(es)</div></div>';
+  h+='</div>';
+
+  // Tabela mês a mês por setor
+  h+='<table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:16px;">';
+  h+='<thead><tr style="background:#1B4332;color:#fff;">'
+    +'<th style="padding:7px;text-align:left;">Mês</th>'
+    +'<th style="padding:7px;text-align:right;">Padaria '+anoB+'</th>'
+    +'<th style="padding:7px;text-align:right;">Padaria '+anoA+'</th>'
+    +'<th style="padding:7px;text-align:center;">Var.</th>'
+    +'<th style="padding:7px;text-align:right;">Confeit. '+anoB+'</th>'
+    +'<th style="padding:7px;text-align:right;">Confeit. '+anoA+'</th>'
+    +'<th style="padding:7px;text-align:center;">Var.</th>'
+    +'</tr></thead><tbody>';
+  comparaveis.forEach(function(m,i){
+    var ant=(parseInt(m.slice(0,4),10)-1)+m.slice(4);
+    var pA=(dados[m].setores||{})['PADARIA']||0, pB=(dados[ant].setores||{})['PADARIA']||0;
+    var cA=(dados[m].setores||{})['CONFEITARIA']||0, cB=(dados[ant].setores||{})['CONFEITARIA']||0;
+    var vP=pB>0?((pA-pB)/pB*100):0, vC=cB>0?((cA-cB)/cB*100):0;
+    h+='<tr style="background:'+(i%2?'#F7F7F5':'#fff')+';border-bottom:1px solid #eee;">'
+      +'<td style="padding:6px;font-weight:600;">'+lbl(m)+'</td>'
+      +'<td style="padding:6px;text-align:right;color:#666;">'+fmtR(pB)+'</td>'
+      +'<td style="padding:6px;text-align:right;font-weight:600;">'+fmtR(pA)+'</td>'
+      +'<td style="padding:6px;text-align:center;font-weight:700;color:'+(vP>=0?'#1B4332':'#C0392B')+';">'+(vP>0?'+':'')+vP.toFixed(1)+'%</td>'
+      +'<td style="padding:6px;text-align:right;color:#666;">'+fmtR(cB)+'</td>'
+      +'<td style="padding:6px;text-align:right;font-weight:600;">'+fmtR(cA)+'</td>'
+      +'<td style="padding:6px;text-align:center;font-weight:700;color:'+(vC>=0?'#1B4332':'#C0392B')+';">'+(vC>0?'+':'')+vC.toFixed(1)+'%</td>'
+      +'</tr>';
+  });
+  h+='</tbody></table>';
+
+  // Preço médio x volume
+  var linhas='';
+  ['PADARIA','CONFEITARIA'].forEach(function(setor){
+    var fA=0,qA=0,fB=0,qB=0;
+    comparaveis.forEach(function(m){
+      var ant=(parseInt(m.slice(0,4),10)-1)+m.slice(4);
+      fA+=(dados[m].setores||{})[setor]||0; qA+=(dados[m].qtdSetores||{})[setor]||0;
+      fB+=(dados[ant].setores||{})[setor]||0; qB+=(dados[ant].qtdSetores||{})[setor]||0;
+    });
+    if(qA>0&&qB>0){
+      var tA=fA/qA,tB=fB/qB;
+      linhas+='<tr style="border-bottom:1px solid #eee;"><td style="padding:6px;font-weight:600;">'+setor+'</td>'
+        +'<td style="padding:6px;text-align:right;">'+fmtR2(tB)+'</td>'
+        +'<td style="padding:6px;text-align:right;">'+fmtR2(tA)+'</td>'
+        +'<td style="padding:6px;text-align:center;font-weight:700;">'+(((tA-tB)/tB*100)>0?'+':'')+((tA-tB)/tB*100).toFixed(1)+'%</td>'
+        +'<td style="padding:6px;text-align:center;font-weight:700;">'+(((qA-qB)/qB*100)>0?'+':'')+((qA-qB)/qB*100).toFixed(1)+'%</td></tr>';
+    }
+  });
+  if(linhas){
+    h+='<div style="font-size:13px;font-weight:700;color:#1B4332;margin:14px 0 6px;">Preço médio x volume</div>';
+    h+='<table style="width:100%;border-collapse:collapse;font-size:11.5px;">';
+    h+='<thead><tr style="background:#2D6A4F;color:#fff;"><th style="padding:6px;text-align:left;">Setor</th>'
+      +'<th style="padding:6px;text-align:right;">Preço médio '+anoB+'</th><th style="padding:6px;text-align:right;">Preço médio '+anoA+'</th>'
+      +'<th style="padding:6px;text-align:center;">Var. preço</th><th style="padding:6px;text-align:center;">Var. volume</th></tr></thead>';
+    h+='<tbody>'+linhas+'</tbody></table>';
+  }
+
+  h+='<div style="margin-top:14px;padding:11px;background:#F4F4F2;border-radius:8px;font-size:10.5px;color:#444;line-height:1.6;">'
+    +'Comparação limitada aos meses presentes nos dois anos, para que o total seja justo. '
+    +'<b>Var. preço</b> mostra quanto o preço médio por kg mudou; <b>var. volume</b>, quanto mudou a quantidade vendida — '
+    +'juntos indicam se o crescimento veio de reajuste ou de vender mais.</div>';
+  h+='<div style="font-size:10px;color:#999;margin-top:16px;text-align:center;border-top:1px solid #eee;padding-top:10px;">GestFood · Supermercado MG</div>';
   h+='</div>';
 
   document.getElementById('printArea').innerHTML=h;
