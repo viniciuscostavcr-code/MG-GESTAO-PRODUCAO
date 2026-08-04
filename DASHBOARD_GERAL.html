@@ -917,7 +917,7 @@ async function serieMensalCompleta(forcar){
   try{
     var offset=0,bloco=1000,linhas=[];
     while(true){
-      var parte=await sbGet('vendas_abc','select=mes_ref,data,faturamento,lucro,custo_total&order=id.asc&limit='+bloco+'&offset='+offset);
+      var parte=await sbGet('vendas_abc','select=mes_ref,data,setor,quantidade,faturamento,lucro,custo_total&order=id.asc&limit='+bloco+'&offset='+offset);
       if(!parte||parte.length===0)break;
       linhas=linhas.concat(parte);
       if(parte.length<bloco)break;
@@ -927,10 +927,14 @@ async function serieMensalCompleta(forcar){
     linhas.forEach(function(v){
       var m=v.mes_ref;
       if(!m)return;
-      if(!porMes[m])porMes[m]={fat:0,luc:0,cus:0};
-      porMes[m].fat+=Number(v.faturamento)||0;
+      if(!porMes[m])porMes[m]={fat:0,luc:0,cus:0,setores:{},qtdSetores:{}};
+      var fatV=Number(v.faturamento)||0;
+      porMes[m].fat+=fatV;
       porMes[m].luc+=Number(v.lucro)||0;
       porMes[m].cus+=Number(v.custo_total)||0;
+      var st=(v.setor||'OUTROS').toUpperCase();
+      porMes[m].setores[st]=(porMes[m].setores[st]||0)+fatV;
+      porMes[m].qtdSetores[st]=(porMes[m].qtdSetores[st]||0)+(Number(v.quantidade)||0);
       if(v.data){
         if(!diasSet[m])diasSet[m]={};
         diasSet[m][v.data]=true;
@@ -1037,6 +1041,177 @@ async function drawLinhaTempoGestao(){
   }
 }
 
+// ── EVOLUÇÃO POR SETOR (linha do tempo + crescimento ano a ano) ──
+async function drawSetoresEvolucao(){
+  var dados=await serieMensalCompleta();
+  var meses=Object.keys(dados).sort();
+  if(meses.length===0)return;
+
+  var nomes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var labels=meses.map(function(m){
+    return nomes[parseInt(m.slice(5,7),10)-1]+'/'+m.slice(2,4)+(mesEhParcial(m)?'*':'');
+  });
+  function serieDe(setor){
+    return meses.map(function(m){
+      var s=dados[m].setores||{};
+      return s[setor]||null;
+    });
+  }
+
+  // Gráfico 1: linha do tempo de cada setor
+  destroyChart('chSetorLinha');
+  var el=document.getElementById('chSetorLinha');
+  if(el){
+    charts['chSetorLinha']=new Chart(el,{type:'line',
+      data:{labels:labels,datasets:[
+        {label:'Padaria',data:serieDe('PADARIA'),borderColor:CORES.padaria,backgroundColor:'transparent',borderWidth:3,tension:.3,pointRadius:3,spanGaps:true},
+        {label:'Confeitaria',data:serieDe('CONFEITARIA'),borderColor:CORES.conf,backgroundColor:'transparent',borderWidth:3,tension:.3,pointRadius:3,spanGaps:true}
+      ]},
+      plugins:[pluginMarcosLT('#8B5A0E',meses)],
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:true,labels:{font:{size:11},boxWidth:12}},
+          tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+fmtR(c.parsed.y);}}}},
+        scales:{y:{ticks:{font:{size:10},callback:function(v){return 'R$'+(v/1000)+'k';}}},x:{ticks:{font:{size:10}}}}}
+    });
+  }
+
+  // Gráfico 2: crescimento % vs mesmo mês do ano anterior, por setor
+  var comparaveis=meses.filter(function(m){
+    var ant=(parseInt(m.slice(0,4),10)-1)+m.slice(4);
+    return dados[ant];
+  });
+  var labelsC=comparaveis.map(function(m){
+    return nomes[parseInt(m.slice(5,7),10)-1]+'/'+m.slice(2,4);
+  });
+  function crescimentoDe(setor){
+    return comparaveis.map(function(m){
+      var ant=(parseInt(m.slice(0,4),10)-1)+m.slice(4);
+      var atual=(dados[m].setores||{})[setor]||0;
+      var anterior=(dados[ant].setores||{})[setor]||0;
+      return anterior>0?((atual-anterior)/anterior*100):null;
+    });
+  }
+  destroyChart('chSetorCresc');
+  var el2=document.getElementById('chSetorCresc');
+  if(el2&&comparaveis.length){
+    charts['chSetorCresc']=new Chart(el2,{type:'bar',
+      data:{labels:labelsC,datasets:[
+        {label:'Padaria',data:crescimentoDe('PADARIA'),backgroundColor:CORES.padaria,borderRadius:4},
+        {label:'Confeitaria',data:crescimentoDe('CONFEITARIA'),backgroundColor:CORES.conf,borderRadius:4}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:true,labels:{font:{size:11},boxWidth:12}},
+          tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+(c.parsed.y!==null?(c.parsed.y>0?'+':'')+c.parsed.y.toFixed(1)+'%':'—');}}}},
+        scales:{y:{ticks:{font:{size:10},callback:function(v){return v+'%';}}},x:{ticks:{font:{size:10}}}}}
+    });
+  }
+
+  // Acumulado — só meses presentes nos dois anos (comparação justa)
+  var box=document.getElementById('setorAcumulado');
+  if(box){
+    if(!comparaveis.length){box.innerHTML='<div class="insight">Sem meses comparáveis com o ano anterior ainda.</div>';return;}
+    var h='<div class="kpi-grid">';
+    ['PADARIA','CONFEITARIA'].forEach(function(setor){
+      var atual=0,anterior=0;
+      comparaveis.forEach(function(m){
+        var ant=(parseInt(m.slice(0,4),10)-1)+m.slice(4);
+        atual+=(dados[m].setores||{})[setor]||0;
+        anterior+=(dados[ant].setores||{})[setor]||0;
+      });
+      var dif=atual-anterior;
+      var varP=anterior>0?((dif)/anterior*100):0;
+      var cor=dif>=0?'var(--grn)':'var(--red)';
+      // Dinheiro em destaque; percentual como apoio
+      h+='<div class="kpi"><div class="kpi-label">'+(setor==='PADARIA'?'🥖 Padaria':'🎂 Confeitaria')+'</div>'
+       +'<div class="kpi-val" style="color:'+cor+';font-size:1.25rem">'+(dif>0?'+':'')+fmtR(dif)+'</div>'
+       +'<div class="kpi-sub">'+(varP>0?'+':'')+varP.toFixed(1)+'% · '+fmtR(anterior)+' → '+fmtR(atual)+'</div></div>';
+    });
+    var totA=0,totB=0;
+    comparaveis.forEach(function(m){
+      var ant=(parseInt(m.slice(0,4),10)-1)+m.slice(4);
+      totA+=dados[m].fat; totB+=dados[ant].fat;
+    });
+    var difT=totA-totB;
+    var varT=totB>0?((difT)/totB*100):0;
+    h+='<div class="kpi dest"><div class="kpi-label">Total a mais no período</div>'
+     +'<div class="kpi-val" style="font-size:1.35rem">'+(difT>0?'+':'')+fmtR(difT)+'</div>'
+     +'<div class="kpi-sub">'+(varT>0?'+':'')+varT.toFixed(1)+'% em '+comparaveis.length+' mês(es)</div></div>';
+
+    // Projeção anual — conservadora, pela média já realizada
+    if(comparaveis.length>=3){
+      var mediaMes=difT/comparaveis.length;
+      var proj=mediaMes*12;
+      h+='<div class="kpi"><div class="kpi-label">Projeção 12 meses</div>'
+       +'<div class="kpi-val" style="font-size:1.25rem;color:var(--gray)">'+(proj>0?'+':'')+fmtR(proj)+'</div>'
+       +'<div class="kpi-sub">estimativa: média de '+fmtR(mediaMes)+'/mês</div></div>';
+    }
+    h+='</div>';
+
+    // Ticket médio por setor (preço médio por kg vendido)
+    var tick='';
+    ['PADARIA','CONFEITARIA'].forEach(function(setor){
+      var fA=0,qA=0,fB=0,qB=0;
+      comparaveis.forEach(function(m){
+        var ant=(parseInt(m.slice(0,4),10)-1)+m.slice(4);
+        var a=(dados[m].qtdSetores||{})[setor]||0, b=(dados[ant].qtdSetores||{})[setor]||0;
+        fA+=(dados[m].setores||{})[setor]||0; qA+=a;
+        fB+=(dados[ant].setores||{})[setor]||0; qB+=b;
+      });
+      if(qA>0&&qB>0){
+        var tA=fA/qA, tB=fB/qB;
+        var varT2=((tA-tB)/tB*100);
+        var varQ=((qA-qB)/qB*100);
+        tick+='<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:.78rem">'
+          +'<span><b>'+(setor==='PADARIA'?'🥖 Padaria':'🎂 Confeitaria')+'</b></span>'
+          +'<span>preço médio '+fmtR2(tB)+' → '+fmtR2(tA)+' ('+(varT2>0?'+':'')+varT2.toFixed(1)+'%) · volume '+(varQ>0?'+':'')+varQ.toFixed(1)+'%</span></div>';
+      }
+    });
+    if(tick){
+      h+='<div class="card"><div class="card-title">🎯 Preço médio x volume</div>'+tick
+       +'<div style="font-size:.7rem;color:var(--gray);margin-top:8px">Mostra de onde vem o crescimento: preço maior ou mais volume vendido.</div></div>';
+    }
+
+    h+='<div class="insight" style="font-size:.72rem;margin-bottom:0">Comparando '+comparaveis.length+' mês(es) presentes nos dois anos: '+labelsC.join(', ')+'. Meses sem par no ano anterior ficam de fora para a comparação ser justa.</div>';
+    box.innerHTML=h;
+  }
+
+  // Gráfico 3: ganho acumulado (quanto a mais, somando mês a mês)
+  destroyChart('chGanhoAcum');
+  var el3=document.getElementById('chGanhoAcum');
+  if(el3&&comparaveis.length){
+    var acum=0;
+    var serieAcum=comparaveis.map(function(m){
+      var ant=(parseInt(m.slice(0,4),10)-1)+m.slice(4);
+      acum+=(dados[m].fat-dados[ant].fat);
+      return acum;
+    });
+    charts['chGanhoAcum']=new Chart(el3,{type:'line',
+      data:{labels:labelsC,datasets:[{label:'Ganho acumulado',data:serieAcum,borderColor:CORES.grn,backgroundColor:'rgba(45,106,79,.15)',borderWidth:3,tension:.3,fill:true,pointRadius:4}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return 'Acumulado: '+fmtR(c.parsed.y);}}}},
+        scales:{y:{ticks:{font:{size:10},callback:function(v){return 'R$'+(v/1000)+'k';}}},x:{ticks:{font:{size:10}}}}}
+    });
+  }
+}
+
+// Plugin de marcos reaproveitável
+function pluginMarcosLT(cor,meses){
+  var idx=MARCOS_GESTAO.map(function(mk){
+    var i=meses.indexOf(mk.mes);
+    return i>=0?{idx:i,emoji:mk.emoji}:null;
+  }).filter(Boolean);
+  return {id:'marcosSetor',afterDraw:function(chart){
+    var ctx=chart.ctx,xs=chart.scales.x,area=chart.chartArea;
+    idx.forEach(function(mk){
+      var x=xs.getPixelForValue(mk.idx);
+      ctx.save();ctx.strokeStyle=cor;ctx.setLineDash([5,4]);ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(x,area.top);ctx.lineTo(x,area.bottom);ctx.stroke();
+      ctx.setLineDash([]);ctx.fillStyle=cor;ctx.font='9px sans-serif';ctx.textAlign='center';
+      ctx.fillText(mk.emoji,x,area.top-2);ctx.restore();
+    });
+  }};
+}
+
 // ════════ COMPARATIVO ════════
 function renderComparativo(){
   const v=totaisVendas();
@@ -1063,6 +1238,13 @@ function renderComparativo(){
   // Gráfico de evolução mês a mês (2025 vs 2026)
   h+='<div class="card"><div class="card-title">📈 Evolução do Faturamento <span class="sub">'+anoAntComp()+' vs '+anoComp()+', mês a mês</span></div><div class="chart-box tall"><canvas id="chEvolucao"></canvas></div><div id="evolucaoNota" style="font-size:.7rem;color:var(--gray);margin-top:8px"></div></div>';
 
+  // ── EVOLUÇÃO POR SETOR ──
+  h+='<div class="insight"><strong>🏭 Desempenho por setor.</strong> Padaria e confeitaria têm dinâmicas diferentes — aqui elas aparecem separadas.</div>';
+  h+='<div id="setorAcumulado"></div>';
+  h+='<div class="card"><div class="card-title">📈 Faturamento por setor <span class="sub">mês a mês</span></div><div class="chart-box tall"><canvas id="chSetorLinha"></canvas></div></div>';
+  h+='<div class="card"><div class="card-title">📊 Crescimento vs ano anterior <span class="sub">por setor</span></div><div class="chart-box tall"><canvas id="chSetorCresc"></canvas></div></div>';
+  h+='<div class="card"><div class="card-title">💰 Ganho acumulado <span class="sub">quanto a mais, somando os meses</span></div><div class="chart-box tall"><canvas id="chGanhoAcum"></canvas></div></div>';
+
   // ── LINHA DO TEMPO DA GESTÃO ──
   h+='<div class="insight"><strong>🗓️ Linha do Tempo da Gestão.</strong> Faturamento, margem e CMV mês a mês, desde o início do histórico no sistema — com marcos dos principais eventos da gestão.</div>';
   h+='<div class="card"><div class="card-title">💵 Faturamento — linha do tempo completa</div><div class="chart-box tall"><canvas id="chLTFat"></canvas></div></div>';
@@ -1076,6 +1258,7 @@ function renderComparativo(){
   setTimeout(drawCompChart,50);
   setTimeout(drawEvolucaoChart,80);
   setTimeout(drawLinhaTempoGestao,110);
+  setTimeout(drawSetoresEvolucao,150);
 }
 
 // Desenha o gráfico de evolução mês a mês (2 linhas: 2025 e 2026)
