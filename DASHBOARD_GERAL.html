@@ -1732,6 +1732,96 @@ function montarListaPrecos(){
   return lista;
 }
 
+
+// ── RESUMO DE CMV POR SETOR (ponderado + média simples) ──
+function resumoCmvSetores(lista){
+  var porSetor={};
+  lista.forEach(function(p){
+    var s=p.setor||'—';
+    if(!porSetor[s])porSetor[s]={
+      // ponderado: soma custos e faturamentos
+      custoT:0, precoT:0, custoR:0, fatR:0,
+      // média simples: acumula os CMVs
+      somaCmvT:0, nT:0, somaCmvR:0, nR:0,
+      produtos:0, comABC:0
+    };
+    var d=porSetor[s];
+    d.produtos++;
+    if(p.cmvT!==null&&p.cmvT!==undefined){d.somaCmvT+=p.cmvT;d.nT++;}
+    if(p.cmvR!==null&&p.cmvR!==undefined){d.somaCmvR+=p.cmvR;d.nR++;}
+    // Ponderação: usa o faturamento real do ABC como peso
+    if(p.temABC&&p.fat>0){
+      d.comABC++;
+      d.fatR+=p.fat;
+      if(p.custoR!==null)d.custoR+=p.custoR*(p.fat/(p.precoR||1));
+      // teórico ponderado: aplica o CMV teórico sobre o faturamento real
+      if(p.cmvT!==null){d.custoT+=p.cmvT*p.fat;d.precoT+=p.fat;}
+    }
+  });
+  Object.keys(porSetor).forEach(function(s){
+    var d=porSetor[s];
+    d.cmvTeoricoPond = d.precoT>0 ? d.custoT/d.precoT : null;
+    d.cmvRealPond    = d.fatR>0   ? d.custoR/d.fatR   : null;
+    d.cmvTeoricoMed  = d.nT>0 ? d.somaCmvT/d.nT : null;
+    d.cmvRealMed     = d.nR>0 ? d.somaCmvR/d.nR : null;
+  });
+  return porSetor;
+}
+
+function htmlResumoCmv(lista){
+  var r=resumoCmvSetores(lista);
+  var setores=Object.keys(r).filter(function(s){return r[s].produtos>0;}).sort();
+  if(!setores.length)return '';
+
+  var h='<div class="card"><div class="card-title">📊 CMV médio por setor <span class="sub">ponderado pelo faturamento</span></div>';
+  h+='<div class="pscroll"><table class="ptable"><thead><tr>'
+   +'<th style="text-align:left">Setor</th>'
+   +'<th>Produtos</th>'
+   +'<th>CMV teórico</th>'
+   +'<th>CMV real</th>'
+   +'<th>Dif.</th>'
+   +'<th>Média simples (teór.)</th>'
+   +'</tr></thead><tbody>';
+
+  // Totais da loja
+  var totCustoT=0,totPrecoT=0,totCustoR=0,totFatR=0,totProd=0;
+  setores.forEach(function(s){
+    var d=r[s];
+    totCustoT+=d.custoT; totPrecoT+=d.precoT;
+    totCustoR+=d.custoR; totFatR+=d.fatR; totProd+=d.produtos;
+    var dif=(d.cmvTeoricoPond!==null&&d.cmvRealPond!==null)?(d.cmvRealPond-d.cmvTeoricoPond)*100:null;
+    h+='<tr>'
+     +'<td style="font-weight:700">'+s+'</td>'
+     +'<td style="text-align:center;color:var(--gray);font-size:.7rem">'+d.produtos+(d.comABC<d.produtos?' <span title="com venda no ABC">('+d.comABC+' c/ venda)</span>':'')+'</td>'
+     +'<td style="font-weight:700;color:'+corCMV(d.cmvTeoricoPond)+'">'+fmtPct(d.cmvTeoricoPond)+'</td>'
+     +'<td style="color:'+corCMV(d.cmvRealPond)+'">'+fmtPct(d.cmvRealPond)+'</td>'
+     +'<td style="font-size:.7rem;color:'+(dif!==null&&Math.abs(dif)>=5?'var(--orange)':'var(--gray)')+'">'+fmtPP(dif)+'</td>'
+     +'<td style="color:var(--gray);font-size:.72rem">'+fmtPct(d.cmvTeoricoMed)+'</td>'
+     +'</tr>';
+  });
+
+  var lojaT=totPrecoT>0?totCustoT/totPrecoT:null;
+  var lojaR=totFatR>0?totCustoR/totFatR:null;
+  var difL=(lojaT!==null&&lojaR!==null)?(lojaR-lojaT)*100:null;
+  h+='<tr style="background:var(--claro,#EAF4EF);font-weight:800">'
+   +'<td>LOJA (total)</td>'
+   +'<td style="text-align:center;font-size:.7rem">'+totProd+'</td>'
+   +'<td style="color:'+corCMV(lojaT)+'">'+fmtPct(lojaT)+'</td>'
+   +'<td style="color:'+corCMV(lojaR)+'">'+fmtPct(lojaR)+'</td>'
+   +'<td style="font-size:.7rem">'+fmtPP(difL)+'</td>'
+   +'<td style="color:var(--gray);font-size:.72rem">—</td>'
+   +'</tr>';
+  h+='</tbody></table></div>';
+
+  h+='<div class="insight" style="margin-top:10px;margin-bottom:0;font-size:.72rem">'
+   +'<b>CMV teórico</b> vem das fichas técnicas (custo real que você levantou). <b>CMV real</b> vem do custo cadastrado no PDV. '
+   +'A coluna <b>Dif.</b> é o tamanho do erro do cadastro — enquanto os custos não forem corrigidos no VarejoFácil, o CMV real não é confiável.<br>'
+   +'O cálculo é <b>ponderado pelo faturamento</b>: produtos que vendem mais pesam mais, como no resultado financeiro. '
+   +'A <b>média simples</b> ao lado trata todos os produtos igual — se ela for muito diferente da ponderada, os itens de maior giro têm CMV fora da média do catálogo.'
+   +'</div></div>';
+  return h;
+}
+
 function renderPrecos(){
   var box=document.getElementById('precosBox');
   if(!box)return;
@@ -1783,6 +1873,9 @@ function renderPrecos(){
 
   // ── Busca ──
   h+='<div class="card" style="padding:10px 12px"><input type="text" id="precoBuscaInp" value="'+precoBusca.replace(/"/g,'&quot;')+'" oninput="setPrecoBusca(this.value)" placeholder="🔍 Buscar produto ou código..." style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:16px;font-family:inherit;color:var(--brown)"></div>';
+
+  // ── Resumo de CMV por setor (visão agregada, antes do detalhe) ──
+  h+=htmlResumoCmv(lista);
 
   // ── Tabela (container separado — a busca atualiza só ele, sem perder o foco) ──
   h+='<div id="precosTabelaBox">'+htmlTabelaPrecos(lista)+'</div>';
