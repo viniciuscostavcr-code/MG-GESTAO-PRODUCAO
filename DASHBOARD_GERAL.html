@@ -1419,6 +1419,82 @@ function drawOperacaoChart(){
 }
 
 // ════════ GARGALOS ════════
+
+// ── TOP 5 DESPERDIÇADOS POR SETOR (ordenado por custo perdido) ──
+function htmlTopDesperdicioSetor(desp){
+  // Agrupa por setor e produto, valorizando cada registro
+  var porSetor={};
+  desp.forEach(function(d){
+    var s=(d.setor||'—').toUpperCase();
+    if(!porSetor[s])porSetor[s]={};
+    var chave=d.produto||'—';
+    if(!porSetor[s][chave])porSetor[s][chave]={kg:0,und:0,un:d.und,custo:0,venda:0,temPreco:false,regs:0};
+    var it=porSetor[s][chave];
+    it.regs++;
+    if(d.und==='und')it.und+=d.qty; else it.kg+=d.qty;
+    var pr=precoProduto(d);
+    if(pr){it.custo+=d.qty*pr.ck;it.venda+=d.qty*pr.vk;it.temPreco=true;}
+  });
+
+  var setores=Object.keys(porSetor).sort();
+  if(!setores.length)return '';
+
+  var h='<div class="card"><div class="card-title">🎯 Onde o desperdício se concentra <span class="sub">top 5 de cada setor, por custo perdido</span></div>';
+
+  setores.forEach(function(s){
+    var itens=Object.keys(porSetor[s]).map(function(nm){
+      var it=porSetor[s][nm];
+      return {nome:nm,kg:it.kg,und:it.und,un:it.un,custo:it.custo,venda:it.venda,temPreco:it.temPreco,regs:it.regs};
+    });
+    // Ordena por custo; produtos sem preço vão para o fim, ordenados por quantidade
+    itens.sort(function(a,b){
+      if(a.temPreco&&b.temPreco)return b.custo-a.custo;
+      if(a.temPreco)return -1;
+      if(b.temPreco)return 1;
+      return (b.kg+b.und)-(a.kg+a.und);
+    });
+    var top=itens.slice(0,5);
+    if(!top.length)return;
+
+    var custoSetor=itens.reduce(function(t,x){return t+x.custo;},0);
+    var custoTop=top.reduce(function(t,x){return t+x.custo;},0);
+    var pctTop=custoSetor>0?(custoTop/custoSetor*100):0;
+
+    var ico={PADARIA:'🥖',CONFEITARIA:'🎂',LANCHONETE:'🥪',RESTAURANTE:'🍽️'}[s]||'🏭';
+    h+='<div style="margin-top:12px;padding:9px 11px;background:var(--claro,#EAF4EF);border-radius:9px;display:flex;justify-content:space-between;align-items:center">'
+     +'<span style="font-weight:800;font-size:.85rem;color:var(--grn2)">'+ico+' '+s+'</span>'
+     +'<span style="font-size:.72rem;color:var(--gray)">total '+fmtR(custoSetor)+'</span></div>';
+
+    top.forEach(function(item,i){
+      var q=item.un==='und'?fmtN(item.und)+' und':fmtKg(item.kg)+' kg';
+      var pctItem=custoSetor>0?(item.custo/custoSetor*100):0;
+      var barra=Math.max(3,Math.min(100,pctItem));
+      h+='<div style="padding:7px 2px;border-bottom:1px solid var(--border)">'
+       +'<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">'
+       +'<span style="font-size:.8rem;font-weight:700;color:var(--brown)">'+(i+1)+'. '+item.nome+'</span>'
+       +'<span style="font-size:.85rem;font-weight:800;color:var(--red);white-space:nowrap">'+(item.temPreco?fmtR(item.custo):'—')+'</span></div>'
+       +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:3px">'
+       +'<span style="font-size:.68rem;color:var(--gray)">'+q+' · '+item.regs+' registro(s)'
+       +(item.temPreco?' · venda perdida '+fmtR(item.venda):' · sem preço')+'</span>'
+       +'<span style="font-size:.66rem;color:var(--gray);white-space:nowrap">'+pctItem.toFixed(0)+'% do setor</span></div>'
+       +'<div style="height:4px;border-radius:2px;background:var(--border);margin-top:4px;overflow:hidden">'
+       +'<div style="height:100%;width:'+barra+'%;background:var(--red);border-radius:2px"></div></div>'
+       +'</div>';
+    });
+
+    if(top.length>=3){
+      h+='<div style="font-size:.7rem;color:var(--gray);padding:7px 2px 2px">'
+       +'Esses '+top.length+' produtos concentram <b>'+pctTop.toFixed(0)+'%</b> do desperdício do setor.</div>';
+    }
+  });
+
+  h+='<div class="insight" style="margin-top:12px;margin-bottom:0;font-size:.72rem">'
+   +'<b>Como usar:</b> atacar os primeiros da lista rende mais que espalhar esforço. '
+   +'Para cada um, a pergunta é: produção acima da demanda, validade curta, ou problema de conservação?</div>';
+  h+='</div>';
+  return h;
+}
+
 function renderGargalos(){
   const desp=DESPERDICIO;
   let h='';
@@ -1477,7 +1553,10 @@ function renderGargalos(){
   const agg={};
   desp.forEach(function(d){if(!agg[d.produto])agg[d.produto]={kg:0,und:0,un:d.und,custo:0,venda:0,temPreco:false,fonte:''};const pr=precoProduto(d);if(d.und==='und')agg[d.produto].und+=d.qty;else agg[d.produto].kg+=d.qty;if(pr){agg[d.produto].custo+=d.qty*pr.ck;agg[d.produto].venda+=d.qty*pr.vk;agg[d.produto].temPreco=true;agg[d.produto].classe=pr.classe;agg[d.produto].fonte=pr.fonte;}else{agg[d.produto].classe=null;}});
   const lista=Object.keys(agg).map(function(nm){return{nome:nm,kg:agg[nm].kg,und:agg[nm].und,un:agg[nm].un,custo:agg[nm].custo,venda:agg[nm].venda,classe:agg[nm].classe,temPreco:agg[nm].temPreco,fonte:agg[nm].fonte};}).sort(function(a,b){return (b.kg+b.und)-(a.kg+a.und);}).slice(0,12);
-  h+='<div class="card"><div class="card-title">🗑️ Top 12 Desperdiçados <span class="sub">por quantidade</span></div>';
+  // Top 5 por setor — visão de onde agir
+  h+=htmlTopDesperdicioSetor(desp);
+
+  h+='<div class="card"><div class="card-title">🗑️ Top 12 Desperdiçados <span class="sub">por quantidade, geral</span></div>';
   lista.forEach(function(item,i){
     const q=item.un==='und'?fmtN(item.und)+' und':fmtKg(item.kg)+' kg';
     const classeTag=item.classe?'<span class="classe-tag classe-'+item.classe+'">'+item.classe+'</span> ':'';
