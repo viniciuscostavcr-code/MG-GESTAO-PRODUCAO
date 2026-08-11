@@ -1569,6 +1569,26 @@ function grupoDoProduto(nome, tipo){
   return null;
 }
 
+
+// Estado dos filtros da conferência
+var confBusca='';
+var confFiltroSetor='TODOS';
+var confFiltroStatus='TODOS';
+var confSort='valorDif';
+var confSortDir=-1;
+var CONF_LINHAS=[];
+
+function setConfSetor(s){confFiltroSetor=s;renderConferencia();}
+function setConfStatus(s){confFiltroStatus=(confFiltroStatus===s?'TODOS':s);renderConferencia();}
+function setConfSort(c){
+  if(confSort===c)confSortDir=-confSortDir; else {confSort=c;confSortDir=-1;}
+  document.getElementById('confTabelaBox').innerHTML=htmlTabelaConf(CONF_LINHAS);
+}
+function onConfBusca(v){
+  confBusca=v;
+  document.getElementById('confTabelaBox').innerHTML=htmlTabelaConf(CONF_LINHAS);
+}
+
 function renderConferencia(){
   var box=document.getElementById('conferenciaBox');
   if(!box)return;
@@ -1640,39 +1660,112 @@ function renderConferencia(){
     return;
   }
 
-  // 5) Agrupa por status
-  var grupos={FALTA_REGISTRO:[],EXCESSO:[],OK:[]};
-  linhas.forEach(function(l){grupos[l.status].push(l);});
-  Object.keys(grupos).forEach(function(g){
-    grupos[g].sort(function(a,b){
-      if(a.valorDif!==null&&b.valorDif!==null)return b.valorDif-a.valorDif;
-      return Math.abs(b.dif)-Math.abs(a.dif);
-    });
+  CONF_LINHAS=linhas;
+
+  // Contagens para os cards de filtro
+  var nFalta=0,nExcesso=0,nOk=0;
+  linhas.forEach(function(l){
+    if(l.status==='FALTA_REGISTRO')nFalta++;
+    else if(l.status==='EXCESSO')nExcesso++;
+    else nOk++;
   });
 
   var h='<div class="insight"><strong>🔍 Conferência de '+nomeMesAtual()+'.</strong> '
-   +'Compara o que foi produzido com o que foi vendido e desperdiçado. '
-   +'Diferenças pequenas são normais (produto na gôndola virando o mês). '
-   +'O que interessa são os casos extremos — eles apontam registro faltando ou erro de cadastro.</div>';
+   +'Compara o que foi produzido com o que foi vendido e desperdiçado. Diferenças pequenas são normais '
+   +'(produto na gôndola virando o mês). Os extremos apontam registro faltando ou erro de cadastro. '
+   +'Produtos marcados com 🧺 são massas que geram vários itens — a venda dos derivados já vem somada.</div>';
 
-  // KPIs
+  // Cards clicáveis (mesmo padrão da aba Preços)
+  function cardSel(k){return confFiltroStatus===k?'outline:3px solid var(--grn2);outline-offset:-3px;':'';}
   h+='<div class="kpi-grid">'
-   +'<div class="kpi"><div class="kpi-label">Produtos conferidos</div><div class="kpi-val">'+linhas.length+'</div></div>'
-   +'<div class="kpi"><div class="kpi-label">Dentro do esperado</div><div class="kpi-val" style="color:var(--grn)">'+grupos.OK.length+'</div></div>'
-   +'<div class="kpi"><div class="kpi-label">Vendeu mais que produziu</div><div class="kpi-val" style="color:var(--red)">'+grupos.FALTA_REGISTRO.length+'</div></div>'
-   +'<div class="kpi"><div class="kpi-label">Produziu mais que vendeu</div><div class="kpi-val" style="color:var(--orange)">'+grupos.EXCESSO.length+'</div></div>'
+   +'<div class="kpi" style="cursor:pointer;'+cardSel('TODOS')+'" onclick="setConfStatus(\'TODOS\')">'
+   +'<div class="kpi-label">Conferidos</div><div class="kpi-val">'+linhas.length+'</div></div>'
+   +'<div class="kpi" style="cursor:pointer;'+cardSel('FALTA_REGISTRO')+'" onclick="setConfStatus(\'FALTA_REGISTRO\')">'
+   +'<div class="kpi-label">🔴 Vendeu mais que produziu</div><div class="kpi-val" style="color:var(--red)">'+nFalta+'</div></div>'
+   +'<div class="kpi" style="cursor:pointer;'+cardSel('EXCESSO')+'" onclick="setConfStatus(\'EXCESSO\')">'
+   +'<div class="kpi-label">🟠 Produziu mais que vendeu</div><div class="kpi-val" style="color:var(--orange)">'+nExcesso+'</div></div>'
+   +'<div class="kpi" style="cursor:pointer;'+cardSel('OK')+'" onclick="setConfStatus(\'OK\')">'
+   +'<div class="kpi-label">🟢 Dentro do esperado</div><div class="kpi-val" style="color:var(--grn)">'+nOk+'</div></div>'
    +'</div>';
 
-  h+=blocoConf('🔴 Vendeu mais do que produziu', grupos.FALTA_REGISTRO,
-      'A venda superou a produção registrada. Quase sempre significa <b>produção não lançada no sistema</b> — alguém produziu e não registrou.', 'var(--red)');
+  // Filtro por setor
+  var setores=['TODOS'];
+  linhas.forEach(function(l){var s=(l.setor||'').toUpperCase();if(s&&setores.indexOf(s)<0)setores.push(s);});
+  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">';
+  setores.forEach(function(s){
+    var on=(confFiltroSetor===s);
+    h+='<button onclick="setConfSetor(\''+s+'\')" style="padding:6px 12px;border-radius:8px;border:1px solid '
+     +(on?'var(--grn2)':'var(--border)')+';background:'+(on?'var(--grn2)':'#fff')+';color:'+(on?'#fff':'var(--brown)')
+     +';font-size:.72rem;font-weight:600;cursor:pointer;font-family:inherit">'+(s==='TODOS'?'Todos os setores':s)+'</button>';
+  });
+  h+='</div>';
 
-  h+=blocoConf('🟠 Produziu bem mais do que vendeu', grupos.EXCESSO,
-      'A produção superou muito a saída. Pode ser <b>unidade incompatível</b> (produzido em unidade, vendido em kg), sobra real de estoque, ou desperdício não registrado.', 'var(--orange)');
+  // Busca
+  h+='<div class="card" style="padding:10px 12px"><input type="text" id="confBuscaInp" value="'+confBusca.replace(/"/g,'&quot;')+'" '
+   +'placeholder="Buscar produto..." oninput="onConfBusca(this.value)" '
+   +'style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:15px;font-family:inherit;color:var(--brown)"></div>';
 
-  h+=blocoConf('🟢 Dentro do esperado', grupos.OK,
-      'Produção, venda e desperdício batem dentro da margem normal.', 'var(--grn)', true);
+  h+='<div id="confTabelaBox">'+htmlTabelaConf(linhas)+'</div>';
 
   box.innerHTML=h;
+}
+
+function filtrarConf(lista){
+  var termo=confBusca.trim().toLowerCase();
+  return lista.filter(function(l){
+    if(confFiltroSetor!=='TODOS'&&(l.setor||'').toUpperCase()!==confFiltroSetor)return false;
+    if(confFiltroStatus!=='TODOS'&&l.status!==confFiltroStatus)return false;
+    if(termo&&l.nome.toLowerCase().indexOf(termo)<0)return false;
+    return true;
+  }).sort(function(a,b){
+    var va,vb;
+    if(confSort==='nome'){return confSortDir*((a.nome<b.nome)?-1:(a.nome>b.nome)?1:0);}
+    if(confSort==='setor'){return confSortDir*(((a.setor||'')<(b.setor||''))?-1:1);}
+    va=a[confSort]; vb=b[confSort];
+    if(va===null||va===undefined)va=-999999;
+    if(vb===null||vb===undefined)vb=-999999;
+    return confSortDir*(va-vb);
+  });
+}
+
+function htmlTabelaConf(lista){
+  var filtrada=filtrarConf(lista);
+  function seta(c){return confSort===c?(confSortDir===-1?' ▼':' ▲'):'';}
+  var cores={FALTA_REGISTRO:'var(--red)',EXCESSO:'var(--orange)',OK:'var(--grn)'};
+
+  var h='<div class="card"><div class="card-title">📋 Conferência por produto <span class="sub">'+filtrada.length+' item(ns)</span></div>';
+  if(!filtrada.length){
+    h+='<div class="empty" style="padding:24px"><p>Nenhum produto com esse filtro.</p></div></div>';
+    return h;
+  }
+  h+='<div class="pscroll"><table class="ptable"><thead><tr>';
+  h+='<th style="text-align:left;cursor:pointer" onclick="setConfSort(\'nome\')">Produto'+seta('nome')+'</th>';
+  h+='<th style="cursor:pointer" onclick="setConfSort(\'produzido\')">Produzido'+seta('produzido')+'</th>';
+  h+='<th style="cursor:pointer" onclick="setConfSort(\'vendido\')">Vendido'+seta('vendido')+'</th>';
+  h+='<th style="cursor:pointer" onclick="setConfSort(\'desperdicado\')">Desperdício'+seta('desperdicado')+'</th>';
+  h+='<th style="cursor:pointer" onclick="setConfSort(\'dif\')">Diferença'+seta('dif')+'</th>';
+  h+='<th style="cursor:pointer" onclick="setConfSort(\'razao\')">Razão'+seta('razao')+'</th>';
+  h+='</tr></thead><tbody>';
+
+  filtrada.forEach(function(l){
+    var cor=cores[l.status];
+    h+='<tr>'
+     +'<td style="font-weight:600;text-align:left;border-left:3px solid '+(l.status==='OK'?'transparent':cor)+'">'
+     +(l.ehGrupo?'🧺 ':'')+l.nome
+     +(l.derivados?' <span style="color:var(--gray);font-size:.65rem">'+l.derivados+' itens</span>':'')+'</td>'
+     +'<td style="text-align:right">'+fmtKg(l.produzido)+'</td>'
+     +'<td style="text-align:right">'+fmtKg(l.vendido)+'</td>'
+     +'<td style="text-align:right;color:var(--gray)">'+(l.desperdicado>0?fmtKg(l.desperdicado):'—')+'</td>'
+     +'<td style="text-align:right;font-weight:700;color:'+(l.status==='OK'?'var(--brown)':cor)+'">'+(l.dif>0?'+':'')+fmtKg(l.dif)+'</td>'
+     +'<td style="text-align:center;font-weight:800;color:'+cor+'">'+l.razao.toFixed(2)+'</td>'
+     +'</tr>';
+  });
+  h+='</tbody></table></div>';
+  h+='<div style="font-size:.7rem;color:var(--gray);margin-top:9px;line-height:1.5">'
+   +'<b>Razão</b> = vendido ÷ produzido. Acima de 1,25 indica produção não registrada; abaixo de 0,60, produção sem saída correspondente. '
+   +'<b>Diferença</b> = produzido − vendido − desperdício.</div>';
+  h+='</div>';
+  return h;
 }
 
 function normCodConf(c){return String(c||'').trim().replace(/^0+/,'');}
@@ -1681,35 +1774,6 @@ function classificarConf(razao){
   if(razao>1.25)return 'FALTA_REGISTRO';   // vendeu bem mais do que produziu
   if(razao<0.60)return 'EXCESSO';          // produziu bem mais do que vendeu
   return 'OK';
-}
-
-function blocoConf(titulo, lista, explicacao, cor, recolhido){
-  if(!lista.length)return '';
-  var h='<div class="card"><div class="card-title" style="color:'+cor+'">'+titulo+' <span class="sub">'+lista.length+' produto(s)</span></div>';
-  h+='<div style="font-size:.75rem;color:var(--gray);margin-bottom:10px;line-height:1.5">'+explicacao+'</div>';
-  var mostrar = recolhido ? lista.slice(0,8) : lista;
-  h+='<div class="pscroll"><table class="ptable"><thead><tr>'
-   +'<th style="text-align:left">Produto</th><th>Produzido</th><th>Vendido</th><th>Desperdício</th><th>Razão</th><th>Diferença</th>'
-   +'</tr></thead><tbody>';
-  mostrar.forEach(function(l){
-    var corRazao = l.status==='OK' ? 'var(--gray)' : cor;
-    h+='<tr>'
-     +'<td style="font-weight:600">'+(l.ehGrupo?'<span title="Massa que gera vários produtos">🧺 </span>':'')+l.nome
-     +' <span style="color:var(--gray);font-size:.65rem">'+l.un+(l.derivados?' · '+l.derivados+' derivados':'')+'</span></td>'
-     +'<td style="text-align:right">'+fmtKg(l.produzido)+'</td>'
-     +'<td style="text-align:right">'+fmtKg(l.vendido)+'</td>'
-     +'<td style="text-align:right;color:var(--gray)">'+(l.desperdicado>0?fmtKg(l.desperdicado):'—')+'</td>'
-     +'<td style="text-align:center;font-weight:800;color:'+corRazao+'">'+l.razao.toFixed(2)+'</td>'
-     +'<td style="text-align:right;font-size:.72rem">'+(l.dif>0?'+':'')+fmtKg(l.dif)
-     +(l.valorDif!==null?' <span style="color:var(--gray)">('+fmtR(l.valorDif)+')</span>':'')+'</td>'
-     +'</tr>';
-  });
-  h+='</tbody></table></div>';
-  if(recolhido&&lista.length>8){
-    h+='<div style="font-size:.7rem;color:var(--gray);margin-top:8px">Mostrando 8 de '+lista.length+' produtos.</div>';
-  }
-  h+='</div>';
-  return h;
 }
 
 function renderGargalos(){
