@@ -163,6 +163,7 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
     <button class="tab" onclick="mudarTab('comparativo',this)">📈 Comparativo</button>
     <button class="tab" onclick="mudarTab('operacao',this)">🏭 Operação</button>
     <button class="tab" onclick="mudarTab('gargalos',this)">🗑️ Desperdício</button>
+    <button class="tab" onclick="mudarTab('conferencia',this)">🔍 Conferência</button>
   </div>
 
   <div class="content">
@@ -174,6 +175,7 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
     <div class="pane" id="pane-comparativo"><div id="compBox"></div></div>
     <div class="pane" id="pane-operacao"><div id="operacaoBox"><div class="loading"><div class="spin"></div>Carregando...</div></div></div>
     <div class="pane" id="pane-gargalos"><div id="gargalosBox"></div></div>
+    <div class="pane" id="pane-conferencia"><div id="conferenciaBox"></div></div>
   </div>
 </div>
 
@@ -217,7 +219,7 @@ if(!IS_ADMIN){
   b.textContent=ini;b.style.background=GF_USER.cor||'#2D6A4F';
 })();
 
-let PRODUCAO=[],DESPERDICIO=[];
+let PRODUCAO=[],DESPERDICIO=[],PROD_CAD={};
 let FICHAS=[],FICHA_ITENS={},INSUMOS=[]; // para o CMV teórico (aba Preços)
 let setorVendas='TODOS';
 let charts={};
@@ -472,6 +474,7 @@ function mudarTab(nome,el){
   if(nome==='geral')setTimeout(drawGeralCharts,50);
   if(nome==='gargalos')setTimeout(drawGargalosCharts,50);
   if(nome==='operacao')setTimeout(drawOperacaoChart,50);
+  if(nome==='conferencia')renderConferencia();
 }
 
 async function carregarOperacao(){
@@ -486,10 +489,14 @@ async function carregarOperacao(){
     var ultimoDia=new Date(ano,mesN,0).getDate(); // dia 0 do mês seguinte = último do atual
     var fim=mesRef+'-'+String(ultimoDia).padStart(2,'0');
 
-    const[prod,desp]=await Promise.all([
+    const[prod,desp,prodCad]=await Promise.all([
       sbGet('producao_itens','select=*&data_dia=gte.'+ini+'&data_dia=lte.'+fim+'&limit=10000'),
-      sbGet('desperdicios','select=*&limit=10000')
+      sbGet('desperdicios','select=*&limit=10000'),
+      sbGet('produtos','select=id,cod,nome,setor&limit=3000')
     ]);
+    // Mapa produto_id → código do PDV (producao_itens guarda só o id)
+    PROD_CAD={};
+    (prodCad||[]).forEach(function(p){PROD_CAD[p.id]={cod:(p.cod||'').toString().trim(),nome:p.nome,setor:p.setor};});
     PRODUCAO=prod||[];
     DESPERDICIO=(desp||[]).map(function(r){
       let d=r.data||'';if(d.includes('/')){const p=d.split('/');d=p[2]+'-'+p[1]+'-'+p[0];}
@@ -1491,6 +1498,216 @@ function htmlTopDesperdicioSetor(desp){
   h+='<div class="insight" style="margin-top:12px;margin-bottom:0;font-size:.72rem">'
    +'<b>Como usar:</b> atacar os primeiros da lista rende mais que espalhar esforço. '
    +'Para cada um, a pergunta é: produção acima da demanda, validade curta, ou problema de conservação?</div>';
+  h+='</div>';
+  return h;
+}
+
+
+// ══════════════════════════════════════════════════════
+// CONFERÊNCIA: produção × vendas × desperdício
+// Compara o que foi produzido com o que saiu, para achar
+// registros faltando, unidades incompatíveis e desvios.
+// ══════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════
+// GRUPOS DE PRODUÇÃO
+// Alguns produtos são registrados uma vez na produção (a massa)
+// e vendidos como vários itens diferentes no PDV. Sem agrupar,
+// a massa parece "sobrar" e os derivados parecem "surgir do nada".
+// ══════════════════════════════════════════════════════
+var GRUPOS_PRODUCAO=[
+  {
+    nome:'MASSA DOCE',
+    produz:['PAO DOCE','PÃO DOCE'],
+    vende:['PAO DOCE','PÃO DOCE','PAO RECIFE','MINI PAO DOCE','PAO MINI DOG','PAO BOLACHAO','PAO CARTEIRA','PAO CRIOLO']
+  },
+  {
+    nome:'MASSA PÃO FRANCÊS',
+    produz:['PAO FRANCES KG','PÃO FRANCES KG'],
+    vende:['PAO FRANCES KG','PAO BAGUETE','MINI FRANCES']
+  },
+  {
+    nome:'MASSA INTEGRAL',
+    produz:['PAO FRANCES INTEGRAL','PÃO FRANCES INTEGRAL'],
+    vende:['PAO FRANCES INTEGRAL','MINI INTEGRAL']
+  },
+  {
+    nome:'MASSA CACHORRO QUENTE',
+    produz:['PAO CACHORRO QUENTE','PÃO CACHORRO QUENTE'],
+    vende:['PAO CACH QUENTE','PAO CACHORRO QUENTE','PAO DE HAMBURGUER','MINI HAMBURGUER']
+  },
+  {
+    nome:'MASSA PÃO DE BATATA',
+    produz:['PAO DE BATATA','PÃO DE BATATA'],
+    vende:['PAO DE BATATA','PAO BRIOCHE','PÃO BRIOCHE','SALG DE BATATA','SALGADO DE BATATA']
+  },
+  {
+    nome:'MASSA CROISSANT/FOLHADO',
+    produz:['CROISSAINT','CROISSANT','MINI CROASSANT','MINI CROISSANT'],
+    vende:['CROISSAINT','CROISSANT','MINI CROASSANT','MINI CROISSANT','SANDUICHE CROISSANT','FOLHADO','SALGADOS FOLHADOS']
+  }
+];
+
+// Produtos que não são produzidos aqui — ficam fora da conferência
+var FORA_CONFERENCIA=['PALMIER','PASTEL DE CARNE','MINI CHURROS','PAO QUINOA','PÃO QUINOA'];
+
+// Normaliza para comparar: remove acentos e uniformiza (PÃO → PAO)
+function _norm(s){
+  return (s||'').toUpperCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')  // tira acentos
+    .replace(/\s+/g,' ').trim();
+}
+function _bate(nome, lista){
+  var n=_norm(nome);
+  return lista.some(function(t){return n.indexOf(_norm(t))>=0;});
+}
+function grupoDoProduto(nome, tipo){
+  for(var i=0;i<GRUPOS_PRODUCAO.length;i++){
+    var g=GRUPOS_PRODUCAO[i];
+    if(_bate(nome, tipo==='produz'?g.produz:g.vende))return g.nome;
+  }
+  return null;
+}
+
+function renderConferencia(){
+  var box=document.getElementById('conferenciaBox');
+  if(!box)return;
+
+  if(!PRODUCAO.length){
+    box.innerHTML='<div class="empty"><div class="empty-ico">🏭</div><p>Sem registros de produção em '+nomeMesAtual()+'.</p></div>';
+    return;
+  }
+
+  // 1) Produzido — por grupo de massa quando aplicável, senão por código
+  var prod={};
+  PRODUCAO.forEach(function(p){
+    var cad=PROD_CAD[p.produto_id];
+    var nome=p.produto_nome||(cad&&cad.nome)||'';
+    if(_bate(nome, FORA_CONFERENCIA))return;
+    var grupo=grupoDoProduto(nome,'produz');
+    var chave=grupo||normCodConf(cad?cad.cod:'');
+    if(!chave)return;
+    if(!prod[chave])prod[chave]={nome:grupo||nome,setor:p.setor||'',qtd:0,un:(p.unidade||'KG').toLowerCase(),ehGrupo:!!grupo,itens:[]};
+    prod[chave].qtd+=parseFloat(p.qtd_produzida)||0;
+  });
+
+  // 2) Vendido — soma os derivados dentro do grupo da massa
+  var vend={};
+  (ABC.produtos||[]).forEach(function(v){
+    var nome=v.n||'';
+    if(_bate(nome, FORA_CONFERENCIA))return;
+    var grupo=grupoDoProduto(nome,'vende');
+    var chave=grupo||normCodConf(v.cod);
+    if(!chave)return;
+    if(!vend[chave])vend[chave]={qtd:0,fat:0,nome:grupo||nome,itens:[]};
+    vend[chave].qtd+=parseFloat(v.qtd)||0;
+    vend[chave].fat+=parseFloat(v.fat)||0;
+    if(grupo)vend[chave].itens.push(nome);
+  });
+
+  // 3) Desperdiçado — mesma lógica de grupo
+  var desp={};
+  DESPERDICIO.forEach(function(d){
+    var grupo=grupoDoProduto(d.produto,'vende');
+    var chave=grupo||normCodConf(d.cod);
+    if(!chave)return;
+    if(!desp[chave])desp[chave]=0;
+    desp[chave]+=parseFloat(d.qty)||0;
+  });
+
+  // 4) Cruzamento
+  var linhas=[];
+  Object.keys(prod).forEach(function(chave){
+    var p=prod[chave];
+    var v=vend[chave];
+    if(!v||p.qtd<=0)return;              // sem venda registrada não dá para comparar
+    var dsp=desp[chave]||0;
+    var razao=v.qtd/p.qtd;
+    var dif=p.qtd-v.qtd-dsp;
+    var pr=precoProduto({produto:p.nome,cod:p.ehGrupo?'':chave});
+    linhas.push({
+      cod:chave, nome:p.nome, setor:p.setor, un:p.un, ehGrupo:p.ehGrupo,
+      derivados:(v.itens&&v.itens.length>1)?v.itens.length:0,
+      produzido:p.qtd, vendido:v.qtd, desperdicado:dsp,
+      dif:dif, razao:razao,
+      valorDif: pr ? Math.abs(dif)*pr.ck : null,
+      status: classificarConf(razao)
+    });
+  });
+
+  if(!linhas.length){
+    box.innerHTML='<div class="empty"><div class="empty-ico">🔍</div><p>Não foi possível cruzar produção e vendas. Verifique se os produtos têm código cadastrado.</p></div>';
+    return;
+  }
+
+  // 5) Agrupa por status
+  var grupos={FALTA_REGISTRO:[],EXCESSO:[],OK:[]};
+  linhas.forEach(function(l){grupos[l.status].push(l);});
+  Object.keys(grupos).forEach(function(g){
+    grupos[g].sort(function(a,b){
+      if(a.valorDif!==null&&b.valorDif!==null)return b.valorDif-a.valorDif;
+      return Math.abs(b.dif)-Math.abs(a.dif);
+    });
+  });
+
+  var h='<div class="insight"><strong>🔍 Conferência de '+nomeMesAtual()+'.</strong> '
+   +'Compara o que foi produzido com o que foi vendido e desperdiçado. '
+   +'Diferenças pequenas são normais (produto na gôndola virando o mês). '
+   +'O que interessa são os casos extremos — eles apontam registro faltando ou erro de cadastro.</div>';
+
+  // KPIs
+  h+='<div class="kpi-grid">'
+   +'<div class="kpi"><div class="kpi-label">Produtos conferidos</div><div class="kpi-val">'+linhas.length+'</div></div>'
+   +'<div class="kpi"><div class="kpi-label">Dentro do esperado</div><div class="kpi-val" style="color:var(--grn)">'+grupos.OK.length+'</div></div>'
+   +'<div class="kpi"><div class="kpi-label">Vendeu mais que produziu</div><div class="kpi-val" style="color:var(--red)">'+grupos.FALTA_REGISTRO.length+'</div></div>'
+   +'<div class="kpi"><div class="kpi-label">Produziu mais que vendeu</div><div class="kpi-val" style="color:var(--orange)">'+grupos.EXCESSO.length+'</div></div>'
+   +'</div>';
+
+  h+=blocoConf('🔴 Vendeu mais do que produziu', grupos.FALTA_REGISTRO,
+      'A venda superou a produção registrada. Quase sempre significa <b>produção não lançada no sistema</b> — alguém produziu e não registrou.', 'var(--red)');
+
+  h+=blocoConf('🟠 Produziu bem mais do que vendeu', grupos.EXCESSO,
+      'A produção superou muito a saída. Pode ser <b>unidade incompatível</b> (produzido em unidade, vendido em kg), sobra real de estoque, ou desperdício não registrado.', 'var(--orange)');
+
+  h+=blocoConf('🟢 Dentro do esperado', grupos.OK,
+      'Produção, venda e desperdício batem dentro da margem normal.', 'var(--grn)', true);
+
+  box.innerHTML=h;
+}
+
+function normCodConf(c){return String(c||'').trim().replace(/^0+/,'');}
+
+function classificarConf(razao){
+  if(razao>1.25)return 'FALTA_REGISTRO';   // vendeu bem mais do que produziu
+  if(razao<0.60)return 'EXCESSO';          // produziu bem mais do que vendeu
+  return 'OK';
+}
+
+function blocoConf(titulo, lista, explicacao, cor, recolhido){
+  if(!lista.length)return '';
+  var h='<div class="card"><div class="card-title" style="color:'+cor+'">'+titulo+' <span class="sub">'+lista.length+' produto(s)</span></div>';
+  h+='<div style="font-size:.75rem;color:var(--gray);margin-bottom:10px;line-height:1.5">'+explicacao+'</div>';
+  var mostrar = recolhido ? lista.slice(0,8) : lista;
+  h+='<div class="pscroll"><table class="ptable"><thead><tr>'
+   +'<th style="text-align:left">Produto</th><th>Produzido</th><th>Vendido</th><th>Desperdício</th><th>Razão</th><th>Diferença</th>'
+   +'</tr></thead><tbody>';
+  mostrar.forEach(function(l){
+    var corRazao = l.status==='OK' ? 'var(--gray)' : cor;
+    h+='<tr>'
+     +'<td style="font-weight:600">'+(l.ehGrupo?'<span title="Massa que gera vários produtos">🧺 </span>':'')+l.nome
+     +' <span style="color:var(--gray);font-size:.65rem">'+l.un+(l.derivados?' · '+l.derivados+' derivados':'')+'</span></td>'
+     +'<td style="text-align:right">'+fmtKg(l.produzido)+'</td>'
+     +'<td style="text-align:right">'+fmtKg(l.vendido)+'</td>'
+     +'<td style="text-align:right;color:var(--gray)">'+(l.desperdicado>0?fmtKg(l.desperdicado):'—')+'</td>'
+     +'<td style="text-align:center;font-weight:800;color:'+corRazao+'">'+l.razao.toFixed(2)+'</td>'
+     +'<td style="text-align:right;font-size:.72rem">'+(l.dif>0?'+':'')+fmtKg(l.dif)
+     +(l.valorDif!==null?' <span style="color:var(--gray)">('+fmtR(l.valorDif)+')</span>':'')+'</td>'
+     +'</tr>';
+  });
+  h+='</tbody></table></div>';
+  if(recolhido&&lista.length>8){
+    h+='<div style="font-size:.7rem;color:var(--gray);margin-top:8px">Mostrando 8 de '+lista.length+' produtos.</div>';
+  }
   h+='</div>';
   return h;
 }
