@@ -1518,56 +1518,53 @@ function htmlTopDesperdicioSetor(desp){
 var GRUPOS_PRODUCAO=[
   {
     nome:'MASSA DOCE',
-    produz:['PAO DOCE','PÃO DOCE'],
-    vende:['PAO DOCE','PÃO DOCE','PAO RECIFE','MINI PAO DOCE','PAO MINI DOG','PAO BOLACHAO','PAO CARTEIRA','PAO CRIOLO']
+    // pão doce + derivados (recife, mini doce, carteira, criolo, bolachão, mini dog)
+    codigos:['714','9666','6168','4391','4593','4576','9542']
   },
   {
     nome:'MASSA PÃO FRANCÊS',
-    produz:['PAO FRANCES KG','PÃO FRANCES KG'],
-    vende:['PAO FRANCES KG','PAO BAGUETE','MINI FRANCES']
+    // "PAO KG" (708) é o pão francês + baguetes + mini francês
+    codigos:['708','710','4579','7561']
   },
   {
     nome:'MASSA INTEGRAL',
-    produz:['PAO FRANCES INTEGRAL','PÃO FRANCES INTEGRAL'],
-    vende:['PAO FRANCES INTEGRAL','MINI INTEGRAL']
+    codigos:['715','1519']
   },
   {
     nome:'MASSA CACHORRO QUENTE',
-    produz:['PAO CACHORRO QUENTE','PÃO CACHORRO QUENTE'],
-    vende:['PAO CACH QUENTE','PAO CACHORRO QUENTE','PAO DE HAMBURGUER','MINI HAMBURGUER']
+    // cachorro quente + hambúrguer
+    codigos:['1543','1544']
   },
   {
     nome:'MASSA PÃO DE BATATA',
-    produz:['PAO DE BATATA','PÃO DE BATATA'],
-    vende:['PAO DE BATATA','PAO BRIOCHE','PÃO BRIOCHE','SALG DE BATATA','SALGADO DE BATATA']
+    // pão de batata + brioche + salgados de batata (frango, hot dog, misto, calabresa)
+    codigos:['1710','5529','4498','6330','6334','6331','633']
   },
   {
     nome:'MASSA CROISSANT/FOLHADO',
-    produz:['CROISSAINT','CROISSANT','MINI CROASSANT','MINI CROISSANT'],
-    vende:['CROISSAINT','CROISSANT','MINI CROASSANT','MINI CROISSANT','SANDUICHE CROISSANT','FOLHADO','SALGADOS FOLHADOS']
+    // croissant, mini croissant, doce, sanduíche + folhados
+    codigos:['5246','4203','4370','3516','5051','7560','7446']
   }
 ];
 
 // Produtos que não são produzidos aqui — ficam fora da conferência
-var FORA_CONFERENCIA=['PALMIER','PASTEL DE CARNE','MINI CHURROS','PAO QUINOA','PÃO QUINOA'];
+var FORA_CONFERENCIA_COD=['5865','7898331012662'];  // palmier (confeitaria), chantilly (revenda)
 
-// Normaliza para comparar: remove acentos e uniformiza (PÃO → PAO)
-function _norm(s){
-  return (s||'').toUpperCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')  // tira acentos
-    .replace(/\s+/g,' ').trim();
-}
-function _bate(nome, lista){
-  var n=_norm(nome);
-  return lista.some(function(t){return n.indexOf(_norm(t))>=0;});
-}
-function grupoDoProduto(nome, tipo){
+function _normCod(c){return String(c||'').trim().replace(/^0+/,'');}
+
+// Grupo ao qual um código pertence (ou null)
+function grupoDoCodigo(cod){
+  var c=_normCod(cod);
+  if(!c)return null;
   for(var i=0;i<GRUPOS_PRODUCAO.length;i++){
-    var g=GRUPOS_PRODUCAO[i];
-    if(_bate(nome, tipo==='produz'?g.produz:g.vende))return g.nome;
+    if(GRUPOS_PRODUCAO[i].codigos.indexOf(c)>=0)return GRUPOS_PRODUCAO[i].nome;
   }
   return null;
 }
+function foraDaConferencia(cod){
+  return FORA_CONFERENCIA_COD.indexOf(_normCod(cod))>=0;
+}
+
 
 
 // Estado dos filtros da conferência
@@ -1602,10 +1599,11 @@ function renderConferencia(){
   var prod={};
   PRODUCAO.forEach(function(p){
     var cad=PROD_CAD[p.produto_id];
+    var cod=cad?cad.cod:'';
+    if(foraDaConferencia(cod))return;
     var nome=p.produto_nome||(cad&&cad.nome)||'';
-    if(_bate(nome, FORA_CONFERENCIA))return;
-    var grupo=grupoDoProduto(nome,'produz');
-    var chave=grupo||normCodConf(cad?cad.cod:'');
+    var grupo=grupoDoCodigo(cod);
+    var chave=grupo||normCodConf(cod);
     if(!chave)return;
     if(!prod[chave])prod[chave]={nome:grupo||nome,setor:p.setor||'',qtd:0,un:(p.unidade||'KG').toLowerCase(),ehGrupo:!!grupo,itens:[]};
     prod[chave].qtd+=parseFloat(p.qtd_produzida)||0;
@@ -1614,21 +1612,20 @@ function renderConferencia(){
   // 2) Vendido — soma os derivados dentro do grupo da massa
   var vend={};
   (ABC.produtos||[]).forEach(function(v){
-    var nome=v.n||'';
-    if(_bate(nome, FORA_CONFERENCIA))return;
-    var grupo=grupoDoProduto(nome,'vende');
+    if(foraDaConferencia(v.cod))return;
+    var grupo=grupoDoCodigo(v.cod);
     var chave=grupo||normCodConf(v.cod);
     if(!chave)return;
-    if(!vend[chave])vend[chave]={qtd:0,fat:0,nome:grupo||nome,itens:[]};
+    if(!vend[chave])vend[chave]={qtd:0,fat:0,nome:grupo||(v.n||''),itens:[]};
     vend[chave].qtd+=parseFloat(v.qtd)||0;
     vend[chave].fat+=parseFloat(v.fat)||0;
-    if(grupo)vend[chave].itens.push(nome);
+    if(grupo)vend[chave].itens.push(v.n||'');
   });
 
   // 3) Desperdiçado — mesma lógica de grupo
   var desp={};
   DESPERDICIO.forEach(function(d){
-    var grupo=grupoDoProduto(d.produto,'vende');
+    var grupo=grupoDoCodigo(d.cod);
     var chave=grupo||normCodConf(d.cod);
     if(!chave)return;
     if(!desp[chave])desp[chave]=0;
