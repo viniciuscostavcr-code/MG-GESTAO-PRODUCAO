@@ -3501,6 +3501,9 @@ async function renderTabelaSemanal() {
   // Curva ABC de vendas (define a ordem de prioridade da tabela)
   await carregarCurvaABC();
 
+  // Fichas técnicas (custo, rendimento e CMV no detalhe do produto)
+  carregarFichas().catch(function(){});
+
   // Preencher corpo com dados reais
   _popularBodyTabela(dias, hoje);
 
@@ -3794,21 +3797,74 @@ function abrirDetalheProduto(prodId) {
   }
   html += '</div>';
 
-  // Ficha técnica — antes da projeção para ficar visível sem scroll
-  html += '<div style="margin-top:10px;padding:10px 12px;'
-    + 'background:#F4F4F2;border-radius:9px;'
-    + 'display:flex;align-items:center;gap:10px;">';
-  html += '<span style="font-size:1.2rem;">📋</span>';
-  html += '<div style="flex:1;">';
-  html += '<div style="font-size:.72rem;font-weight:700;'
-    + 'color:var(--brown);">Ficha Técnica de Produção</div>';
-  html += '<div style="font-size:.65rem;color:#6B7280;margin-top:1px;">'
-    + escHtml(prod.nome) + '</div>';
-  html += '</div>';
-  html += '<span style="font-size:.65rem;font-weight:700;'
-    + 'background:#EAF4EF;color:#1B4332;padding:3px 9px;'
-    + 'border-radius:6px;">Em breve</span>';
-  html += '</div>';
+  // Ficha técnica — dados reais do módulo de fichas
+  var fic = fichaDoProduto(prod);
+  if (fic) {
+    var _n1 = function(v){ return (Math.round((Number(v)||0)*10)/10); };
+    var _rs = function(v){ return 'R$ ' + (Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+    // CMV na base em que o produto é vendido
+    var porUnid = (fic.precoKg <= 0 && fic.precoUn > 0);
+    var custoBase = porUnid ? fic.custoUn : fic.custoKg;
+    var precoBase = porUnid ? fic.precoUn : fic.precoKg;
+    var sufixo    = porUnid ? '/und' : '/kg';
+    var cmv = (precoBase > 0) ? (custoBase / precoBase * 100) : null;
+    var corCmv = (cmv === null) ? '#6B7280' : (cmv <= 35 ? '#1D9E75' : (cmv <= 45 ? '#D97706' : '#C0392B'));
+
+    html += '<div style="margin-top:10px;padding:11px 12px;'
+      + 'background:#F4F4F2;border-radius:9px;">';
+    html += '<div style="display:flex;align-items:center;gap:9px;margin-bottom:9px;">';
+    html += '<span style="font-size:1.1rem;">📋</span>';
+    html += '<div style="flex:1;">'
+      + '<div style="font-size:.72rem;font-weight:700;color:var(--brown);">Ficha Técnica de Produção</div>'
+      + '<div style="font-size:.63rem;color:#6B7280;margin-top:1px;">'
+      + escHtml(fic.nome) + ' · ' + fic.itens + ' ingrediente(s)</div></div>';
+    html += '<button onclick="abrirFichaTecnica(\'' + fic.id + '\')" '
+      + 'style="font-size:.65rem;font-weight:700;background:var(--grn);color:#fff;'
+      + 'border:none;padding:6px 11px;border-radius:7px;cursor:pointer;font-family:inherit;">Abrir ficha</button>';
+    html += '</div>';
+
+    // Grade com os números que importam na bancada
+    html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;">';
+    html += '<div style="background:#fff;border-radius:7px;padding:7px 9px;">'
+      + '<div style="font-size:.58rem;color:#6B7280;text-transform:uppercase;letter-spacing:.3px;">Rende</div>'
+      + '<div style="font-size:.85rem;font-weight:800;color:var(--brown);">' + _n1(fic.rendimentoKg) + ' kg'
+      + (fic.rendimentoUn > 0 ? ' <span style="font-size:.62rem;font-weight:600;color:#6B7280;">(' + _n1(fic.rendimentoUn) + ' un)</span>' : '')
+      + '</div></div>';
+    html += '<div style="background:#fff;border-radius:7px;padding:7px 9px;">'
+      + '<div style="font-size:.58rem;color:#6B7280;text-transform:uppercase;letter-spacing:.3px;">Custo' + sufixo + '</div>'
+      + '<div style="font-size:.85rem;font-weight:800;color:#C0392B;">' + _rs(custoBase) + '</div></div>';
+    html += '<div style="background:#fff;border-radius:7px;padding:7px 9px;">'
+      + '<div style="font-size:.58rem;color:#6B7280;text-transform:uppercase;letter-spacing:.3px;">CMV</div>'
+      + '<div style="font-size:.85rem;font-weight:800;color:' + corCmv + ';">'
+      + (cmv !== null ? _n1(cmv) + '%' : '—') + '</div></div>';
+    html += '</div>';
+
+    // Quantas receitas a meta da semana representa
+    if (fic.rendimentoKg > 0 && proj) {
+      var metaSem = ['seg','ter','qua','qui','sex','sab','dom'].reduce(function(a,d){
+        return a + (Number(proj[d]) || 0);
+      }, 0);
+      if (metaSem > 0) {
+        var nRec = metaSem / fic.rendimentoKg;
+        html += '<div style="margin-top:8px;font-size:.66rem;color:#6B7280;">'
+          + 'A meta da semana (' + _n1(metaSem) + ' kg) equivale a <b style="color:var(--brown);">'
+          + (nRec >= 1 ? _n1(nRec) : nRec.toFixed(2)) + ' receita(s)</b> desta ficha.</div>';
+      }
+    }
+    html += '</div>';
+  } else {
+    html += '<div style="margin-top:10px;padding:10px 12px;'
+      + 'background:#FEF3EC;border-radius:9px;display:flex;align-items:center;gap:10px;">';
+    html += '<span style="font-size:1.1rem;">📋</span>';
+    html += '<div style="flex:1;">'
+      + '<div style="font-size:.72rem;font-weight:700;color:var(--brown);">Sem ficha técnica</div>'
+      + '<div style="font-size:.63rem;color:#6B7280;margin-top:1px;">'
+      + 'Cadastre para ver custo, rendimento e CMV deste produto.</div></div>';
+    html += '<button onclick="irParaFichas()" '
+      + 'style="font-size:.65rem;font-weight:700;background:var(--orange);color:#fff;'
+      + 'border:none;padding:6px 11px;border-radius:7px;cursor:pointer;font-family:inherit;">Cadastrar</button>';
+    html += '</div>';
+  }
 
   // Projeção semanal
   html += projHtml;
@@ -6380,6 +6436,73 @@ function getSazonalidade(dataISO) {
  *   diasProducao: number[]
  * }}
  */
+
+// ══════════════════════════════════════════════════
+// FICHAS TÉCNICAS — integração com o módulo de fichas
+// ══════════════════════════════════════════════════
+var FICHAS_MAP=null;      // por código normalizado
+var FICHAS_NOME=null;     // por nome normalizado (fallback)
+
+
+// Abre o módulo de fichas técnicas (opcionalmente numa ficha específica)
+function abrirFichaTecnica(fichaId){
+  var url='FICHAS_TECNICAS.html' + (fichaId ? ('?ficha='+encodeURIComponent(fichaId)) : '');
+  window.location.href=url;
+}
+function irParaFichas(){
+  window.location.href='FICHAS_TECNICAS.html';
+}
+
+async function carregarFichas(){
+  if(FICHAS_MAP)return FICHAS_MAP;
+  var porCod={},porNome={};
+  try{
+    var fichas=await sbSelect('fichas_tecnicas','select=id,cod,produto_nome,setor,rendimento_kg,rendimento_unid,preco_venda_kg,preco_venda_und&ativo=eq.true&limit=1000');
+    var itens =await sbSelect('ficha_itens','select=ficha_id,insumo_id,qtd_bruta,qtd_liquida&limit=6000');
+    var insumos=await sbSelect('insumos','select=id,custo_kg_l&limit=2000');
+
+    var custoIns={};
+    (insumos||[]).forEach(function(i){custoIns[i.id]=parseFloat(i.custo_kg_l)||0;});
+    var custoReceita={},nItens={};
+    (itens||[]).forEach(function(it){
+      var q=parseFloat(it.qtd_bruta)||parseFloat(it.qtd_liquida)||0;
+      custoReceita[it.ficha_id]=(custoReceita[it.ficha_id]||0)+q*(custoIns[it.insumo_id]||0);
+      nItens[it.ficha_id]=(nItens[it.ficha_id]||0)+1;
+    });
+
+    (fichas||[]).forEach(function(fc){
+      var rendKg=parseFloat(fc.rendimento_kg)||0;
+      var rendUn=parseFloat(fc.rendimento_unid)||0;
+      var receita=custoReceita[fc.id]||0;
+      var dados={
+        id:fc.id, nome:fc.produto_nome, cod:(fc.cod||'').toString().trim(),
+        rendimentoKg:rendKg, rendimentoUn:rendUn,
+        custoReceita:receita,
+        custoKg: rendKg>0 ? receita/rendKg : 0,
+        custoUn: rendUn>0 ? receita/rendUn : 0,
+        precoKg: parseFloat(fc.preco_venda_kg)||0,
+        precoUn: parseFloat(fc.preco_venda_und)||0,
+        itens: nItens[fc.id]||0
+      };
+      var cn=(dados.cod||'').replace(/^0+/,'');
+      if(cn)porCod[cn]=dados;
+      porNome[_normProdNome(fc.produto_nome||'')]=dados;
+    });
+  }catch(e){console.log('Fichas indisponíveis:',e.message);}
+  FICHAS_MAP=porCod; FICHAS_NOME=porNome;
+  return FICHAS_MAP;
+}
+
+// Ficha de um produto: tenta pelo código, cai no nome
+function fichaDoProduto(prod){
+  if(!FICHAS_MAP)return null;
+  var cn=String(prod.cod||'').trim().replace(/^0+/,'');
+  if(cn&&FICHAS_MAP[cn])return FICHAS_MAP[cn];
+  var nn=_normProdNome(prod.nome||'');
+  if(FICHAS_NOME&&FICHAS_NOME[nn])return FICHAS_NOME[nn];
+  return null;
+}
+
 function getLoteProduto(produtoNome, setor, diaSemana, dataISO) {
   // 1ª prioridade: metas configuradas no Supabase (projecao_base) PARA O DIA específico
   const _diasIdx = ['dom','seg','ter','qua','qui','sex','sab'];
