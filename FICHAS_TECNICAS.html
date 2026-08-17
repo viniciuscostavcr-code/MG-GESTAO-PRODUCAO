@@ -414,7 +414,7 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
     <div class="fg">
       <label>Foto do produto</label>
       <div id="fotoPreviewWrap" style="margin-bottom:8px;display:none;">
-        <img id="fotoPreview" style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;border:1.5px solid var(--border);">
+        <img id="fotoPreview" style="max-width:100%;max-height:200px;object-fit:contain;border-radius:10px;border:1.5px solid var(--border);">
         <button type="button" onclick="removerFoto()" style="margin-top:6px;background:var(--red-l);color:var(--red);border:none;border-radius:8px;padding:6px 12px;font-size:.75rem;font-weight:600;cursor:pointer;font-family:inherit;">🗑️ Remover foto</button>
       </div>
       <div id="fotoPlaceholder" style="width:100%;height:120px;background:var(--gray-l);border-radius:10px;border:1.5px dashed var(--border);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;cursor:pointer;" onclick="document.getElementById('fichaFotoInput').click()">
@@ -1001,7 +1001,7 @@ function renderProducao() {
     var tempoStr = f.tempo_preparo_min ? ' · Preparo: ' + f.tempo_preparo_min + ' min' : '';
 
     var fotoHtml = f.foto_url
-      ? '<img src="' + f.foto_url + '" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px;margin-bottom:10px;">'
+      ? '<img src="' + f.foto_url + '" style="max-width:100%;max-height:180px;object-fit:contain;border-radius:10px;margin-bottom:10px;display:block;">'
       : '<div style="width:100%;height:80px;background:var(--gray-l);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;font-size:.75rem;color:var(--gray);">📷 Sem foto</div>';
 
     return '<div class="ficha-card">'
@@ -1043,50 +1043,145 @@ function imprimirFichaProducao(id) {
     + '/' + String(hoje.getMonth()+1).padStart(2,'0')
     + '/' + hoje.getFullYear();
 
-  var rows = itens.map(function(it) {
-    var qtdBruta = parseFloat(it.qtd_bruta) || 0;
-    return '<tr>'
-      + '<td>' + (it.insumo_nome || '') + '</td>'
-      + '<td style="text-align:center">' + fmtBR(parseFloat(it.qtd_liquida)||0, 2) + ' ' + (it.unidade||'') + '</td>'
-      + '<td style="text-align:center">' + fmtBR(parseFloat(it.fator_correcao)||1, 2) + '</td>'
-      + '<td style="text-align:center">' + fmtBR(qtdBruta, 2) + ' ' + (it.unidade||'') + '</td>'
+  // Mostra a coluna de fator de correção apenas se algum item tiver FC ≠ 1.
+  // Com FC 1 em tudo, a coluna só ocupa espaço na bancada.
+  var temFC = itens.some(function(it){
+    var fc = parseFloat(it.fator_correcao) || 1;
+    return Math.abs(fc - 1) > 0.001;
+  });
+
+  var rows = itens.map(function(it, i) {
+    var qtdBruta   = parseFloat(it.qtd_bruta) || 0;
+    var qtdLiquida = parseFloat(it.qtd_liquida) || 0;
+    var fc         = parseFloat(it.fator_correcao) || 1;
+    var und        = it.unidade || '';
+    var pesar      = temFC ? qtdBruta : (qtdBruta || qtdLiquida);
+    var linha = '<tr>'
+      + '<td class="num">' + (i+1) + '</td>'
+      + '<td class="ing">' + (it.insumo_nome || '') + '</td>';
+    if (temFC) {
+      linha += '<td class="liq">' + fmtBR(qtdLiquida, 2) + ' ' + und + '</td>'
+             + '<td class="fc">' + fmtBR(fc, 2) + '</td>';
+    }
+    linha += '<td class="qtd">' + fmtBR(pesar, 2) + ' <span class="und">' + und + '</span></td>'
+      + '<td class="check"></td>'
       + '</tr>';
+    return linha;
   }).join('');
 
-  var grupoStr = f.grupo ? 'Grupo: ' + f.grupo + ' · ' : '';
-  var setorStr = f.setor ? 'Setor: ' + f.setor + ' · ' : '';
-  var preparoStr = f.tempo_preparo_min ? ' · Preparo: ' + f.tempo_preparo_min + ' min' : '';
-  var equipHtml = f.equipamentos
-    ? '<div class="info"><strong>Equipamentos:</strong> ' + f.equipamentos + '</div>'
-    : '';
-  var unidStr = f.rendimento_unid ? ' · ' + f.rendimento_unid + ' unidades' : '';
-  var modoHtml = f.modo_preparo
-    ? '<div class="modo"><strong>Modo de preparo:</strong><br>' + f.modo_preparo + '</div>'
-    : '';
+  // Modo de preparo em passos numerados (quebra por linha ou por ponto final)
+  var modoHtml = '';
+  if (f.modo_preparo) {
+    // Quebra por linha; se vier tudo numa linha só, quebra após ponto final.
+    // (evita lookbehind no regex — Safari iOS antigo não suporta)
+    var bruto = String(f.modo_preparo);
+    var passos = bruto.indexOf('\n') >= 0
+      ? bruto.split(/\r?\n/)
+      : bruto.replace(/\.\s+/g, '.\u0001').split('\u0001');
+    passos = passos.map(function(s){ return s.trim(); })
+                   .filter(function(s){ return s.length > 1; });
+    if (passos.length > 1) {
+      modoHtml = '<div class="modo"><div class="modo-tit">Modo de preparo</div><ol>'
+        + passos.map(function(p){ return '<li>' + p + '</li>'; }).join('')
+        + '</ol></div>';
+    } else {
+      modoHtml = '<div class="modo"><div class="modo-tit">Modo de preparo</div>'
+        + '<p>' + f.modo_preparo + '</p></div>';
+    }
+  }
+
+  var unidStr  = f.rendimento_unid ? fmtBR(f.rendimento_unid, 0) + ' unidades' : '';
+  var tempoStr = f.tempo_preparo_min ? f.tempo_preparo_min + ' min' : '';
 
   var html = '<style>'
-    + 'body{font-family:sans-serif;padding:20px;font-size:13px;color:#111;}'
-    + 'h1{font-size:18px;margin:0;color:#1B4332;}'
-    + 'h2{font-size:14px;margin:4px 0;color:#2D6A4F;}'
-    + '.info{font-size:11px;color:#555;margin-bottom:12px;}'
-    + 'table{width:100%;border-collapse:collapse;margin-top:10px;}'
-    + 'th{background:#1B4332;color:#fff;padding:6px 8px;text-align:left;font-size:11px;}'
-    + 'td{padding:5px 8px;border-bottom:1px solid #e0e0e0;font-size:12px;}'
-    + '.modo{margin-top:14px;padding:10px;background:#f9f9f9;border-radius:8px;font-size:12px;line-height:1.6;}'
-    + '.rend{margin-top:10px;padding:8px 12px;background:#EAF4EF;border-radius:8px;font-size:12px;font-weight:700;color:#1B4332;}'
+    + '@page{size:A4 portrait;margin:10mm;}'
+    + '@media print{img{max-width:100% !important;page-break-inside:avoid;} .foto{page-break-inside:avoid;}}'
+    + 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:0;color:#1C1C1A;}'
+    // Cabeçalho
+    + '.hdr{display:flex;align-items:center;border-bottom:4px solid #1B4332;padding-bottom:12px;margin-bottom:4px;}'
+    + '.logo{width:46px;height:46px;background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:13px;'
+    +   'display:flex;align-items:center;justify-content:center;color:#fff;font-size:23px;font-weight:800;flex-shrink:0;}'
+    + '.hdr-txt{flex:1;padding-left:15px;}'
+    + '.eyebrow{font-size:10px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#6B7280;}'
+    + '.nome{font-size:27px;font-weight:800;color:#1B4332;line-height:1.12;margin-top:1px;letter-spacing:-.4px;}'
+    + '.hdr-meta{text-align:right;font-size:10px;color:#6B7280;line-height:1.5;flex-shrink:0;}'
+    // Faixa de informações
+    + '.faixa{display:flex;gap:8px;margin:12px 0 14px;}'
+    + '.fx{flex:1;background:#EAF4EF;border-radius:10px;padding:9px 12px;}'
+    + '.fx-lb{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#6B7280;}'
+    + '.fx-vl{font-size:16px;font-weight:800;color:#1B4332;line-height:1.25;margin-top:2px;}'
+    + '.fx-sub{font-size:10px;font-weight:600;color:#2D6A4F;}'
+    // Tabela de ingredientes
+    + '.sec{font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#1B4332;'
+    +   'margin:0 0 7px;padding-bottom:5px;border-bottom:2px solid #E2EDE8;}'
+    + 'table{width:100%;border-collapse:collapse;}'
+    + 'thead th{background:#1B4332;color:#fff;padding:7px 9px;font-size:10px;font-weight:700;'
+    +   'letter-spacing:.5px;text-transform:uppercase;text-align:left;}'
+    + 'thead th.r{text-align:right;}'
+    + 'tbody tr{border-bottom:1px solid #E8EDE9;}'
+    + 'tbody tr:nth-child(even){background:#FAFBFA;}'
+    + 'td{padding:8px 9px;vertical-align:middle;}'
+    + '.num{width:24px;font-size:11px;font-weight:700;color:#B6C2BA;text-align:center;}'
+    + '.ing{font-size:14px;font-weight:600;line-height:1.25;}'
+    + '.liq,.fc{font-size:11px;color:#6B7280;text-align:center;width:76px;}'
+    + '.qtd{font-size:19px;font-weight:800;color:#C0392B;text-align:right;white-space:nowrap;width:112px;}'
+    + '.qtd .und{font-size:11px;font-weight:700;color:#8A9590;}'
+    + '.check{width:26px;}'
+    + '.check::after{content:"";display:block;width:15px;height:15px;border:2px solid #C9D6CE;border-radius:4px;margin-left:auto;}'
+    // Modo de preparo
+    + '.modo{margin-top:16px;padding:12px 15px;background:#F7F8F7;border-left:4px solid #2D6A4F;border-radius:0 10px 10px 0;}'
+    + '.modo-tit{font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#1B4332;margin-bottom:7px;}'
+    + '.modo ol{margin:0;padding-left:19px;}'
+    + '.modo li{font-size:13px;line-height:1.62;margin-bottom:5px;}'
+    + '.modo p{margin:0;font-size:13px;line-height:1.62;}'
+    + '.foto{margin:12px 0;text-align:center;background:#F7F8F7;border-radius:10px;padding:8px;}'
+    + '.foto img{max-width:100%;max-height:190px;object-fit:contain;border-radius:7px;display:inline-block;}'
+    + '.equip{margin-top:11px;font-size:11.5px;color:#4A4A46;}'
+    + '.equip b{color:#1B4332;}'
+    + '.foot{margin-top:20px;padding-top:9px;border-top:1px solid #E2EDE8;'
+    +   'display:flex;justify-content:space-between;font-size:9.5px;color:#A8AFA9;}'
     + '</style>'
-    + '<h1>🍳 Ficha de Produção</h1>'
-    + '<h2>' + (f.produto_nome || '') + '</h2>'
-    + (f.foto_url ? '<img src="' + f.foto_url + '" style="width:100%;max-height:200px;object-fit:cover;border-radius:8px;margin:10px 0;">' : '')
-    + '<div class="info">' + grupoStr + setorStr + 'Data: ' + dataStr + preparoStr + '</div>'
-    + equipHtml
+
+    + '<div class="hdr">'
+    +   '<div class="logo">G</div>'
+    +   '<div class="hdr-txt">'
+    +     '<div class="eyebrow">Ficha de Produção</div>'
+    +     '<div class="nome">' + (f.produto_nome || '') + '</div>'
+    +   '</div>'
+    +   '<div class="hdr-meta">' + (f.setor || '') + (f.grupo ? '<br>' + f.grupo : '') + '</div>'
+    + '</div>'
+
+    + '<div class="faixa">'
+    +   '<div class="fx"><div class="fx-lb">Rendimento</div>'
+    +     '<div class="fx-vl">' + fmtBR(f.rendimento_kg, 2) + ' kg</div>'
+    +     (unidStr ? '<div class="fx-sub">' + unidStr + '</div>' : '') + '</div>'
+    +   '<div class="fx"><div class="fx-lb">Ingredientes</div>'
+    +     '<div class="fx-vl">' + itens.length + '</div></div>'
+    +   (tempoStr
+        ? '<div class="fx"><div class="fx-lb">Tempo de preparo</div><div class="fx-vl">' + tempoStr + '</div></div>'
+        : '')
+    + '</div>'
+
+    + (f.foto_url
+        ? '<div class="foto"><img src="' + f.foto_url + '" alt="' + (f.produto_nome||'') + '"></div>'
+        : '')
+
+    + (f.equipamentos ? '<div class="equip"><b>Equipamentos:</b> ' + f.equipamentos + '</div>' : '')
+
+    + '<div class="sec" style="margin-top:14px;">Ingredientes</div>'
     + '<table>'
-    +   '<thead><tr><th>Ingrediente</th><th>Qtd Líquida</th><th>FC</th><th>Qtd Bruta</th></tr></thead>'
+    +   '<thead><tr>'
+    +     '<th style="width:24px;"></th><th>Ingrediente</th>'
+    +     (temFC ? '<th class="r">Líquida</th><th class="r">FC</th>' : '')
+    +     '<th class="r">Pesar</th><th style="width:26px;"></th>'
+    +   '</tr></thead>'
     +   '<tbody>' + rows + '</tbody>'
     + '</table>'
-    + '<div class="rend">Rendimento final: ' + fmtBR(f.rendimento_kg, 2) + ' kg' + unidStr + '</div>'
+
     + modoHtml
-    + '<div style="font-size:10px;color:#aaa;text-align:center;margin-top:16px;">GestFood — Supermercado MG</div>';
+
+    + '<div class="foot"><span>GestFood · Supermercado MG</span>'
+    +   '<span>Emitida em ' + dataStr + '</span></div>';
 
   document.getElementById('printContent').innerHTML = html;
   document.getElementById('printModal').style.display = 'flex';
