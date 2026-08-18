@@ -6543,6 +6543,14 @@ function fecharModalGenerico() {
   if (ov) ov.classList.remove('on');
 }
 
+
+// Formata quantidade sem decimal desnecessário (10 em vez de 10,0)
+function _fmtQtdOrdem(v) {
+  var n = Number(v) || 0;
+  var r = Math.round(n * 10) / 10;
+  return (r % 1 === 0) ? String(r) : String(r).replace('.', ',');
+}
+
 var ORDENS = [];
 
 async function renderOrdens() {
@@ -6600,7 +6608,7 @@ async function renderOrdens() {
 }
 
 function _cardOrdem(o, aberta) {
-  var qtd = o.quantidade ? _arred(o.quantidade) + ' ' + (o.unidade || 'kg') : '';
+  var qtd = o.quantidade ? _fmtQtdOrdem(o.quantidade) + ' ' + (o.unidade || 'kg') : '';
   var dt  = (o.data_pedido || '').split('-').reverse().join('/');
   var prazo = o.para_quando ? o.para_quando.split('-').reverse().join('/') : '';
   var hoje = _today();
@@ -6776,7 +6784,7 @@ function imprimirOrdens() {
     + '<th style="padding:8px;text-align:center;width:52px;">Feito</th></tr></thead><tbody>';
 
   abertas.forEach(function(o, i) {
-    var qtd = o.quantidade ? _arred(o.quantidade) + ' ' + (o.unidade || 'kg') : '—';
+    var qtd = o.quantidade ? _fmtQtdOrdem(o.quantidade) + ' ' + (o.unidade || 'kg') : '—';
     var prazo = o.para_quando ? o.para_quando.split('-').reverse().join('/').slice(0,5) : '—';
     h += '<tr style="background:' + (i % 2 ? C.grayL : '#fff') + ';border-bottom:1px solid ' + C.border + ';">'
       + '<td style="padding:9px 10px;font-weight:700;">' + escHtml(o.produto || '') + '</td>'
