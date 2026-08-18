@@ -4008,18 +4008,21 @@ async function _salvarMetaPop() {
   const prod = TODOS_PRODS.find(p => p.id === _mpProdId);
   if (!prod) return;
 
-  // Distribuir a meta pelos dias selecionados (igual entre eles)
+  // Distribuir a meta igualmente entre os dias selecionados.
+  // Usa uma casa decimal em vez de arredondar para baixo — com Math.floor,
+  // 7,5 em 3 dias virava 2 + 2 + 3,5 (toda a sobra no último dia).
   const diasVals = { seg:0, ter:0, qua:0, qui:0, sex:0, sab:0, dom:0 };
   if (novoTotal > 0 && _mpDiasSel.length > 0) {
     const n = _mpDiasSel.length;
-    let restante = novoTotal;
+    const porDia = Math.round((novoTotal / n) * 10) / 10;
+    let acumulado = 0;
     _mpDiasSel.forEach((d, i) => {
       if (i === n - 1) {
-        diasVals[d] = restante;
+        // último dia absorve a diferença de arredondamento (centesimos)
+        diasVals[d] = Math.round((novoTotal - acumulado) * 10) / 10;
       } else {
-        const v = Math.floor(novoTotal / n);
-        diasVals[d] = v;
-        restante -= v;
+        diasVals[d] = porDia;
+        acumulado += porDia;
       }
     });
   }
@@ -6795,8 +6798,10 @@ function imprimirOrdens() {
       + '<span style="display:inline-block;width:17px;height:17px;border:2px solid #C9D6CE;border-radius:4px;"></span></td></tr>';
   });
 
-  // Linhas em branco para anotar à mão
-  for (var k = 0; k < 6; k++) {
+  // Linhas em branco para anotar à mão — completa a folha A4
+  // (cerca de 22 linhas cabem por página com este espaçamento)
+  var vazias = Math.max(6, 22 - abertas.length);
+  for (var k = 0; k < vazias; k++) {
     h += '<tr style="background:' + ((abertas.length + k) % 2 ? C.grayL : '#fff') + ';border-bottom:1px solid ' + C.border + ';">'
       + '<td style="padding:13px 10px;">&nbsp;</td><td></td><td></td><td></td>'
       + '<td style="padding:9px 8px;text-align:center;">'
