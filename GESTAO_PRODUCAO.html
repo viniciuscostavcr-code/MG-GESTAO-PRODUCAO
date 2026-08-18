@@ -6698,10 +6698,15 @@ async function salvarOrdem() {
   });
 
   try {
+    // produto_id só vai se for realmente um UUID — alguns cadastros usam
+    // o código do PDV como id, e isso quebra a coluna uuid do banco.
+    var ehUuid = function(v){
+      return typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+    };
     await sbInsert('ordens_producao', [{
       setor: SETOR,
       produto: nome,
-      produto_id: prod ? prod.id : null,
+      produto_id: (prod && ehUuid(prod.id)) ? prod.id : null,
       cod: prod ? (prod.cod || null) : null,
       quantidade: qtd,
       unidade: und,
