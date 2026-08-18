@@ -674,6 +674,7 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
 <div class="tabs">
   <div class="tab on" id="tab-checklist" onclick="goTab('checklist')">📋 Checklist</div>
   <div class="tab" id="tab-producao" onclick="goTab('producao')">📅 Produção</div>
+  <div class="tab" id="tab-ordens" onclick="goTab('ordens')">📝 Ordens</div>
   <div class="tab" id="tab-historico" onclick="goTab('historico')">📊 Histórico</div>
 </div>
 
@@ -777,6 +778,12 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
       </table>
     </div>
 
+  </div>
+
+  <div class="vw" id="v-ordens">
+    <div id="ordensContent" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px;">
+      <div class="loading-wrap"><div class="spin"></div></div>
+    </div>
   </div>
 
   <div class="vw" id="v-historico">
@@ -1526,11 +1533,12 @@ function goTab(t) {
   BUSCA_PROD = '';
   BUSCA_HOJE = '';
   BUSCA_HIST = '';
-  ['checklist','producao','historico'].forEach(id => {
+  ['checklist','producao','ordens','historico'].forEach(id => {
     document.getElementById('tab-'+id).classList.toggle('on', id===t);
     document.getElementById('v-'+id).classList.toggle('on', id===t);
   });
   if (t === 'producao')  renderProducao();
+  if (t === 'ordens') renderOrdens();
   if (t === 'historico') renderHistorico();
   // Reavaliar modo foco — só ativa em paisagem dentro da aba Produção
   setTimeout(_detectarOrientacao, 100);
@@ -6505,6 +6513,292 @@ function fichaDoProduto(prod){
   var nn=_normProdNome(prod.nome||'');
   if(FICHAS_NOME&&FICHAS_NOME[nn])return FICHAS_NOME[nn];
   return null;
+}
+
+
+// ══════════════════════════════════════════════════════
+// ORDENS DE PRODUÇÃO
+// Pedidos avulsos, fora do plano semanal — quando falta
+// produto ou surge demanda extra. Fica registrado para
+// virar indicador: muita ordem do mesmo item = meta baixa.
+// ══════════════════════════════════════════════════════
+
+// Modal genérico (mesma mecânica do detalhe de produto)
+function _modalGenerico(html) {
+  var ov = document.getElementById('genOv');
+  if (!ov) {
+    var el = document.createElement('div');
+    el.className = 'ov';
+    el.id = 'genOv';
+    el.setAttribute('onclick', 'if(event.target===this)fecharModalGenerico()');
+    el.innerHTML = '<div class="mo" id="genMo"></div>';
+    document.body.appendChild(el);
+    ov = el;
+  }
+  document.getElementById('genMo').innerHTML = html;
+  requestAnimationFrame(function(){ ov.classList.add('on'); });
+}
+function fecharModalGenerico() {
+  var ov = document.getElementById('genOv');
+  if (ov) ov.classList.remove('on');
+}
+
+var ORDENS = [];
+
+async function renderOrdens() {
+  var box = document.getElementById('ordensContent');
+  if (!box) return;
+  box.innerHTML = '<div class="loading-wrap"><div class="spin"></div></div>';
+
+  try {
+    ORDENS = await sbSelect('ordens_producao',
+      'setor=eq.' + encodeURIComponent(SETOR) + '&order=data_pedido.desc&limit=300') || [];
+  } catch (e) {
+    box.innerHTML = '<div style="padding:20px;text-align:center;color:var(--red);font-size:.8rem;">'
+      + 'Não foi possível carregar as ordens.<br><span style="font-size:.7rem;color:var(--gray)">'
+      + 'Verifique se a tabela ordens_producao foi criada.</span></div>';
+    return;
+  }
+
+  var abertas = ORDENS.filter(function(o) { return o.status === 'aberta'; });
+  var feitas  = ORDENS.filter(function(o) { return o.status === 'concluida'; });
+
+  var h = '';
+
+  // Ações
+  h += '<div style="display:flex;gap:8px;margin-bottom:12px;">';
+  h += '<button onclick="abrirNovaOrdem()" style="flex:1;padding:11px;background:var(--grn2);color:#fff;'
+    + 'border:none;border-radius:10px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;">'
+    + '+ Nova ordem</button>';
+  if (abertas.length) {
+    h += '<button onclick="imprimirOrdens()" style="padding:11px 15px;background:#fff;color:var(--grn2);'
+      + 'border:1.5px solid var(--grn2);border-radius:10px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;">'
+      + '🖨️ Imprimir</button>';
+  }
+  h += '</div>';
+
+  // Abertas
+  if (!abertas.length) {
+    h += '<div style="padding:26px 16px;text-align:center;color:var(--gray);">'
+      + '<div style="font-size:1.8rem;margin-bottom:6px;">📝</div>'
+      + '<div style="font-size:.82rem;font-weight:600;color:var(--brown);">Nenhuma ordem aberta</div>'
+      + '<div style="font-size:.72rem;margin-top:3px;">Crie uma quando faltar produto ou surgir demanda extra.</div></div>';
+  } else {
+    h += '<div style="font-size:.7rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;'
+      + 'color:var(--gray);margin-bottom:7px;">Em aberto (' + abertas.length + ')</div>';
+    abertas.forEach(function(o) { h += _cardOrdem(o, true); });
+  }
+
+  // Concluídas recentes
+  if (feitas.length) {
+    h += '<div style="font-size:.7rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;'
+      + 'color:var(--gray);margin:16px 0 7px;">Concluídas (' + feitas.length + ')</div>';
+    feitas.slice(0, 10).forEach(function(o) { h += _cardOrdem(o, false); });
+  }
+
+  box.innerHTML = h;
+}
+
+function _cardOrdem(o, aberta) {
+  var qtd = o.quantidade ? _arred(o.quantidade) + ' ' + (o.unidade || 'kg') : '';
+  var dt  = (o.data_pedido || '').split('-').reverse().join('/');
+  var prazo = o.para_quando ? o.para_quando.split('-').reverse().join('/') : '';
+  var hoje = _today();
+  var atrasada = aberta && o.para_quando && o.para_quando < hoje;
+
+  var h = '<div style="background:#fff;border:1px solid ' + (atrasada ? 'var(--red)' : 'var(--border)')
+    + ';border-left:4px solid ' + (aberta ? (atrasada ? 'var(--red)' : 'var(--amber)') : 'var(--grn)')
+    + ';border-radius:11px;padding:11px 13px;margin-bottom:8px;' + (aberta ? '' : 'opacity:.62;') + '">';
+
+  h += '<div style="display:flex;align-items:flex-start;gap:10px;">';
+  h += '<div style="flex:1;min-width:0;">';
+  h += '<div style="font-size:.87rem;font-weight:800;color:var(--brown);line-height:1.25;">'
+    + escHtml(o.produto || '') + '</div>';
+  if (qtd) {
+    h += '<div style="font-size:1.05rem;font-weight:800;color:var(--red);margin-top:2px;">' + qtd + '</div>';
+  }
+  h += '<div style="font-size:.68rem;color:var(--gray);margin-top:4px;">Pedido em ' + dt
+    + (prazo ? ' · para ' + prazo : '')
+    + (atrasada ? ' <b style="color:var(--red)">· atrasada</b>' : '') + '</div>';
+  if (o.motivo) {
+    h += '<div style="font-size:.7rem;color:var(--brown2);margin-top:4px;font-style:italic;">'
+      + escHtml(o.motivo) + '</div>';
+  }
+  h += '</div>';
+
+  if (aberta) {
+    h += '<div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0;">';
+    h += '<button onclick="concluirOrdem(\'' + o.id + '\')" style="padding:6px 11px;background:var(--grn);'
+      + 'color:#fff;border:none;border-radius:7px;font-size:.68rem;font-weight:700;cursor:pointer;font-family:inherit;">✓ Feito</button>';
+    if (IS_ADMIN) {
+      h += '<button onclick="excluirOrdem(\'' + o.id + '\')" style="padding:6px 11px;background:#fff;'
+        + 'color:var(--gray);border:1px solid var(--border);border-radius:7px;font-size:.68rem;cursor:pointer;font-family:inherit;">Excluir</button>';
+    }
+    h += '</div>';
+  }
+  h += '</div></div>';
+  return h;
+}
+
+// ── Criar ordem ──
+function abrirNovaOrdem() {
+  var opts = (TODOS_PRODS || [])
+    .filter(function(p) { return (p.setor || '').toUpperCase() === SETOR; })
+    .map(function(p) { return '<option value="' + escHtml(p.nome) + '" data-cod="' + (p.cod || '') + '">'; })
+    .join('');
+
+  var hoje = _today();
+  var html = '<div style="padding:4px 2px;">'
+    + '<div style="font-size:1rem;font-weight:800;color:var(--grn2);margin-bottom:14px;">Nova ordem de produção</div>'
+
+    + '<label style="font-size:.7rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;">Produto</label>'
+    + '<input list="ordProdList" id="ordProduto" placeholder="Digite ou escolha..." '
+    + 'style="width:100%;padding:11px;margin:5px 0 12px;border:1.5px solid var(--border);border-radius:9px;'
+    + 'font-size:16px;font-family:inherit;color:var(--brown);">'
+    + '<datalist id="ordProdList">' + opts + '</datalist>'
+
+    + '<div style="display:flex;gap:9px;margin-bottom:12px;">'
+    +   '<div style="flex:2;"><label style="font-size:.7rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;">Quantidade</label>'
+    +   '<input type="number" step="0.1" id="ordQtd" placeholder="0" '
+    +   'style="width:100%;padding:11px;margin-top:5px;border:1.5px solid var(--border);border-radius:9px;font-size:16px;font-family:inherit;"></div>'
+    +   '<div style="flex:1;"><label style="font-size:.7rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;">Unid.</label>'
+    +   '<select id="ordUnid" style="width:100%;padding:11px;margin-top:5px;border:1.5px solid var(--border);border-radius:9px;font-size:16px;font-family:inherit;">'
+    +   '<option value="kg">kg</option><option value="und">und</option></select></div>'
+    + '</div>'
+
+    + '<label style="font-size:.7rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;">Para quando</label>'
+    + '<input type="date" id="ordPrazo" value="' + hoje + '" '
+    + 'style="width:100%;padding:11px;margin:5px 0 12px;border:1.5px solid var(--border);border-radius:9px;font-size:16px;font-family:inherit;">'
+
+    + '<label style="font-size:.7rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;">Motivo <span style="font-weight:400;text-transform:none;">(opcional)</span></label>'
+    + '<input id="ordMotivo" placeholder="Ex.: acabou na gôndola" '
+    + 'style="width:100%;padding:11px;margin:5px 0 16px;border:1.5px solid var(--border);border-radius:9px;font-size:16px;font-family:inherit;">'
+
+    + '<div style="display:flex;gap:8px;">'
+    +   '<button onclick="fecharModalGenerico()" style="flex:1;padding:12px;background:#fff;color:var(--brown);'
+    +   'border:1.5px solid var(--border);border-radius:10px;font-size:.85rem;font-weight:700;cursor:pointer;font-family:inherit;">Cancelar</button>'
+    +   '<button onclick="salvarOrdem()" style="flex:2;padding:12px;background:var(--grn2);color:#fff;'
+    +   'border:none;border-radius:10px;font-size:.85rem;font-weight:700;cursor:pointer;font-family:inherit;">Criar ordem</button>'
+    + '</div></div>';
+
+  _modalGenerico(html);
+}
+
+async function salvarOrdem() {
+  var nome = (document.getElementById('ordProduto').value || '').trim();
+  if (!nome) { toast('Informe o produto', 'wa'); return; }
+  var qtd = parseFloat(document.getElementById('ordQtd').value) || null;
+  var und = document.getElementById('ordUnid').value || 'kg';
+  var prazo = document.getElementById('ordPrazo').value || null;
+  var motivo = (document.getElementById('ordMotivo').value || '').trim() || null;
+
+  // Tenta casar com o cadastro para gravar código e id
+  var prod = (TODOS_PRODS || []).find(function(p) {
+    return (p.nome || '').toUpperCase().trim() === nome.toUpperCase();
+  });
+
+  try {
+    await sbInsert('ordens_producao', [{
+      setor: SETOR,
+      produto: nome,
+      produto_id: prod ? prod.id : null,
+      cod: prod ? (prod.cod || null) : null,
+      quantidade: qtd,
+      unidade: und,
+      para_quando: prazo,
+      motivo: motivo,
+      status: 'aberta',
+      criado_por: (GF_USER && GF_USER.nome) || null
+    }]);
+    fecharModalGenerico();
+    toast('Ordem criada', 'ok');
+    renderOrdens();
+  } catch (e) {
+    toast('Erro ao salvar: ' + e.message, 'er');
+  }
+}
+
+async function concluirOrdem(id) {
+  try {
+    await sbPatch('ordens_producao', id, {
+      status: 'concluida',
+      concluido_em: new Date().toISOString()
+    });
+    toast('Ordem concluída', 'ok');
+    renderOrdens();
+  } catch (e) { toast('Erro: ' + e.message, 'er'); }
+}
+
+async function excluirOrdem(id) {
+  var ok = await confirmar('Excluir esta ordem?', 'Excluir ordem', '🗑️', 'Excluir');
+  if (!ok) return;
+  try {
+    await sbDelete('ordens_producao', 'id=eq.' + id);
+    toast('Ordem excluída', 'ok');
+    renderOrdens();
+  } catch (e) { toast('Erro: ' + e.message, 'er'); }
+}
+
+// ── Impressão em folha separada ──
+function imprimirOrdens() {
+  var abertas = ORDENS.filter(function(o) { return o.status === 'aberta'; });
+  if (!abertas.length) { toast('Nenhuma ordem aberta', 'wa'); return; }
+
+  var C = { grn2:'#1B4332', grn:'#2D6A4F', grnL:'#EAF4EF', border:'#E2EDE8',
+            red:'#C0392B', amber:'#D97706', gray:'#6B7280', grayL:'#F4F4F2', brown:'#1C1C1A' };
+  var hoje = new Date();
+  var dataStr = String(hoje.getDate()).padStart(2,'0') + '/'
+    + String(hoje.getMonth()+1).padStart(2,'0') + '/' + hoje.getFullYear();
+  var ico = {PADARIA:'🍞',CONFEITARIA:'🎂',LANCHONETE:'🥪',RESTAURANTE:'🍽️'}[SETOR] || '🏭';
+
+  var h = '<style>@media print{@page{size:A4 portrait;margin:11mm;} tr{page-break-inside:avoid;}}</style>';
+  h += '<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;color:' + C.brown + ';">';
+
+  h += '<div style="display:flex;align-items:center;padding-bottom:12px;margin-bottom:14px;border-bottom:3px solid ' + C.grn2 + ';">'
+    + '<div style="width:42px;height:42px;background:linear-gradient(135deg,' + C.grn2 + ',' + C.grn + ');border-radius:12px;'
+    + 'display:flex;align-items:center;justify-content:center;color:#fff;font-size:21px;font-weight:800;">G</div>'
+    + '<div style="flex:1;padding-left:14px;">'
+    + '<div style="font-size:17px;font-weight:800;color:' + C.grn2 + ';">Gest<span style="color:' + C.grn + ';">Food</span> — Ordens de Produção</div>'
+    + '<div style="font-size:11.5px;color:' + C.gray + ';margin-top:2px;">' + ico + ' ' + SETOR + ' · pedidos fora do plano semanal</div></div>'
+    + '<div style="text-align:right;font-size:10px;color:' + C.gray + ';">impresso em<br><b style="color:' + C.brown + ';">' + dataStr + '</b></div></div>';
+
+  h += '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+  h += '<thead><tr style="background:' + C.grn2 + ';color:#fff;">'
+    + '<th style="padding:8px 10px;text-align:left;">Produto</th>'
+    + '<th style="padding:8px;text-align:right;width:95px;">Quantidade</th>'
+    + '<th style="padding:8px;text-align:center;width:80px;">Para</th>'
+    + '<th style="padding:8px;text-align:left;">Motivo</th>'
+    + '<th style="padding:8px;text-align:center;width:52px;">Feito</th></tr></thead><tbody>';
+
+  abertas.forEach(function(o, i) {
+    var qtd = o.quantidade ? _arred(o.quantidade) + ' ' + (o.unidade || 'kg') : '—';
+    var prazo = o.para_quando ? o.para_quando.split('-').reverse().join('/').slice(0,5) : '—';
+    h += '<tr style="background:' + (i % 2 ? C.grayL : '#fff') + ';border-bottom:1px solid ' + C.border + ';">'
+      + '<td style="padding:9px 10px;font-weight:700;">' + escHtml(o.produto || '') + '</td>'
+      + '<td style="padding:9px 8px;text-align:right;font-weight:800;color:' + C.red + ';font-size:14px;">' + qtd + '</td>'
+      + '<td style="padding:9px 8px;text-align:center;font-size:11px;">' + prazo + '</td>'
+      + '<td style="padding:9px 8px;font-size:11px;color:' + C.gray + ';">' + escHtml(o.motivo || '') + '</td>'
+      + '<td style="padding:9px 8px;text-align:center;">'
+      + '<span style="display:inline-block;width:17px;height:17px;border:2px solid #C9D6CE;border-radius:4px;"></span></td></tr>';
+  });
+
+  // Linhas em branco para anotar à mão
+  for (var k = 0; k < 6; k++) {
+    h += '<tr style="background:' + ((abertas.length + k) % 2 ? C.grayL : '#fff') + ';border-bottom:1px solid ' + C.border + ';">'
+      + '<td style="padding:13px 10px;">&nbsp;</td><td></td><td></td><td></td>'
+      + '<td style="padding:9px 8px;text-align:center;">'
+      + '<span style="display:inline-block;width:17px;height:17px;border:2px solid #C9D6CE;border-radius:4px;"></span></td></tr>';
+  }
+
+  h += '</tbody></table>';
+  h += '<div style="margin-top:11px;font-size:10.5px;color:' + C.gray + ';">'
+    + '<b>' + abertas.length + '</b> ordem(ns) em aberto · as linhas vazias são para anotar novos pedidos à mão.</div>';
+  h += '<div style="margin-top:16px;padding-top:9px;border-top:1px solid ' + C.border + ';font-size:9.5px;color:#A0A5A0;'
+    + 'display:flex;justify-content:space-between;"><span>GestFood · Supermercado MG</span>'
+    + '<span>Marque o quadrinho conforme concluir</span></div>';
+  h += '</div>';
+
+  abrirPrintModal(h);
 }
 
 function getLoteProduto(produtoNome, setor, diaSemana, dataISO) {
