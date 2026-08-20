@@ -1790,11 +1790,67 @@ function renderGargalos(){
     else{semPreco++;}
   });
   const v=totaisVendas();
+  const pctFat = v.fat26>0 ? (custoTot/v.fat26*100) : 0;
+
+  // ── Destaque financeiro: os dois números que importam ──
+  h+='<div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">';
+
+  h+='<div style="flex:1;min-width:180px;background:linear-gradient(135deg,#FDECEA,#FBE0DC);'
+   +'border:1px solid rgba(192,57,43,.18);border-radius:14px;padding:15px 17px">'
+   +'<div style="font-size:.66rem;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#8B3A2E">Custo perdido</div>'
+   +'<div style="font-size:2rem;font-weight:800;color:var(--red);line-height:1.1;margin:3px 0 2px">'+fmtR(custoTot)+'</div>'
+   +'<div style="font-size:.7rem;color:#8B3A2E">o que saiu do caixa em '+nomeMesAtual()+'</div></div>';
+
+  h+='<div style="flex:1;min-width:180px;background:linear-gradient(135deg,#FEF3EC,#FDE8D8);'
+   +'border:1px solid rgba(230,126,34,.18);border-radius:14px;padding:15px 17px">'
+   +'<div style="font-size:.66rem;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#8B5A0E">Venda perdida</div>'
+   +'<div style="font-size:2rem;font-weight:800;color:#B4690E;line-height:1.1;margin:3px 0 2px">'+fmtR(vendaTot)+'</div>'
+   +'<div style="font-size:.7rem;color:#8B5A0E">o que deixou de faturar</div></div>';
+
+  h+='</div>';
+
+  // ── Quebra por setor ──
+  var porSetorKpi={};
+  desp.forEach(function(d){
+    var s=(d.setor||'OUTROS').toUpperCase();
+    if(!porSetorKpi[s])porSetorKpi[s]={custo:0,venda:0,kg:0,und:0,regs:0};
+    var pr=precoProduto(d);
+    porSetorKpi[s].regs++;
+    if(pr){porSetorKpi[s].custo+=d.qty*pr.ck;porSetorKpi[s].venda+=d.qty*pr.vk;}
+    if(d.und==='und')porSetorKpi[s].und+=d.qty; else porSetorKpi[s].kg+=d.qty;
+  });
+  var setoresKpi=Object.keys(porSetorKpi).sort(function(a,b){return porSetorKpi[b].custo-porSetorKpi[a].custo;});
+
+  if(setoresKpi.length>1){
+    var icoSet={PADARIA:'🥖',CONFEITARIA:'🎂',LANCHONETE:'🥪',RESTAURANTE:'🍽️',PASTELARIA:'🥟'};
+    h+='<div style="display:flex;gap:9px;margin-bottom:12px;flex-wrap:wrap">';
+    setoresKpi.forEach(function(s){
+      var d2=porSetorKpi[s];
+      var pctDoTotal=custoTot>0?(d2.custo/custoTot*100):0;
+      var qtdTxt=(d2.kg>0?fmtKg(d2.kg)+' kg':'')+(d2.und>0?(d2.kg>0?' · ':'')+fmtN(d2.und)+' und':'');
+      h+='<div style="flex:1;min-width:158px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 14px">'
+       +'<div style="font-size:.72rem;font-weight:800;color:var(--grn2);margin-bottom:6px">'+(icoSet[s]||'🏭')+' '+s+'</div>'
+       +'<div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px">'
+       +'<span style="font-size:.62rem;color:var(--gray);text-transform:uppercase;letter-spacing:.3px">Custo</span>'
+       +'<span style="font-size:1.05rem;font-weight:800;color:var(--red)">'+fmtR(d2.custo)+'</span></div>'
+       +'<div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-top:2px">'
+       +'<span style="font-size:.62rem;color:var(--gray);text-transform:uppercase;letter-spacing:.3px">Venda perdida</span>'
+       +'<span style="font-size:.92rem;font-weight:700;color:#B4690E">'+fmtR(d2.venda)+'</span></div>'
+       +'<div style="height:4px;border-radius:2px;background:var(--border);margin:8px 0 5px;overflow:hidden">'
+       +'<div style="height:100%;width:'+Math.max(3,pctDoTotal)+'%;background:var(--red);border-radius:2px"></div></div>'
+       +'<div style="font-size:.63rem;color:var(--gray)">'+qtdTxt+' · '+pctDoTotal.toFixed(0)+'% do total</div>'
+       +'</div>';
+    });
+    h+='</div>';
+  }
+
+  // Linha de apoio: volume e proporção
   h+='<div class="kpi-grid">';
-  h+='<div class="kpi alerta"><div class="kpi-label">Custo desperdiçado</div><div class="kpi-val">'+fmtR(custoTot)+'</div><div class="kpi-sub">prejuízo real (saiu do caixa)</div></div>';
-  h+='<div class="kpi" style="background:var(--orange-l);border:none"><div class="kpi-label" style="color:var(--orange)">Venda perdida</div><div class="kpi-val" style="color:var(--orange)">'+fmtR(vendaTot)+'</div><div class="kpi-sub">faturamento que iria gerar</div></div>';
-  h+='<div class="kpi"><div class="kpi-label">Total desperdiçado</div><div class="kpi-val" style="font-size:1.15rem">'+fmtKg(despKg)+' kg</div><div class="kpi-sub">'+(despUnd>0?fmtN(despUnd)+' und · ':'')+desp.length+' registros</div></div>';
-  h+='<div class="kpi"><div class="kpi-label">% do faturamento</div><div class="kpi-val" style="color:'+(vendaTot/v.fat26*100<=3?'var(--grn)':'var(--red)')+'">'+pct(vendaTot/v.fat26*100)+'</div><div class="kpi-sub">venda perdida ÷ faturamento</div></div>';
+  h+='<div class="kpi"><div class="kpi-label">Total desperdiçado</div><div class="kpi-val" style="font-size:1.15rem">'
+   +fmtKg(despKg)+' kg'+(despUnd>0?' <span style="font-size:.75rem;color:var(--orange)">+ '+fmtN(despUnd)+' und</span>':'')+'</div></div>';
+  h+='<div class="kpi"><div class="kpi-label">Custo perdido sobre o faturamento</div><div class="kpi-val" style="font-size:1.15rem;color:'
+   +(pctFat<=1?'var(--grn)':(pctFat<=2?'var(--amber)':'var(--red)'))+'">'+pctFat.toFixed(2)+'%</div>'
+   +'<div style="font-size:.64rem;color:var(--gray);margin-top:2px">referência: até 2% é aceitável</div></div>';
   h+='</div>';
   if(semPreco>0){
     // Junta os produtos sem preço (únicos) pra você ver quais precisam de preço manual
@@ -1913,8 +1969,10 @@ async function imprimirDesperdicio(){
     if(pr){custoMes+=d.qty*pr.ck;vendaMes+=d.qty*pr.vk;}
     if(d.und!=='und')kgMes+=d.qty;else undMes+=d.qty;
     var s=(d.setor||'OUTROS').toUpperCase();
-    if(!porSetor[s])porSetor[s]={custo:0,kg:0};
-    porSetor[s].custo+=pr?d.qty*pr.ck:0;if(d.und!=='und')porSetor[s].kg+=d.qty;
+    if(!porSetor[s])porSetor[s]={custo:0,venda:0,kg:0,und:0};
+    porSetor[s].custo+=pr?d.qty*pr.ck:0;
+    porSetor[s].venda+=pr?d.qty*pr.vk:0;
+    if(d.und!=='und')porSetor[s].kg+=d.qty; else porSetor[s].und+=d.qty;
     if(!porProduto[d.produto])porProduto[d.produto]={custo:0,qty:0,und:d.und};
     porProduto[d.produto].custo+=pr?d.qty*pr.ck:0;porProduto[d.produto].qty+=d.qty;
     var mo=d.motivo||'—';if(!porMotivo[mo])porMotivo[mo]=0;porMotivo[mo]+=pr?d.qty*pr.ck:0;
@@ -1930,11 +1988,30 @@ async function imprimirDesperdicio(){
     +'<div><div style="font-size:19px;font-weight:800;color:#1B4332;">Relatório de Desperdício — '+nomeM+'</div>'
     +'<div style="font-size:12px;color:#6B7280;">Supermercado MG · Padaria e Confeitaria · '+dataStr+'</div></div></div>';
 
-  // 1. KPIs
-  h+='<div style="display:flex;gap:10px;margin-bottom:18px;">';
-  h+='<div style="flex:1;background:#FDF1E3;border-radius:10px;padding:13px;"><div style="font-size:10px;color:#8B5A0E;text-transform:uppercase;font-weight:700;">Custo (saiu do caixa)</div><div style="font-size:19px;font-weight:800;color:#E67E22;">'+fmtR(custoMes)+'</div></div>';
-  h+='<div style="flex:1;background:#FDECEA;border-radius:10px;padding:13px;"><div style="font-size:10px;color:#C0392B;text-transform:uppercase;font-weight:700;">Venda perdida</div><div style="font-size:19px;font-weight:800;color:#C0392B;">'+fmtR(vendaMes)+'</div></div>';
-  h+='<div style="flex:1;background:#F4F4F2;border-radius:10px;padding:13px;"><div style="font-size:10px;color:#6B7280;text-transform:uppercase;font-weight:700;">Quantidade</div><div style="font-size:19px;font-weight:800;color:#1C1C1A;">'+fmtKg(kgMes)+' kg</div></div>';
+  // 1. KPIs — os dois valores financeiros em destaque
+  var pctFatImp = (typeof totaisVendas==='function' && totaisVendas().fat26>0)
+    ? (custoMes/totaisVendas().fat26*100) : 0;
+
+  h+='<div style="display:flex;gap:11px;margin-bottom:13px;">';
+  h+='<div style="flex:1;background:linear-gradient(135deg,#FDECEA,#FBE0DC);border:1px solid rgba(192,57,43,.2);border-radius:13px;padding:16px 18px;">'
+    +'<div style="font-size:10px;color:#8B3A2E;text-transform:uppercase;font-weight:800;letter-spacing:.7px;">Custo perdido</div>'
+    +'<div style="font-size:31px;font-weight:800;color:#C0392B;line-height:1.08;margin:4px 0 2px;">'+fmtR(custoMes)+'</div>'
+    +'<div style="font-size:11px;color:#8B3A2E;">o que saiu do caixa</div></div>';
+  h+='<div style="flex:1;background:linear-gradient(135deg,#FEF3EC,#FDE8D8);border:1px solid rgba(230,126,34,.2);border-radius:13px;padding:16px 18px;">'
+    +'<div style="font-size:10px;color:#8B5A0E;text-transform:uppercase;font-weight:800;letter-spacing:.7px;">Venda perdida</div>'
+    +'<div style="font-size:31px;font-weight:800;color:#B4690E;line-height:1.08;margin:4px 0 2px;">'+fmtR(vendaMes)+'</div>'
+    +'<div style="font-size:11px;color:#8B5A0E;">o que deixou de faturar</div></div>';
+  h+='</div>';
+
+  h+='<div style="display:flex;gap:11px;margin-bottom:18px;">';
+  h+='<div style="flex:1;background:#F4F4F2;border-radius:11px;padding:11px 14px;">'
+    +'<div style="font-size:10px;color:#6B7280;text-transform:uppercase;font-weight:700;letter-spacing:.5px;">Volume descartado</div>'
+    +'<div style="font-size:17px;font-weight:800;color:#1C1C1A;margin-top:2px;">'+fmtKg(kgMes)+' kg'
+    +(undMes>0?' <span style="font-size:12px;color:#E67E22;">+ '+fmtN(undMes)+' und</span>':'')+'</div></div>';
+  h+='<div style="flex:1;background:#F4F4F2;border-radius:11px;padding:11px 14px;">'
+    +'<div style="font-size:10px;color:#6B7280;text-transform:uppercase;font-weight:700;letter-spacing:.5px;">Custo sobre o faturamento</div>'
+    +'<div style="font-size:17px;font-weight:800;color:'+(pctFatImp<=1?'#1B4332':(pctFatImp<=2?'#D97706':'#C0392B'))+';margin-top:2px;">'
+    +pctFatImp.toFixed(2)+'%</div></div>';
   h+='</div>';
 
   // 2. Evolução
@@ -1947,11 +2024,52 @@ async function imprimirDesperdicio(){
     h+='</table>';
   }
 
-  // 3. Por setor
-  h+='<div style="font-size:14px;font-weight:700;margin-bottom:8px;">🏭 Desperdício por setor ('+nomeM+')</div>';
+  // 3. Por setor — cartões com os dois valores, depois a tabela
+  h+='<div style="font-size:14px;font-weight:700;margin-bottom:9px;">🏭 Desperdício por setor ('+nomeM+')</div>';
+
+  var icoImp={PADARIA:'🥖',CONFEITARIA:'🎂',LANCHONETE:'🥪',RESTAURANTE:'🍽️',PASTELARIA:'🥟'};
+  h+='<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">';
+  setoresOrd.forEach(function(s){
+    var d2=porSetor[s];
+    var pctSet=custoMes>0?(d2.custo/custoMes*100):0;
+    var qtdTxt=(d2.kg>0?fmtKg(d2.kg)+' kg':'')+(d2.und>0?(d2.kg>0?' · ':'')+fmtN(d2.und)+' und':'');
+    h+='<div style="flex:1;min-width:170px;background:#fff;border:1.5px solid #E2EDE8;border-radius:12px;padding:13px 15px;">'
+      +'<div style="font-size:12px;font-weight:800;color:#1B4332;margin-bottom:8px;">'+(icoImp[s]||'🏭')+' '+s+'</div>'
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;">'
+      +'<span style="font-size:9.5px;color:#6B7280;text-transform:uppercase;letter-spacing:.4px;">Custo perdido</span>'
+      +'<span style="font-size:17px;font-weight:800;color:#C0392B;">'+fmtR(d2.custo)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:3px;">'
+      +'<span style="font-size:9.5px;color:#6B7280;text-transform:uppercase;letter-spacing:.4px;">Venda perdida</span>'
+      +'<span style="font-size:14px;font-weight:700;color:#B4690E;">'+fmtR(d2.venda)+'</span></div>'
+      +'<div style="height:5px;border-radius:3px;background:#EEF2EF;margin:9px 0 6px;overflow:hidden;">'
+      +'<div style="height:100%;width:'+Math.max(3,pctSet)+'%;background:#C0392B;border-radius:3px;"></div></div>'
+      +'<div style="font-size:10px;color:#6B7280;">'+qtdTxt+' · '+pctSet.toFixed(0)+'% do total</div></div>';
+  });
+  h+='</div>';
+
   h+='<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:18px;">';
-  h+='<tr style="background:#1B4332;color:#fff;"><th style="padding:8px;text-align:left;">Setor</th><th style="padding:8px;text-align:right;">Custo</th><th style="padding:8px;text-align:right;">Kg</th></tr>';
-  setoresOrd.forEach(function(s,i){h+='<tr style="background:'+(i%2?'#FAFAF8':'#fff')+';"><td style="padding:7px 8px;border-bottom:1px solid #eee;font-weight:600;">'+s+'</td><td style="padding:7px 8px;text-align:right;border-bottom:1px solid #eee;color:#E67E22;font-weight:700;">'+fmtR(porSetor[s].custo)+'</td><td style="padding:7px 8px;text-align:right;border-bottom:1px solid #eee;">'+fmtKg(porSetor[s].kg)+'</td></tr>';});
+  h+='<tr style="background:#1B4332;color:#fff;"><th style="padding:8px;text-align:left;">Setor</th>'
+    +'<th style="padding:8px;text-align:right;">Custo perdido</th>'
+    +'<th style="padding:8px;text-align:right;">Venda perdida</th>'
+    +'<th style="padding:8px;text-align:right;">Volume</th>'
+    +'<th style="padding:8px;text-align:right;">% do total</th></tr>';
+  setoresOrd.forEach(function(s,i){
+    var d2=porSetor[s];
+    var pctSet=custoMes>0?(d2.custo/custoMes*100):0;
+    var qtdTxt=(d2.kg>0?fmtKg(d2.kg)+' kg':'')+(d2.und>0?(d2.kg>0?' + ':'')+fmtN(d2.und)+' und':'');
+    h+='<tr style="background:'+(i%2?'#FAFAF8':'#fff')+';">'
+      +'<td style="padding:7px 8px;border-bottom:1px solid #eee;font-weight:700;">'+s+'</td>'
+      +'<td style="padding:7px 8px;border-bottom:1px solid #eee;text-align:right;font-weight:700;color:#C0392B;">'+fmtR(d2.custo)+'</td>'
+      +'<td style="padding:7px 8px;border-bottom:1px solid #eee;text-align:right;color:#B4690E;">'+fmtR(d2.venda)+'</td>'
+      +'<td style="padding:7px 8px;border-bottom:1px solid #eee;text-align:right;">'+qtdTxt+'</td>'
+      +'<td style="padding:7px 8px;border-bottom:1px solid #eee;text-align:right;">'+pctSet.toFixed(0)+'%</td></tr>';
+  });
+  h+='<tr style="background:#EAF4EF;font-weight:800;">'
+    +'<td style="padding:8px;">TOTAL</td>'
+    +'<td style="padding:8px;text-align:right;color:#C0392B;">'+fmtR(custoMes)+'</td>'
+    +'<td style="padding:8px;text-align:right;color:#B4690E;">'+fmtR(vendaMes)+'</td>'
+    +'<td style="padding:8px;text-align:right;">'+fmtKg(kgMes)+' kg'+(undMes>0?' + '+fmtN(undMes)+' und':'')+'</td>'
+    +'<td style="padding:8px;text-align:right;">100%</td></tr>';
   h+='</table>';
 
   // 4. Top produtos
