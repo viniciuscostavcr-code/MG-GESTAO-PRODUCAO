@@ -807,6 +807,18 @@ function calcCMV(ficha){
          nUnid,custoUndFinal,cmvUnd,margemUnd,precoUnd};
 }
 
+
+// Exibe o rendimento na base cadastrada: kg, unidades, ou ambos
+function fmtRendimento(f, curto){
+  var kg = parseFloat(f.rendimento_kg) || 0;
+  var un = parseFloat(f.rendimento_unid) || 0;
+  if (kg > 0 && un > 0) {
+    return curto ? (fmtBR(kg,2)+' kg') : (fmtBR(kg,2)+' kg ('+fmtBR(un,0)+' und)');
+  }
+  if (un > 0) return fmtBR(un,0)+' und';
+  return fmtBR(kg,2)+' kg';
+}
+
 function cmvClass(cmv){
   if(cmv===null)return 'gray';
   if(cmv<=0.35)return 'ok';
@@ -1010,7 +1022,7 @@ function renderProducao() {
       +     '<h3>' + (f.produto_nome || '') + '</h3>'
       +     '<p>' + (f.grupo || '') + (f.setor ? ' · ' + f.setor : '') + '</p>'
       +   '</div>'
-      +   '<div style="font-size:.72rem;color:var(--gray);">' + fmtBR(f.rendimento_kg, 2) + ' kg</div>'
+      +   '<div style="font-size:.72rem;color:var(--gray);">' + fmtRendimento(f, true) + '</div>'
       + '</div>'
       + '<div class="ficha-card-body" id="fp-' + f.id + '">'
       +   fotoHtml
@@ -1021,7 +1033,7 @@ function renderProducao() {
       +     '<tbody>' + rows + '</tbody>'
       +   '</table>'
       +   '<div style="margin-top:8px;font-size:.75rem;color:var(--gray);">'
-      +     'Rendimento: ' + fmtBR(f.rendimento_kg, 2) + ' kg' + tempoStr
+      +     'Rendimento: ' + fmtRendimento(f) + tempoStr
       +   '</div>'
       +   equipamentosHtml
       +   modoPreparoHtml
@@ -1153,7 +1165,7 @@ function imprimirFichaProducao(id) {
 
     + '<div class="faixa">'
     +   '<div class="fx"><div class="fx-lb">Rendimento</div>'
-    +     '<div class="fx-vl">' + fmtBR(f.rendimento_kg, 2) + ' kg</div>'
+    +     '<div class="fx-vl">' + fmtRendimento(f, true) + '</div>'
     +     (unidStr ? '<div class="fx-sub">' + unidStr + '</div>' : '') + '</div>'
     +   '<div class="fx"><div class="fx-lb">Ingredientes</div>'
     +     '<div class="fx-vl">' + itens.length + '</div></div>'
@@ -1518,7 +1530,11 @@ async function salvarFicha(){
   const cod=document.getElementById('fichaCod').value.trim();
   if(!produto_nome){toast('⚠️ Nome obrigatório','er');return;}
   if(!setor){toast('⚠️ Setor obrigatório','er');return;}
-  if(rendimento_kg<=0){toast('⚠️ Rendimento obrigatório','er');return;}
+  // Aceita rendimento em kg OU em unidades — produtos contáveis
+  // (folhados, salgados) muitas vezes só têm rendimento unitário.
+  if(rendimento_kg<=0 && rendimento_unid<=0){
+    toast('⚠️ Informe o rendimento em kg ou em unidades','er');return;
+  }
   // Ativa a trava e desabilita o botão (impede clique duplo)
   _salvandoFicha=true;
   const btnSalvar=document.getElementById('btnSalvarFicha');
@@ -1705,7 +1721,7 @@ function imprimirFichaProd(id){
     modoHtml='<div class="modo-vazio">— Modo de preparo não cadastrado —</div>';
   }
 
-  var rendStr=fmtBR(f.rendimento_kg,2)+' kg';
+  var rendStr=fmtRendimento(f);
   if(f.rendimento_unid)rendStr=f.rendimento_unid+' unidades';
   var tempoStr=f.tempo_preparo_min?f.tempo_preparo_min+' min':'';
   var codStr=f.cod?f.cod:'';
