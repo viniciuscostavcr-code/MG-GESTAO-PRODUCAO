@@ -61,6 +61,7 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
 .badge-gray{background:var(--gray-l);color:var(--gray);}
 
 /* CMV INDICATOR */
+.calc-porcao{background:var(--grn-l,#EAF4EF);border-radius:11px;padding:11px 13px;margin-bottom:12px;}
 .cmv-bar{height:6px;border-radius:3px;background:var(--border);margin-top:6px;overflow:hidden;}
 .cmv-fill{height:100%;border-radius:3px;transition:width .3s;}
 .cmv-ok{background:#1D9E75;}
@@ -875,18 +876,94 @@ function toggleFicha(id){
   if(el)el.classList.toggle('open');
 }
 
+
+// ══════════════════════════════════════════════════
+// CALCULADORA DE PORÇÃO
+// Recalcula ingredientes, peso e custo para produzir
+// uma fração ou múltiplo da receita cadastrada.
+// ══════════════════════════════════════════════════
+function ajustarPorcao(fichaId, valor, ehMultiplo){
+  var tbl = document.getElementById('tbl-' + fichaId);
+  if (!tbl) return;
+
+  var rendBase = parseFloat(tbl.dataset.rend) || 0;
+  var undBase  = parseFloat(tbl.dataset.und)  || 0;
+  var custoBase= parseFloat(tbl.dataset.custo)|| 0;
+  var pesoBase = parseFloat(tbl.dataset.peso) || 0;
+  var baseRef  = rendBase > 0 ? rendBase : undBase;
+
+  var fator;
+  if (ehMultiplo) {
+    fator = parseFloat(valor) || 1;
+    var inp = document.getElementById('porcao-' + fichaId);
+    if (inp && baseRef > 0) inp.value = (baseRef * fator).toFixed(rendBase > 0 ? 2 : 0);
+  } else {
+    var desejado = parseFloat(String(valor).replace(',', '.')) || 0;
+    if (desejado <= 0 || baseRef <= 0) { resetarPorcao(fichaId); return; }
+    fator = desejado / baseRef;
+  }
+
+  // Ingredientes
+  tbl.querySelectorAll('.qtd-base').forEach(function(td){
+    var base = parseFloat(td.dataset.base) || 0;
+    var und  = td.dataset.und || '';
+    var ehUnd= td.dataset.ehund === '1';
+    var novo = base * fator;
+    // Itens contáveis (ovos, frutas) arredondam para inteiro
+    td.textContent = (ehUnd ? Math.round(novo) : fmtBR(novo, 2)) + ' ' + und;
+    td.style.color = Math.abs(fator - 1) > 0.001 ? '#C0392B' : '';
+    td.style.fontWeight = Math.abs(fator - 1) > 0.001 ? '700' : '';
+  });
+
+  // Custo não muda com a porção — o custo por kg é o mesmo,
+  // então as colunas de custo continuam mostrando a receita cheia.
+
+  // Peso total acompanha a porção
+  var tdPeso = tbl.querySelector('.peso-total');
+  if (tdPeso) tdPeso.textContent = fmtBR(pesoBase * fator, 2) + ' kg';
+
+  // Mensagem de apoio
+  var info = document.getElementById('calcInfo-' + fichaId);
+  if (info) {
+    if (Math.abs(fator - 1) < 0.001) {
+      info.innerHTML = 'Receita cheia rende '
+        + (rendBase > 0 ? fmtBR(rendBase,2)+' kg' : fmtBR(undBase,0)+' und')
+        + '. Digite outra quantidade para recalcular os ingredientes.';
+      info.style.color = 'var(--gray)';
+    } else {
+      var rendNovo = rendBase * fator;
+      var undNovo  = undBase * fator;
+      info.innerHTML = '<b style="color:#C0392B;">' + fmtBR(fator, 2).replace(',00','') + '× a receita</b> · rende '
+        + (rendBase > 0 ? fmtBR(rendNovo,2)+' kg' : '')
+        + (undBase > 0 ? (rendBase > 0 ? ' (' + Math.round(undNovo) + ' und)' : Math.round(undNovo)+' und') : '')
+        + ' <button type="button" onclick="resetarPorcao(\'' + fichaId + '\')" '
+        + 'style="margin-left:6px;padding:2px 8px;border:1px solid var(--border);background:#fff;'
+        + 'border-radius:6px;font-size:.65rem;cursor:pointer;font-family:inherit;color:var(--gray);">voltar ao normal</button>';
+      info.style.color = 'var(--brown)';
+    }
+  }
+}
+
+function resetarPorcao(fichaId){
+  var inp = document.getElementById('porcao-' + fichaId);
+  if (inp) inp.value = '';
+  ajustarPorcao(fichaId, 1, true);
+}
+
 function renderFichaBody(f,c,itens){
   const rows=itens.map(function(it){
     const ins=INSUMOS.find(function(i){return i.id===it.insumo_id;});
     const custoKg=ins?parseFloat(ins.custo_kg_l)||0:0;
     const qtdBruta=parseFloat(it.qtd_bruta)||0;
     const custoItem=qtdBruta*custoKg;
+    const ehUnd = /und|un\b|unid/i.test(it.unidade || '');
     return '<tr>'
       +'<td>'+it.insumo_nome+'</td>'
       +'<td class="r">'+fmtBR(parseFloat(it.qtd_liquida)||0, 2)+' '+it.unidade+'</td>'
       +'<td class="r">'+fmtBR(parseFloat(it.fator_correcao)||1, 2)+'</td>'
-      +'<td class="r">'+fmtBR(qtdBruta, 2)+' '+it.unidade+'</td>'
-      +'<td class="r">R$ '+fmtBR(custoItem, 2)+'</td>'
+      +'<td class="r qtd-base" data-base="'+qtdBruta+'" data-und="'+(it.unidade||'')+'" data-ehund="'+(ehUnd?1:0)+'">'
+        +fmtBR(qtdBruta, 2)+' '+it.unidade+'</td>'
+      +'<td class="r custo-base" data-custo="'+custoItem+'">R$ '+fmtBR(custoItem, 2)+'</td>'
       +'</tr>';
   }).join('');
 
@@ -913,13 +990,42 @@ function renderFichaBody(f,c,itens){
   const barWidth=(cmvUso!==null&&cmvUso!==undefined)?Math.min(cmvUso*100,100):0;
   const barClass=cmvClass(cmvUso);
 
-  return '<table class="ing-table">'
+  // ── Calculadora de porção ──
+  // Recalcula as quantidades para produzir mais ou menos que a receita cheia.
+  var rendBase = c.rendimento > 0 ? c.rendimento : 0;
+  var undBase  = c.nUnid > 0 ? c.nUnid : 0;
+  var baseTxt  = rendBase > 0 ? (fmtBR(rendBase,2)+' kg') : (undBase>0 ? (fmtBR(undBase,0)+' und') : '—');
+
+  var calc = '<div class="calc-porcao" id="calc-'+f.id+'">'
+    +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+    +'<span style="font-size:.7rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;">Quero produzir</span>'
+    +'<div style="display:flex;gap:4px;">'
+    +  ['0.5','1','2','3'].map(function(m){
+         return '<button type="button" onclick="ajustarPorcao(\''+f.id+'\','+m+',true)" '
+           +'style="padding:5px 10px;border:1px solid var(--border);background:#fff;border-radius:7px;'
+           +'font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;color:var(--brown);">'
+           +(m==='0.5'?'½':m)+(m==='1'?' receita':'')+'</button>';
+       }).join('')
+    +'</div>'
+    +'<div style="display:flex;align-items:center;gap:5px;margin-left:auto;">'
+    +'<input type="number" step="0.1" id="porcao-'+f.id+'" placeholder="'+(rendBase>0?fmtBR(rendBase,1):'')+'" '
+    +'oninput="ajustarPorcao(\''+f.id+'\',this.value,false)" '
+    +'style="width:88px;padding:7px 9px;border:1.5px solid var(--border);border-radius:8px;'
+    +'font-size:16px;font-family:inherit;text-align:right;color:var(--brown);">'
+    +'<span style="font-size:.75rem;font-weight:700;color:var(--gray);">'+(rendBase>0?'kg':'und')+'</span>'
+    +'</div></div>'
+    +'<div id="calcInfo-'+f.id+'" style="font-size:.68rem;color:var(--gray);margin-top:6px;">'
+    +'Receita cheia rende '+baseTxt+'. Digite outra quantidade para recalcular os ingredientes.</div>'
+    +'</div>';
+
+  return calc
+    +'<table class="ing-table" id="tbl-'+f.id+'" data-rend="'+rendBase+'" data-und="'+undBase+'" data-custo="'+c.custoTotal+'" data-peso="'+c.pesoBrutoTotal+'">'
     +'<thead><tr><th>Ingrediente</th><th>Qtd Líq</th><th>FC</th><th>Qtd Bruta</th><th>Custo</th></tr></thead>'
     +'<tbody>'+rows+'</tbody>'
     +'<tfoot><tr>'
     +'<td colspan="3">Total</td>'
-    +'<td class="r">'+fmtBR(c.pesoBrutoTotal, 2)+' kg</td>'
-    +'<td class="r">R$ '+fmtBR(c.custoTotal, 2)+'</td>'
+    +'<td class="r peso-total">'+fmtBR(c.pesoBrutoTotal, 2)+' kg</td>'
+    +'<td class="r custo-total">R$ '+fmtBR(c.custoTotal, 2)+'</td>'
     +'</tr></tfoot>'
     +'</table>'
     +'<div style="margin-top:10px;font-size:.75rem;color:var(--gray);">'
