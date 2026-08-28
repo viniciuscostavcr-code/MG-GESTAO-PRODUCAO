@@ -5873,8 +5873,16 @@ function imprimirHistorico() {
 // ══════════════════════════════════════════════════
 // PDF — VISÃO CONSOLIDADA
 // ══════════════════════════════════════════════════
-function imprimirHistoricoConsolidado() {
+
+// Formata valor em reais para as impressões de produção
+function _rsProd(v){
+  return 'R$ ' + (Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+async function imprimirHistoricoConsolidado() {
   if (!HIST_DADOS || !HIST_DADOS.length) { toast('⚠️ Nenhum dado para imprimir', 'wa'); return; }
+  // Custo vem das fichas técnicas — garante que estejam carregadas
+  if (!FICHAS_MAP) { toast('Carregando custos...', 'ok'); await carregarFichas(); }
 
   var labelPeriodo = fmtDataBR(HIST_FILTRO_DE) + ' a ' + fmtDataBR(HIST_FILTRO_ATE);
   var agora = new Date().toLocaleString('pt-BR');
@@ -5902,6 +5910,17 @@ function imprimirHistoricoConsolidado() {
 
   var items = Object.values(agg);
 
+  // Custo de cada produto pela ficha técnica
+  items.forEach(function(it) {
+    var fic = fichaDoProduto({ cod: it.cod, nome: it.nome });
+    if (!fic) { it.custoUnit = null; it.custoTotal = null; return; }
+    var ehUnd = (it.und === 'UND' || it.und === 'UN');
+    var base  = ehUnd ? (fic.custoUn || 0) : (fic.custoKg || 0);
+    if (!base) base = ehUnd ? (fic.custoKg || 0) : (fic.custoUn || 0);
+    it.custoUnit  = base > 0 ? base : null;
+    it.custoTotal = base > 0 ? base * it.produzido : null;
+  });
+
   // ── Agrupar por grupo (ordem do PROD_GRUPOS_DEF) ──
   var porGrupo = {};
   items.forEach(function(it) {
@@ -5924,7 +5943,7 @@ function imprimirHistoricoConsolidado() {
 
   // ── Montar linhas da tabela ──
   var tbodyHtml = '';
-  var grandKg = 0, grandUnd = 0, grandSugKg = 0, grandSugUnd = 0, grandDias = 0;
+  var grandKg = 0, grandUnd = 0, grandSugKg = 0, grandSugUnd = 0, grandDias = 0, grandCusto = 0;
   var totalProdutos = items.length;
 
   grpOrder.forEach(function(gNome) {
@@ -5935,16 +5954,17 @@ function imprimirHistoricoConsolidado() {
 
     // Linha de cabeçalho de grupo
     tbodyHtml += '<tr class="grp-row">'
-      + '<td colspan="8">' + (ico ? ico + ' ' : '') + escHtml(gNome) + '</td>'
+      + '<td colspan="10">' + (ico ? ico + ' ' : '') + escHtml(gNome) + '</td>'
       + '</tr>';
 
-    var subKg = 0, subUnd = 0;
+    var subKg = 0, subUnd = 0, subCusto = 0;
     lista.forEach(function(it) {
       var dif = it.produzido - it.sugerido;
       var pct = it.sugerido > 0 ? Math.round((it.produzido / it.sugerido) * 100) : null;
       var difStr = dif === 0 ? '—' : (dif > 0 ? '+' : '') + fmtPtBR(Math.abs(dif), 1);
       var difCls = dif > 0 ? 'pos' : (dif < 0 ? 'neg' : '');
       var undCls = it.und === 'KG' ? 'und-kg' : 'und-und';
+      if (it.custoTotal) subCusto += it.custoTotal;
       if (it.und === 'KG') { subKg += it.produzido; grandSugKg  += it.sugerido; }
       else                 { subUnd += it.produzido; grandSugUnd += it.sugerido; }
       tbodyHtml += '<tr>'
@@ -5956,6 +5976,8 @@ function imprimirHistoricoConsolidado() {
         + '<td class="num ' + difCls + '">' + difStr + '</td>'
         + '<td class="num">'   + (pct !== null ? pct + '%' : '—') + '</td>'
         + '<td class="num">'   + it.dias + '</td>'
+        + '<td class="num custo-un">' + (it.custoUnit ? _rsProd(it.custoUnit) : '—') + '</td>'
+        + '<td class="num custo-tt">' + (it.custoTotal ? _rsProd(it.custoTotal) : '—') + '</td>'
         + '</tr>';
     });
 
@@ -5964,11 +5986,13 @@ function imprimirHistoricoConsolidado() {
     if (subUnd > 0) subStr += (subStr ? ' | ' : '') + fmtPtBR(subUnd, 0) + ' un';
     tbodyHtml += '<tr class="sub-row">'
       + '<td colspan="3">Subtotal ' + escHtml(gNome) + '</td>'
-      + '<td colspan="5" class="num">' + escHtml(subStr) + '</td>'
+      + '<td colspan="6" class="num">' + escHtml(subStr) + '</td>'
+      + '<td class="num custo-tt">' + (subCusto > 0 ? _rsProd(subCusto) : '—') + '</td>'
       + '</tr>';
 
     grandKg  += subKg;
     grandUnd += subUnd;
+    grandCusto += subCusto;
     grandDias += lista.reduce(function(s, it) { return s + it.dias; }, 0);
   });
 
@@ -6011,6 +6035,8 @@ function imprimirHistoricoConsolidado() {
     + '.neg{color:#C0392B;}'
     + '.totais{margin-top:8pt;padding:5pt 8pt;border-top:2pt solid #000;font-weight:bold;font-size:9pt;background:#f5f5f5;}'
     + '.tot-row{display:flex;justify-content:space-between;margin-bottom:2pt;}'
+    + '.custo-un{color:#6B7280;font-size:7.5pt;}'
+    + '.custo-tt{color:#C0392B;font-weight:700;}'
     + '.assin{margin-top:24pt;font-size:9pt;}'
     + '.arow{margin-bottom:18pt;}'
     + '.acampo{display:inline-block;width:65%;border-bottom:1px solid #000;}'
@@ -6045,6 +6071,8 @@ function imprimirHistoricoConsolidado() {
     + '<th style="text-align:right;">DIF</th>'
     + '<th style="text-align:right;">ADER%</th>'
     + '<th style="text-align:right;">DIAS</th>'
+    + '<th style="text-align:right;width:62px;">CUSTO/UN</th>'
+    + '<th style="text-align:right;width:74px;">CUSTO TOTAL</th>'
     + '</tr></thead>'
     + '<tbody>' + tbodyHtml + '</tbody>'
     + '</table>'
@@ -6054,6 +6082,8 @@ function imprimirHistoricoConsolidado() {
     + '<div class="tot-row"><span>ADERÊNCIA GERAL</span><span>' + ader + '%</span></div>'
     + '<div class="tot-row"><span>PRODUTOS ÚNICOS</span><span>' + totalProdutos + '</span></div>'
     + '<div class="tot-row"><span>DIAS COM PRODUÇÃO</span><span>' + diasUnicos + '</span></div>'
+    + '<div class="tot-row" style="border-top:1pt solid #1B4332;padding-top:3pt;margin-top:3pt;font-weight:800;">'
+    +   '<span>CUSTO DE PRODUÇÃO</span><span style="color:#C0392B;">' + (grandCusto > 0 ? _rsProd(grandCusto) : '—') + '</span></div>'
     + '</div>'
     + '<div class="assin">'
     + '<div class="arow">Responsável: <span class="acampo">&nbsp;</span></div>'
