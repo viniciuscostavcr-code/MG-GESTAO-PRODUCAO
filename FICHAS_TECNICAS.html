@@ -400,6 +400,10 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
         <label>Formatos de porcionamento</label>
         <input type="text" id="fichaFormatos" placeholder="Ex.: 20 un na B1 · 10 un na D10">
       </div>
+      <div class="fg">
+        <label>Custo de embalagem do lote (R$)</label>
+        <input type="text" inputmode="decimal" id="fichaEmbalagem" placeholder="0,00">
+      </div>
     </div>
     <div class="fg-row">
       <div class="fg">
@@ -810,8 +814,20 @@ function calcCMV(ficha){
   const custoUndFinal=nUnid>0?custoTotal/nUnid:0;
   const cmvUnd=(precoUnd>0&&nUnid>0)?custoUndFinal/precoUnd:null;
   const margemUnd=cmvUnd!==null?1-cmvUnd:null;
+  // ── Embalagem: entra no custo total do produto, mas NÃO no CMV ──
+  // CMV é indicador de matéria-prima; misturar embalagem tornaria a
+  // comparação entre setores injusta (confeitaria embala mais que padaria).
+  const custoEmb      = parseFloat(ficha.custo_embalagem) || 0;
+  const embKg         = rendimento > 0 ? custoEmb / rendimento : 0;
+  const embUnd        = nUnid > 0 ? custoEmb / nUnid : 0;
+  const custoKgComEmb = custoKgFinal + embKg;
+  const custoUndComEmb= custoUndFinal + embUnd;
+  const margemRealKg  = preco > 0 ? 1 - (custoKgComEmb / preco) : null;
+  const margemRealUnd = precoUnd > 0 ? 1 - (custoUndComEmb / precoUnd) : null;
+
   return{custoTotal,pesoBrutoTotal,rendCalc,rendimento,custoKgFinal,cmv,margem,preco,
-         nUnid,custoUndFinal,cmvUnd,margemUnd,precoUnd};
+         nUnid,custoUndFinal,cmvUnd,margemUnd,precoUnd,
+         custoEmb,embKg,embUnd,custoKgComEmb,custoUndComEmb,margemRealKg,margemRealUnd};
 }
 
 
@@ -1040,6 +1056,16 @@ function renderFichaBody(f,c,itens){
     +(c.nUnid>0?' ('+fmtBR(c.nUnid,0)+' und)':'')+' · '
     +'Custo'+sufixo+': R$ '+fmtBR(custoKg, 2)
     +'</div>'
+    +(c.custoEmb>0
+      ? '<div style="margin-top:8px;padding:9px 12px;background:var(--gray-l,#F4F4F2);border-radius:9px;font-size:.72rem;line-height:1.6;">'
+        +'<b style="color:var(--brown)">Com embalagem</b> '
+        +'<span style="color:var(--gray)">(R$ '+fmtBR(c.custoEmb,2)+' por lote · não entra no CMV)</span><br>'
+        +'Custo'+sufixo+': <b style="color:#C0392B">R$ '+fmtBR(porUnidade?c.custoUndComEmb:c.custoKgComEmb, 2)+'</b>'
+        +((porUnidade?c.margemRealUnd:c.margemRealKg)!==null
+          ? ' · Margem real: <b style="color:var(--grn)">'+fmtBR((porUnidade?c.margemRealUnd:c.margemRealKg)*100,1)+'%</b>'
+          : '')
+        +'</div>'
+      : '')
     +'<div style="margin-top:6px;">'
     +'<div style="display:flex;justify-content:space-between;font-size:.75rem;font-weight:600;">'
     +'<span>CMV atual: '+cmvAtual+'</span>'
@@ -1363,6 +1389,7 @@ function abrirModalFicha(id){
   document.getElementById('fichaRendimento').value='';
   document.getElementById('fichaRendimentoUnid').value='';
   document.getElementById('fichaFormatos').value='';
+  document.getElementById('fichaEmbalagem').value='';
   document.getElementById('fichaTempo').value='';
   document.getElementById('fichaFA').value='1';
   document.getElementById('fichaPrecoVenda').value='';
@@ -1394,6 +1421,7 @@ function abrirModalFicha(id){
     document.getElementById('fichaRendimento').value=f.rendimento_kg||'';
     document.getElementById('fichaRendimentoUnid').value=f.rendimento_unid||'';
     document.getElementById('fichaFormatos').value=f.formatos||'';
+    document.getElementById('fichaEmbalagem').value=f.custo_embalagem?fmtBR(f.custo_embalagem,2):'';
     document.getElementById('fichaTempo').value=f.tempo_preparo_min||'';
     document.getElementById('fichaFA').value=f.fator_coccao||1;
     document.getElementById('fichaPrecoVenda').value=f.preco_venda_kg||'';
@@ -1712,6 +1740,7 @@ async function salvarFicha(){
   const indicacao=document.getElementById('fichaIndicacao').value.trim();
   const rendimento_kg=parseDecBR(document.getElementById('fichaRendimento').value)||0;
   const formatos=(document.getElementById('fichaFormatos').value||'').trim();
+  const custo_embalagem=parseDecBR(document.getElementById('fichaEmbalagem').value)||0;
   const rendimento_unid=parseInt(parseDecBR(document.getElementById('fichaRendimentoUnid').value))||0;
   const tempo_preparo_min=parseInt(parseDecBR(document.getElementById('fichaTempo').value))||0;
   const fator_coccao=parseDecBR(document.getElementById('fichaFA').value)||1;
@@ -1733,7 +1762,7 @@ async function salvarFicha(){
   let txtOriginal='';
   if(btnSalvar){txtOriginal=btnSalvar.innerHTML;btnSalvar.disabled=true;btnSalvar.style.opacity='0.6';btnSalvar.innerHTML='⏳ Salvando...';}
   const foto_url=document.getElementById('fichaFotoUrl').value||null;
-  const body={produto_nome,cod:cod||null,setor,grupo:grupo||null,indicacao:indicacao||null,rendimento_kg,rendimento_unid,formatos:formatos||null,tempo_preparo_min,fator_coccao,preco_venda_kg,preco_venda_und,equipamentos:equipamentos||null,modo_preparo:modo_preparo||null,foto_url,ativo:true};
+  const body={produto_nome,cod:cod||null,setor,grupo:grupo||null,indicacao:indicacao||null,rendimento_kg,rendimento_unid,formatos:formatos||null,custo_embalagem,tempo_preparo_min,fator_coccao,preco_venda_kg,preco_venda_und,equipamentos:equipamentos||null,modo_preparo:modo_preparo||null,foto_url,ativo:true};
   try{
     let fichaId=id;
     if(id){
