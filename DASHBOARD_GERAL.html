@@ -221,9 +221,13 @@ if(!IS_ADMIN){
 
 let PRODUCAO=[],DESPERDICIO=[],PROD_CAD={};
 
-// Setores sem produção própria não têm lógica de ruptura:
-// tudo é revenda, terceirizado ou preparo na hora.
-var SETORES_SEM_RUPTURA = ['LANCHONETE'];
+// Setores que entram no sistema APENAS como fonte de preço para o desperdício.
+// Não participam de faturamento, ruptura, CMV, comparativos nem conferência —
+// são revenda ou preparo na hora, sem produção própria.
+var SETORES_SO_PRECO = ['LANCHONETE'];
+function ehSetorSoPreco(s){
+  return SETORES_SO_PRECO.indexOf((s||'').toUpperCase().trim()) >= 0;
+}
 let FICHAS=[],FICHA_ITENS={},INSUMOS=[]; // para o CMV teórico (aba Preços)
 let setorVendas='TODOS';
 let charts={};
@@ -254,13 +258,20 @@ function normNome(s){
   s=s.replace(/\b(DE|DA|DO|DAS|DOS|COM|C)\b/g,'');             // remove conectores
   return s.replace(/[^A-Z0-9]/g,'');                            // só alfanumérico
 }
+// Lista usada só para PREÇO: inclui setores marcados como "só preço"
+// (lanchonete e afins), que ficam fora das demais análises.
+function _listaParaPreco(){
+  return (ABC.todos_produtos && ABC.todos_produtos.length) ? ABC.todos_produtos : ABC.produtos;
+}
+
 // Casa nome contra os produtos do ABC (exato normalizado, depois por conteúdo)
 function acharABC(nome){
   const n=normNome(nome);
   if(!n)return null;
-  let p=ABC.produtos.find(function(x){return normNome(x.n)===n;});
+  var lista=_listaParaPreco();
+  let p=lista.find(function(x){return normNome(x.n)===n;});
   if(p)return p;
-  if(n.length>4)p=ABC.produtos.find(function(x){const a=normNome(x.n);return a.length>4&&(a.indexOf(n)>=0||n.indexOf(a)>=0);});
+  if(n.length>4)p=lista.find(function(x){const a=normNome(x.n);return a.length>4&&(a.indexOf(n)>=0||n.indexOf(a)>=0);});
   return p||null;
 }
 
@@ -270,7 +281,7 @@ function acharABCporCod(cod){
   // Normaliza: remove zeros à esquerda (ficha tem '1544', ABC tem '00000000001544')
   var c=String(cod).trim().replace(/^0+/,'');
   if(!c)return null;
-  return ABC.produtos.find(function(x){return String(x.cod||'').trim().replace(/^0+/,'')===c;})||null;
+  return _listaParaPreco().find(function(x){return String(x.cod||'').trim().replace(/^0+/,'')===c;})||null;
 }
 
 // Busca preço: 1º por código no ABC → 2º por nome no ABC → 3º lista manual → null
@@ -418,6 +429,7 @@ async function montarABCdoBanco(mesEscolhido){
   function inferUn(nome){var n=(nome||'').toUpperCase();return (n.indexOf('UND')>=0||n.indexOf(' UN')>=0||n.endsWith('UN'))?'und':'kg';}
   var produtos=[];
   var undMap={};
+  var todosProdutos=[];   // inclui setores "só preço" — usado apenas pelo desperdício
   Object.keys(agg).forEach(function(k){
     var a=agg[k];
     var dv=Object.keys(a.dias).length;
@@ -426,8 +438,15 @@ async function montarABCdoBanco(mesEscolhido){
     // perda estimada = faturamento médio diário × dias sem venda
     var fatDia=dv>0?(a.fat/dv):0;
     var perda=fatDia*ds;
-    produtos.push({n:a.n,s:a.s,fat:a.fat,qtd:a.qtd,cus:a.cus,luc:a.luc,dv:dv,ds:ds,perda:perda,classe:a.classe,cod:a.cod,un:un});
-    undMap[a.n]=un;
+    var item={n:a.n,s:a.s,fat:a.fat,qtd:a.qtd,cus:a.cus,luc:a.luc,dv:dv,ds:ds,perda:perda,classe:a.classe,cod:a.cod,un:un};
+    todosProdutos.push(item);
+    // Setores "só preço" ficam fora de TODAS as análises (faturamento, CMV,
+    // ruptura, comparativos). Continuam disponíveis em todosProdutos para
+    // valorizar o desperdício.
+    if(!ehSetorSoPreco(a.s)){
+      produtos.push(item);
+      undMap[a.n]=un;
+    }
   });
 
   // 5. Totais por setor — ORDEM: [faturamento, lucro, custo]
@@ -446,7 +465,7 @@ async function montarABCdoBanco(mesEscolhido){
   produtos.forEach(function(p){
     // Mesmo critério de ehRupturaValida — inclusive o filtro de setor
     var setorP=(p.s||'').toUpperCase().trim();
-    if(SETORES_SEM_RUPTURA.indexOf(setorP)>=0)return;
+    if(ehSetorSoPreco(p.s))return;
     var fatDia=p.dv>0?(p.fat/p.dv):0;
     if(p.dv>=2&&p.ds>0&&fatDia>=50)rupturaTotal+=p.perda;
   });
@@ -463,6 +482,7 @@ async function montarABCdoBanco(mesEscolhido){
     conf25: (tot25&&tot25.CONFEITARIA)?tot25.CONFEITARIA:[0,0,0],
     produtos: produtos,
     ruptura_total: rupturaTotal,
+    todos_produtos: todosProdutos,   // com setores "só preço" — apenas para preço do desperdício
     _dias: totalDias,
     und_map: undMap,
     _origem: 'supabase',
@@ -782,8 +802,7 @@ function filtrarRupturas(){
 // esporádicos/encomenda, que faturam pouco por dia.
 // Exige também ter vendido em pelo menos 2 dias (1 dia só = evento isolado, perda não confiável).
 function ehRupturaValida(p){
-  var setor = (p.s || '').toUpperCase().trim();
-  if (SETORES_SEM_RUPTURA.indexOf(setor) >= 0) return false;
+  if (ehSetorSoPreco(p.s)) return false;
   if(p.ds<=0||p.dv<2)return false;
   var fatDia=p.dv>0?(p.fat/p.dv):0;
   return fatDia>=50; // fatura R$50+/dia quando está na gôndola = produto de giro relevante
@@ -952,12 +971,14 @@ async function serieMensalCompleta(forcar){
     linhas.forEach(function(v){
       var m=v.mes_ref;
       if(!m)return;
+      if(ehSetorSoPreco(v.setor))return;   // setor "só preço" não entra em nenhuma análise
       if(!porMes[m])porMes[m]={fat:0,luc:0,cus:0,setores:{},qtdSetores:{}};
       var fatV=Number(v.faturamento)||0;
       porMes[m].fat+=fatV;
       porMes[m].luc+=Number(v.lucro)||0;
       porMes[m].cus+=Number(v.custo_total)||0;
       var st=(v.setor||'OUTROS').toUpperCase();
+      if(ehSetorSoPreco(st))return;   // fora das análises
       porMes[m].setores[st]=(porMes[m].setores[st]||0)+fatV;
       porMes[m].qtdSetores[st]=(porMes[m].qtdSetores[st]||0)+(Number(v.quantidade)||0);
       if(v.data){
