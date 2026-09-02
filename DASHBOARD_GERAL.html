@@ -220,6 +220,10 @@ if(!IS_ADMIN){
 })();
 
 let PRODUCAO=[],DESPERDICIO=[],PROD_CAD={};
+
+// Setores sem produção própria não têm lógica de ruptura:
+// tudo é revenda, terceirizado ou preparo na hora.
+var SETORES_SEM_RUPTURA = ['LANCHONETE'];
 let FICHAS=[],FICHA_ITENS={},INSUMOS=[]; // para o CMV teórico (aba Preços)
 let setorVendas='TODOS';
 let charts={};
@@ -271,6 +275,15 @@ function acharABCporCod(cod){
 
 // Busca preço: 1º por código no ABC → 2º por nome no ABC → 3º lista manual → null
 // Aceita nome (string) ou objeto {produto, cod} do desperdício
+
+// Pastelaria e confeitaria são o mesmo setor na operação —
+// registros antigos podem ter vindo separados.
+function normSetor(s){
+  var v=(s||'OUTROS').toString().toUpperCase().trim();
+  if(v==='PASTELARIA'||v==='PASTELARIA/CONFEITARIA'||v==='CONF./PAST.')return 'CONFEITARIA';
+  return v;
+}
+
 function precoProduto(ref){
   var nome, cod;
   if(typeof ref==='object'&&ref!==null){nome=ref.produto||ref.n||'';cod=ref.cod||'';}
@@ -431,6 +444,9 @@ async function montarABCdoBanco(mesEscolhido){
   // Usa fat/dia (não nº de dias) pra NÃO excluir os piores casos de ruptura,
   // que são justamente os produtos que faltaram muitos dias.
   produtos.forEach(function(p){
+    // Mesmo critério de ehRupturaValida — inclusive o filtro de setor
+    var setorP=(p.s||'').toUpperCase().trim();
+    if(SETORES_SEM_RUPTURA.indexOf(setorP)>=0)return;
     var fatDia=p.dv>0?(p.fat/p.dv):0;
     if(p.dv>=2&&p.ds>0&&fatDia>=50)rupturaTotal+=p.perda;
   });
@@ -766,6 +782,8 @@ function filtrarRupturas(){
 // esporádicos/encomenda, que faturam pouco por dia.
 // Exige também ter vendido em pelo menos 2 dias (1 dia só = evento isolado, perda não confiável).
 function ehRupturaValida(p){
+  var setor = (p.s || '').toUpperCase().trim();
+  if (SETORES_SEM_RUPTURA.indexOf(setor) >= 0) return false;
   if(p.ds<=0||p.dv<2)return false;
   var fatDia=p.dv>0?(p.fat/p.dv):0;
   return fatDia>=50; // fatura R$50+/dia quando está na gôndola = produto de giro relevante
@@ -1432,7 +1450,7 @@ function htmlTopDesperdicioSetor(desp){
   // Agrupa por setor e produto, valorizando cada registro
   var porSetor={};
   desp.forEach(function(d){
-    var s=(d.setor||'—').toUpperCase();
+    var s=normSetor(d.setor);
     if(!porSetor[s])porSetor[s]={};
     var chave=d.produto||'—';
     if(!porSetor[s][chave])porSetor[s][chave]={kg:0,und:0,un:d.und,custo:0,venda:0,temPreco:false,regs:0};
@@ -1812,7 +1830,7 @@ function renderGargalos(){
   // ── Quebra por setor ──
   var porSetorKpi={};
   desp.forEach(function(d){
-    var s=(d.setor||'OUTROS').toUpperCase();
+    var s=normSetor(d.setor);
     if(!porSetorKpi[s])porSetorKpi[s]={custo:0,venda:0,kg:0,und:0,regs:0};
     var pr=precoProduto(d);
     porSetorKpi[s].regs++;
@@ -1876,7 +1894,7 @@ function renderGargalos(){
 
   // Por setor
   const aggS={};
-  desp.forEach(function(d){const s=(d.setor||'OUTROS').toUpperCase();if(!aggS[s])aggS[s]={kg:0,custo:0};const pr=precoProduto(d);aggS[s].kg+=(d.und!=='und'?d.qty:0);if(pr)aggS[s].custo+=d.qty*pr.ck;});
+  desp.forEach(function(d){const s=normSetor(d.setor);if(!aggS[s])aggS[s]={kg:0,custo:0};const pr=precoProduto(d);aggS[s].kg+=(d.und!=='und'?d.qty:0);if(pr)aggS[s].custo+=d.qty*pr.ck;});
   const sk=Object.keys(aggS).sort(function(a,b){return aggS[b].custo-aggS[a].custo;});
   h+='<div class="card"><div class="card-title">🏭 Por Setor</div>';
   const maxS=Math.max.apply(null,sk.map(function(k){return aggS[k].custo;}))||1;
@@ -1968,7 +1986,7 @@ async function imprimirDesperdicio(){
     var pr=precoProduto(d);
     if(pr){custoMes+=d.qty*pr.ck;vendaMes+=d.qty*pr.vk;}
     if(d.und!=='und')kgMes+=d.qty;else undMes+=d.qty;
-    var s=(d.setor||'OUTROS').toUpperCase();
+    var s=normSetor(d.setor);
     if(!porSetor[s])porSetor[s]={custo:0,venda:0,kg:0,und:0};
     porSetor[s].custo+=pr?d.qty*pr.ck:0;
     porSetor[s].venda+=pr?d.qty*pr.vk:0;
