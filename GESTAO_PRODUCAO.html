@@ -1245,12 +1245,27 @@ function _classeProduto(p,curva){
   return _getClasse(p.id);
 }
 
+
+// Cores das categorias de produção (para agrupar a impressão)
+var CATEGORIAS_COR = null;
+async function carregarCategorias(){
+  if(CATEGORIAS_COR)return CATEGORIAS_COR;
+  var mapa={};
+  try{
+    var cats=await sbSelect('categorias_producao','select=nome,cor,ordem&ativo=eq.true&order=ordem.asc');
+    (cats||[]).forEach(function(c){ mapa[c.nome]={cor:c.cor||'#6B7280', ordem:c.ordem||99}; });
+  }catch(e){console.log('Categorias indisponíveis:',e.message);}
+  CATEGORIAS_COR=mapa;
+  return mapa;
+}
+
 async function imprimirPlanejamentoSemanal(){
   if(!PROD_SEM_ISO){toast('⚠️ Abra a projeção semanal primeiro','wa');return;}
   var dias=_diasSemana(PROD_SEM_ISO);
   var prods=_prodsOrdenados();
   var abrevDia=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
   var curva=await carregarCurvaABC();
+  var cats=await carregarCategorias();
   var dataStr=new Date().toLocaleDateString('pt-BR');
   var ini=dias[0].split('-').reverse().join('/');
   var fim=dias[6].split('-').reverse().join('/');
@@ -1275,21 +1290,22 @@ async function imprimirPlanejamentoSemanal(){
       var foco=_ehFoco(p);
       if(foco)cls='FOCO';           // foco do mês tem prioridade sobre a curva
       if(cls==='A')nA++;
-      linhas.push({nome:p.nome,ehUnd:ehUnd,un:(ehUnd?'un':'kg'),metas:metas,total:total,classe:cls,foco:foco});
+      var catNome=(p.categoria||'SEM CATEGORIA');
+      var catInfo=cats[catNome]||{cor:'#9CA3AF',ordem:98};
+      linhas.push({nome:p.nome,ehUnd:ehUnd,un:(ehUnd?'un':'kg'),metas:metas,total:total,classe:cls,foco:foco,categoria:catNome,cor:catInfo.cor,ordemCat:catInfo.ordem});
       if(ehUnd)totUn+=total;else totKg+=total;
     }
   });
   if(!linhas.length){toast('Nenhuma meta definida nesta semana','wa');return;}
 
-  // Prioridade na impressão: classe A primeiro (não podem faltar), depois B e C
-  // ATENÇÃO: usar checagem explícita — 0 é falsy em JS, então "|| 2" quebraria a classe A
-  var ordCls={FOCO:0,A:1,B:2,C:3};
-  function _pesoCls(c){ return (ordCls[c]===undefined) ? 3 : ordCls[c]; }
+  // Agrupar por CATEGORIA (cor). Foco do mês vem primeiro dentro de cada grupo.
   linhas.sort(function(a,b){
-    var d=_pesoCls(a.classe)-_pesoCls(b.classe);
-    if(d!==0)return d;
+    if(a.ordemCat!==b.ordemCat)return a.ordemCat-b.ordemCat;
+    if(a.foco!==b.foco)return a.foco?-1:1;
     return (a.nome||'')<(b.nome||'')?-1:1;
   });
+  var _catsUsadas={}; linhas.forEach(function(l){_catsUsadas[l.categoria]=1;});
+  var _nCategorias=Object.keys(_catsUsadas).length;
 
   var h='<style>@media print{@page{size:A4 landscape;margin:8mm;} table{page-break-inside:auto;} tr{page-break-inside:avoid;} thead{display:table-header-group;}}</style>';
   h+='<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;color:'+C.brown+';">';
@@ -1316,7 +1332,7 @@ async function imprimirPlanejamentoSemanal(){
   h+='<div style="flex:1;background:'+C.grnL+';border:1px solid '+C.grn+'22;border-radius:12px;padding:10px 12px;">'
     +'<div style="font-size:9.5px;color:'+C.gray+';text-transform:uppercase;letter-spacing:.5px;font-weight:600;">Produtos</div>'
     +'<div style="font-size:19px;font-weight:800;color:'+C.grn+';line-height:1.2;">'+linhas.length
-    +(nA>0?' <span style="font-size:11px;font-weight:700;color:'+C.amber+';">('+nA+' classe A)</span>':'')+'</div></div>';
+    +' <span style="font-size:11px;font-weight:700;color:'+C.gray+';">('+_nCategorias+' grupos)</span></div></div>';
   h+='</div>';
 
   // ── Tabela ──
@@ -1334,27 +1350,23 @@ async function imprimirPlanejamentoSemanal(){
   h+='<th style="padding:7px 5px;text-align:center;width:9%;background:'+C.grn+';font-size:10px;">SEMANA</th>';
   h+='</tr></thead><tbody>';
 
-  var classeAnterior=null;
+  var catAnterior=null;
   linhas.forEach(function(l,i){
     var cor=l.ehUnd?C.orange:C.red;
-    var ehA=(l.classe==='A'||l.classe==='FOCO');
-    var bg=l.foco?'#FFF8E7':(ehA?'#FFFDF5':((i%2)?C.grayL:'#fff'));
+    var bg=l.foco?'#FFF8E7':((i%2)?C.grayL:'#fff');
 
-    // Separador quando muda de classe
-    var rotulos={FOCO:'⭐ Foco do mês — prioridade máxima',A:'Classe A — alto giro',B:'Classe B — importantes',C:'Classe C — complementares'};
-    if(l.classe!==classeAnterior){
-      var ehDestaque=(l.classe==='FOCO'||l.classe==='A');
-      h+='<tr><td colspan="9" style="padding:5px 9px;'
-        +(ehDestaque?'background:'+(l.classe==='FOCO'?C.amber:C.grn2)+';color:#fff;font-weight:800;'
-                    :'background:'+C.grayL+';color:'+C.gray+';font-weight:700;border-top:2px solid '+C.border+';')
-        +'font-size:9px;letter-spacing:.5px;text-transform:uppercase;">'+(rotulos[l.classe]||l.classe)+'</td></tr>';
+    // Faixa colorida quando muda de categoria
+    if(l.categoria!==catAnterior){
+      h+='<tr><td colspan="9" style="padding:6px 10px;background:'+l.cor+';color:#fff;'
+        +'font-weight:800;font-size:10px;letter-spacing:.6px;text-transform:uppercase;">'
+        + l.categoria + '</td></tr>';
     }
-    classeAnterior=l.classe;
+    catAnterior=l.categoria;
 
     h+='<tr style="background:'+bg+';border-bottom:1px solid '+C.border+';">';
-    h+='<td style="padding:6px 9px;line-height:1.25;'+(ehA?'border-left:3px solid '+C.amber+';':'')+'">'
+    h+='<td style="padding:6px 9px;line-height:1.25;border-left:4px solid '+l.cor+';">'
       +(l.foco?'<span style="color:'+C.amber+';margin-right:2px;">⭐</span>':'')
-      +'<span style="font-weight:'+(ehA?'800':'700')+';">'+l.nome+'</span> '
+      +'<span style="font-weight:'+(l.foco?'800':'700')+';">'+l.nome+'</span> '
       +'<span style="display:inline-block;background:'+(l.ehUnd?C.orangeL:C.redL)+';color:'+cor+';font-size:8.5px;font-weight:800;padding:1px 5px;border-radius:4px;vertical-align:middle;">'+l.un.toUpperCase()+'</span></td>';
     l.metas.forEach(function(q,j){
       var ehDom=(_diaSemNum(dias[j])===0);
@@ -4145,10 +4157,35 @@ function fecharPlanModal() {
   _planProdId = null; _planDateISO = null; _planIsPas = false;
   _limparAddProdSel();
 }
+// Média histórica do produto, para detectar digitação com casa a mais
+function _mediaHistorica(prodId) {
+  var vals = [];
+  Object.keys(PROD_ITENS || {}).forEach(function(k){
+    var it = PROD_ITENS[k];
+    if (it && it.produto_id === prodId && (Number(it.qtd_produzida) || 0) > 0) {
+      vals.push(Number(it.qtd_produzida));
+    }
+  });
+  if (vals.length < 3) return null;   // histórico curto não serve de referência
+  vals.sort(function(a,b){ return a - b; });
+  return vals[Math.floor(vals.length / 2)];   // mediana resiste a outliers
+}
+
 async function salvarPlanItem() {
   if (!_planProdId || !_planDateISO) return;
   const val = parseFloat(document.getElementById('planVal').value);
   if (isNaN(val) || val < 0) { toast('⚠️ Informe uma quantidade válida','wa'); return; }
+
+  // Alerta de valor fora do padrão — pega erros como "5082" no lugar de "5,082"
+  var mediana = _mediaHistorica(_planProdId);
+  if (mediana && val > mediana * 10) {
+    var prodNome = (TODOS_PRODS.find(function(p){ return p.id === _planProdId; }) || {}).nome || 'este produto';
+    var ok2 = await confirmar(
+      val.toLocaleString('pt-BR') + ' é muito acima do normal para ' + prodNome +
+      ' (média ' + mediana.toLocaleString('pt-BR') + '). Confirma o valor?',
+      'Valor fora do padrão', '⚠️', 'Sim, está certo');
+    if (!ok2) return;
+  }
 
   const fields = _planIsPas
     ? { qtd_produzida: val, status: 'confirmado' }
