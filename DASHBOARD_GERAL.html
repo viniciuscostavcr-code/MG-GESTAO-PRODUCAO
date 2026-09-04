@@ -1485,7 +1485,10 @@ function htmlTopDesperdicioSetor(desp){
   var setores=Object.keys(porSetor).sort();
   if(!setores.length)return '';
 
-  var h='<div class="card"><div class="card-title">🎯 Onde o desperdício se concentra <span class="sub">top 5 de cada setor, por custo perdido</span></div>';
+  // Faturamento por setor (para calcular % do desperdício sobre a venda)
+  var fatPorSetor={PADARIA:(ABC.pad26?ABC.pad26[0]:0), CONFEITARIA:(ABC.conf26?ABC.conf26[0]:0)};
+
+  var h='<div class="card"><div class="card-title">🗑️ Desperdício por produto <span class="sub">todos os produtos, por setor</span></div>';
 
   setores.forEach(function(s){
     var itens=Object.keys(porSetor[s]).map(function(nm){
@@ -1499,17 +1502,26 @@ function htmlTopDesperdicioSetor(desp){
       if(b.temPreco)return 1;
       return (b.kg+b.und)-(a.kg+a.und);
     });
-    var top=itens.slice(0,5);
-    if(!top.length)return;
+    if(!itens.length)return;
 
     var custoSetor=itens.reduce(function(t,x){return t+x.custo;},0);
-    var custoTop=top.reduce(function(t,x){return t+x.custo;},0);
-    var pctTop=custoSetor>0?(custoTop/custoSetor*100):0;
+    var fatSetor=fatPorSetor[s]||0;
+    var pctDoFat=fatSetor>0?(custoSetor/fatSetor*100):null;
+
+    // Mostra todos os produtos, não só top 5
+    var top=itens;
 
     var ico={PADARIA:'🥖',CONFEITARIA:'🎂',LANCHONETE:'🥪',RESTAURANTE:'🍽️'}[s]||'🏭';
-    h+='<div style="margin-top:12px;padding:9px 11px;background:var(--claro,#EAF4EF);border-radius:9px;display:flex;justify-content:space-between;align-items:center">'
-     +'<span style="font-weight:800;font-size:.85rem;color:var(--grn2)">'+ico+' '+s+'</span>'
-     +'<span style="font-size:.72rem;color:var(--gray)">total '+fmtR(custoSetor)+'</span></div>';
+    var corPct=(pctDoFat===null)?'var(--gray)':(pctDoFat<=1?'var(--grn)':(pctDoFat<=2?'var(--amber)':'var(--red)'));
+    h+='<div style="margin-top:14px;padding:11px 13px;background:var(--claro,#EAF4EF);border-radius:10px;">'
+     +'<div style="display:flex;justify-content:space-between;align-items:baseline;">'
+     +'<span style="font-weight:800;font-size:.9rem;color:var(--grn2)">'+ico+' '+s+'</span>'
+     +'<span style="font-size:.78rem;color:var(--gray)">'+itens.length+' produtos · '+fmtR(custoSetor)+' perdidos</span></div>'
+     +(pctDoFat!==null
+       ? '<div style="margin-top:5px;font-size:.8rem;">Representa <b style="color:'+corPct+';font-size:1rem;">'+pctDoFat.toFixed(2)+'%</b> '
+         +'<span style="color:var(--gray)">do faturamento do setor (referência: até 2% é aceitável)</span></div>'
+       : '')
+     +'</div>';
 
     top.forEach(function(item,i){
       var q=item.un==='und'?fmtN(item.und)+' und':fmtKg(item.kg)+' kg';
@@ -1528,10 +1540,7 @@ function htmlTopDesperdicioSetor(desp){
        +'</div>';
     });
 
-    if(top.length>=3){
-      h+='<div style="font-size:.7rem;color:var(--gray);padding:7px 2px 2px">'
-       +'Esses '+top.length+' produtos concentram <b>'+pctTop.toFixed(0)+'%</b> do desperdício do setor.</div>';
-    }
+
   });
 
   h+='<div class="insight" style="margin-top:12px;margin-bottom:0;font-size:.72rem">'
