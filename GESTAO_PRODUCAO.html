@@ -1226,7 +1226,11 @@ async function carregarCurvaABC(){
       var porPos   = (i<POS_A) ? 'A' : ((i<POS_B) ? 'B' : 'C');
       // Fica com a classificação mais alta das duas
       var ord={A:0,B:1,C:2};
-      mapa[x.cod] = (ord[porValor]<=ord[porPos]) ? porValor : porPos;
+      var classeFinal = (ord[porValor]<=ord[porPos]) ? porValor : porPos;
+      mapa[x.cod] = classeFinal;
+      // Guarda a posição no ranking de faturamento — usado para ordenar
+      // os produtos dentro de cada categoria (mais vendido primeiro)
+      mapa['_pos_'+x.cod] = i;
     });
     mapa._ok=true;
     mapa._total=total;
@@ -1293,7 +1297,11 @@ async function imprimirPlanejamentoSemanal(){
       if(cls==='A')nA++;
       var catNome=(p.categoria||'SEM CATEGORIA');
       var catInfo=cats[catNome]||{cor:'#9CA3AF',ordem:98};
-      linhas.push({nome:p.nome,ehUnd:ehUnd,un:(ehUnd?'un':'kg'),metas:metas,total:total,classe:cls,foco:foco,categoria:catNome,cor:catInfo.cor,ordemCat:catInfo.ordem});
+      // Posição no ranking de vendas — usada para ordenar dentro da categoria
+      // (o mais vendido do grupo aparece primeiro). Sem venda no ABC, vai pro fim.
+      var cnProd=String(p.cod||'').trim().replace(/^0+/,'');
+      var posVenda=(curva&&curva._ok&&cnProd&&curva['_pos_'+cnProd]!==undefined)?curva['_pos_'+cnProd]:99999;
+      linhas.push({nome:p.nome,ehUnd:ehUnd,un:(ehUnd?'un':'kg'),metas:metas,total:total,classe:cls,foco:foco,categoria:catNome,cor:catInfo.cor,ordemCat:catInfo.ordem,posVenda:posVenda});
       if(ehUnd)totUn+=total;else totKg+=total;
       // acumula por dia da semana (kg e und separados)
       metas.forEach(function(q,di){
@@ -1307,6 +1315,8 @@ async function imprimirPlanejamentoSemanal(){
   linhas.sort(function(a,b){
     if(a.ordemCat!==b.ordemCat)return a.ordemCat-b.ordemCat;
     if(a.foco!==b.foco)return a.foco?-1:1;
+    // Dentro da categoria: mais vendido primeiro (posição menor = vende mais)
+    if(a.posVenda!==b.posVenda)return a.posVenda-b.posVenda;
     return (a.nome||'')<(b.nome||'')?-1:1;
   });
   var _catsUsadas={}; linhas.forEach(function(l){_catsUsadas[l.categoria]=1;});
