@@ -1184,9 +1184,16 @@ async function carregarCurvaABC(){
   if(ABC_VENDAS)return ABC_VENDAS;
   var mapa={_mes:null,_ok:false};
   try{
-    var ult=await sbSelect('vendas_abc','select=mes_ref&order=mes_ref.desc&limit=1');
-    if(!ult||!ult.length)return (ABC_VENDAS=mapa);
-    var mes=ult[0].mes_ref;
+    // Usa o mês mais recente que já tem volume de venda suficiente — evita pegar
+    // um mês corrente que mal começou e tem poucos dias de dado (ex.: dia 5 do mês).
+    var doisMeses=await sbSelect('vendas_abc','select=mes_ref&order=mes_ref.desc&limit=2000');
+    if(!doisMeses||!doisMeses.length)return (ABC_VENDAS=mapa);
+    var contagem={};
+    doisMeses.forEach(function(r){ contagem[r.mes_ref]=(contagem[r.mes_ref]||0)+1; });
+    var mesesUnicos=Object.keys(contagem).sort().reverse();
+    var mes=mesesUnicos[0];
+    // Se o mês mais recente tiver poucos registros (mês em andamento), usa o anterior
+    if(contagem[mes]<50 && mesesUnicos.length>1){ mes=mesesUnicos[1]; }
     mapa._mes=mes;
 
     var linhas=[],off=0;
