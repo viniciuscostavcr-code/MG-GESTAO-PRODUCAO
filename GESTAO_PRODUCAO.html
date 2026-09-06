@@ -1304,10 +1304,11 @@ async function imprimirPlanejamentoSemanal(){
       if(cls==='A')nA++;
       var catNome=(p.categoria||'SEM CATEGORIA');
       var catInfo=cats[catNome]||{cor:'#9CA3AF',ordem:98};
-      // Posição no ranking de vendas — usada para ordenar dentro da categoria
-      // (o mais vendido do grupo aparece primeiro). Sem venda no ABC, vai pro fim.
-      var cnProd=String(p.cod||'').trim().replace(/^0+/,'');
-      var posVenda=(curva&&curva._ok&&cnProd&&curva['_pos_'+cnProd]!==undefined)?curva['_pos_'+cnProd]:99999;
+      // Ordem fixa gravada no cadastro (produtos.ordem_grupo), calculada uma vez
+      // a partir do ranking de vendas. Não depende da curva ABC em tempo real —
+      // por isso não quebra se o mês corrente ainda não tiver dado suficiente.
+      // Ajustável a qualquer momento direto no cadastro do produto.
+      var posVenda=(p.ordem_grupo!==null && p.ordem_grupo!==undefined)?p.ordem_grupo:99999;
       linhas.push({nome:p.nome,ehUnd:ehUnd,un:(ehUnd?'un':'kg'),metas:metas,total:total,classe:cls,foco:foco,categoria:catNome,cor:catInfo.cor,ordemCat:catInfo.ordem,posVenda:posVenda});
       if(ehUnd)totUn+=total;else totKg+=total;
       // acumula por dia da semana (kg e und separados)
@@ -1339,24 +1340,6 @@ async function imprimirPlanejamentoSemanal(){
     +'<div style="font-size:11.5px;color:'+C.gray+';margin-top:2px;">'+setorIco+' '+SETOR+' · Semana '+ini+' a '+fim+'</div></div>'
     +'<div style="text-align:right;font-size:10px;color:'+C.gray+';">impresso em<br><b style="color:'+C.brown+';">'+dataStr+'</b></div></div>';
 
-  // ── KPIs em cards, como na tela ──
-  h+='<div style="display:flex;gap:8px;margin-bottom:14px;">';
-  if(totKg>0){
-    h+='<div style="flex:1;background:'+C.redL+';border:1px solid '+C.red+'22;border-radius:12px;padding:10px 12px;">'
-      +'<div style="font-size:9.5px;color:'+C.gray+';text-transform:uppercase;letter-spacing:.5px;font-weight:600;">Total em peso</div>'
-      +'<div style="font-size:19px;font-weight:800;color:'+C.red+';line-height:1.2;">'+_fmtMeta(totKg)+' <span style="font-size:12px;">kg</span></div></div>';
-  }
-  if(totUn>0){
-    h+='<div style="flex:1;background:'+C.orangeL+';border:1px solid '+C.orange+'22;border-radius:12px;padding:10px 12px;">'
-      +'<div style="font-size:9.5px;color:'+C.gray+';text-transform:uppercase;letter-spacing:.5px;font-weight:600;">Total em unidades</div>'
-      +'<div style="font-size:19px;font-weight:800;color:'+C.orange+';line-height:1.2;">'+_fmtMeta(totUn)+' <span style="font-size:12px;">un</span></div></div>';
-  }
-  h+='<div style="flex:1;background:'+C.grnL+';border:1px solid '+C.grn+'22;border-radius:12px;padding:10px 12px;">'
-    +'<div style="font-size:9.5px;color:'+C.gray+';text-transform:uppercase;letter-spacing:.5px;font-weight:600;">Produtos</div>'
-    +'<div style="font-size:19px;font-weight:800;color:'+C.grn+';line-height:1.2;">'+linhas.length
-    +' <span style="font-size:11px;font-weight:700;color:'+C.gray+';">('+_nCategorias+' grupos)</span></div></div>';
-  h+='</div>';
-
   // ── Tabela ──
   h+='<div style="border:1px solid '+C.border+';border-radius:12px;overflow:hidden;">';
   h+='<table style="width:100%;border-collapse:collapse;font-size:11.5px;">';
@@ -1379,22 +1362,22 @@ async function imprimirPlanejamentoSemanal(){
 
     // Faixa colorida quando muda de categoria
     if(l.categoria!==catAnterior){
-      h+='<tr><td colspan="8" style="padding:6px 10px;background:'+l.cor+';color:#fff;'
-        +'font-weight:800;font-size:10px;letter-spacing:.6px;text-transform:uppercase;">'
+      h+='<tr><td colspan="8" style="padding:3px 10px;background:'+l.cor+';color:#fff;'
+        +'font-weight:800;font-size:9px;letter-spacing:.6px;text-transform:uppercase;">'
         + l.categoria + '</td></tr>';
     }
     catAnterior=l.categoria;
 
     h+='<tr style="background:'+bg+';border-bottom:1px solid '+C.border+';">';
-    h+='<td style="padding:6px 9px;line-height:1.25;border-left:4px solid '+l.cor+';">'
+    h+='<td style="padding:3px 9px;line-height:1.15;border-left:4px solid '+l.cor+';">'
       +(l.foco?'<span style="color:'+C.amber+';margin-right:2px;">⭐</span>':'')
       +'<span style="font-weight:'+(l.foco?'800':'700')+';">'+l.nome+'</span> '
       +'<span style="display:inline-block;background:'+(l.ehUnd?C.orangeL:C.redL)+';color:'+cor+';font-size:8.5px;font-weight:800;padding:1px 5px;border-radius:4px;vertical-align:middle;">'+l.un.toUpperCase()+'</span></td>';
     l.metas.forEach(function(q,j){
       var ehDom=(_diaSemNum(dias[j])===0);
-      h+='<td style="padding:6px 3px;text-align:center;'+(ehDom?'background:rgba(217,119,6,.05);':'')+'">'
-        +(q>0?'<span style="font-weight:800;color:'+cor+';font-size:13.5px;">'+_fmtMeta(q)+'</span>'
-             :'<span style="color:#D9DDD9;font-size:11px;">·</span>')+'</td>';
+      h+='<td style="padding:3px 3px;text-align:center;'+(ehDom?'background:rgba(217,119,6,.05);':'')+'">'
+        +(q>0?'<span style="font-weight:800;color:'+cor+';font-size:12px;">'+_fmtMeta(q)+'</span>'
+             :'<span style="color:#D9DDD9;font-size:10px;">·</span>')+'</td>';
     });
 
     h+='</tr>';
