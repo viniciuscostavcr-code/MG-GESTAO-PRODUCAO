@@ -1330,7 +1330,7 @@ async function imprimirPlanejamentoSemanal(){
   var _catsUsadas={}; linhas.forEach(function(l){_catsUsadas[l.categoria]=1;});
   var _nCategorias=Object.keys(_catsUsadas).length;
 
-  var h='<style>@media print{@page{size:A4 landscape;margin:8mm;} table{page-break-inside:auto;} tr{page-break-inside:avoid;} thead{display:table-header-group;}}</style>';
+  var h='<style>@media print{@page{size:A4 landscape;margin:8mm;} *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;} table{page-break-inside:auto;} tr{page-break-inside:avoid;} thead{display:table-header-group;} tfoot{display:table-row-group;}}</style>';
   h+='<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;color:'+C.brown+';">';
 
   // ── Cabeçalho no padrão do app ──
@@ -1450,7 +1450,7 @@ function imprimirPlanejamentoMensal(){
     return{kg:totKg,und:totUnd};
   }
 
-  var h='<style>@media print{@page{size:A4 landscape;margin:10mm;}}</style>';
+  var h='<style>@media print{@page{size:A4 landscape;margin:10mm;} *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;}}</style>';
   h+='<div style="font-family:sans-serif;color:#111;">';
   h+='<div style="display:flex;align-items:center;gap:14px;border-bottom:4px solid #1B4332;padding-bottom:16px;margin-bottom:20px;">'
     +'<div style="width:52px;height:52px;background:#1B4332;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:22px;">G</div>'
@@ -6861,7 +6861,7 @@ function imprimirOrdens() {
     + String(hoje.getMonth()+1).padStart(2,'0') + '/' + hoje.getFullYear();
   var ico = {PADARIA:'🍞',CONFEITARIA:'🎂',LANCHONETE:'🥪',RESTAURANTE:'🍽️'}[SETOR] || '🏭';
 
-  var h = '<style>@media print{@page{size:A4 portrait;margin:11mm;} tr{page-break-inside:avoid;}}</style>';
+  var h = '<style>@media print{@page{size:A4 portrait;margin:11mm;} *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;} tr{page-break-inside:avoid;}}</style>';
   h += '<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;color:' + C.brown + ';">';
 
   h += '<div style="display:flex;align-items:center;padding-bottom:12px;margin-bottom:14px;border-bottom:3px solid ' + C.grn2 + ';">'
