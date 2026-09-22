@@ -720,6 +720,10 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
       <button onclick="imprimirPlanejamentoMensal()"
         style="flex:1;background:#2D6A4F;color:#fff;border:none;border-radius:8px;padding:9px;cursor:pointer;font-size:.78rem;font-weight:600;">🖨️ Imprimir Mensal</button>
     </div>
+    <div style="padding:0 16px 8px;">
+      <button onclick="imprimirFolhaComMedia()"
+        style="width:100%;background:#fff;color:#B45309;border:1.5px solid #B45309;border-radius:8px;padding:9px;cursor:pointer;font-size:.78rem;font-weight:600;">📋 Folha em branco (com média de venda)</button>
+    </div>
 
     <!-- Mini resumo -->
     <div id="resumoSemana"
@@ -1268,6 +1272,134 @@ async function carregarCategorias(){
   }catch(e){console.log('Categorias indisponíveis:',e.message);}
   CATEGORIAS_COR=mapa;
   return mapa;
+}
+
+// Média de venda diária por produto — calculada sobre os dias em que o
+// produto REALMENTE vendeu (não sobre todos os dias do mês). Esse é o
+// critério certo para planejar produção: mostra a demanda real quando o
+// produto está disponível, sem ser distorcido por dias de ruptura.
+var MEDIA_VENDAS = null;
+async function carregarMediaVendas(){
+  if(MEDIA_VENDAS)return MEDIA_VENDAS;
+  var mapa={};
+  try{
+    var doisMeses=await sbSelect('vendas_abc','select=mes_ref&order=mes_ref.desc&limit=2000');
+    if(!doisMeses||!doisMeses.length){MEDIA_VENDAS=mapa;return mapa;}
+    var contagem={};
+    doisMeses.forEach(function(r){ contagem[r.mes_ref]=(contagem[r.mes_ref]||0)+1; });
+    var mesesUnicos=Object.keys(contagem).sort().reverse();
+    var mes=mesesUnicos[0];
+    if(contagem[mes]<50 && mesesUnicos.length>1){ mes=mesesUnicos[1]; }
+
+    var linhas=[],off=0;
+    while(true){
+      var parte=await sbSelect('vendas_abc','select=cod,quantidade,data,setor&mes_ref=eq.'+mes+'&limit=1000&offset='+off);
+      if(!parte||!parte.length)break;
+      linhas=linhas.concat(parte);
+      if(parte.length<1000)break;
+      off+=1000; if(off>50000)break;
+    }
+    // Agrega por código: soma de quantidade e conjunto de dias distintos com venda
+    var agg={};
+    linhas.forEach(function(v){
+      if(v.setor&&SETOR&&String(v.setor).toUpperCase()!==String(SETOR).toUpperCase())return;
+      var cn=String(v.cod||'').trim().replace(/^0+/,'');
+      if(!cn)return;
+      if(!agg[cn])agg[cn]={qtd:0,dias:{}};
+      agg[cn].qtd+=Number(v.quantidade)||0;
+      if(v.data)agg[cn].dias[v.data]=1;
+    });
+    Object.keys(agg).forEach(function(cn){
+      var nDias=Object.keys(agg[cn].dias).length;
+      mapa[cn]=nDias>0?(agg[cn].qtd/nDias):0;
+    });
+    mapa._mes=mes;
+    mapa._ok=true;
+  }catch(e){console.log('Média de vendas indisponível:',e.message);}
+  MEDIA_VENDAS=mapa;
+  return mapa;
+}
+
+// Folha de planejamento em branco: lista os produtos por categoria com a
+// média de venda diária ao lado, e colunas vazias (Seg a Dom) para
+// preencher a meta da semana à mão, com a referência de venda ao alcance.
+async function imprimirFolhaComMedia(){
+  var cats=await carregarCategorias();
+  var medias=await carregarMediaVendas();
+  // TODOS_PRODS já vem filtrado pelo setor atual no carregamento
+  var prods=(TODOS_PRODS||[]);
+  if(!prods.length){toast('⚠️ Nenhum produto encontrado para este setor','wa');return;}
+
+  var linhas=[];
+  prods.forEach(function(p){
+    var catNome=(p.categoria||'SEM CATEGORIA');
+    var catInfo=cats[catNome]||{cor:'#9CA3AF',ordem:98};
+    var cn=String(p.cod||'').trim().replace(/^0+/,'');
+    var media=(medias&&medias._ok&&cn&&medias[cn]!==undefined)?medias[cn]:null;
+    var ehUnd=/UND|UN\b/i.test(p.unidade||'');
+    linhas.push({nome:p.nome,categoria:catNome,cor:catInfo.cor,ordemCat:catInfo.ordem,
+                 media:media,ehUnd:ehUnd,posVenda:(p.ordem_grupo!==null&&p.ordem_grupo!==undefined)?p.ordem_grupo:99999});
+  });
+  linhas.sort(function(a,b){
+    if(a.ordemCat!==b.ordemCat)return a.ordemCat-b.ordemCat;
+    if(a.posVenda!==b.posVenda)return a.posVenda-b.posVenda;
+    return (a.nome||'')<(b.nome||'')?-1:1;
+  });
+
+  var C={grn:'#1B4332',grn2:'#2D6A4F',gray:'#6B7280',border:'#E2EDE8',amber:'#D97706'};
+
+  var h='<style>@media print{@page{size:A4 landscape;margin:8mm;} *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;} table{page-break-inside:auto;} tr{page-break-inside:avoid;} thead{display:table-header-group;}}</style>';
+
+  h+='<div style="font-family:-apple-system,sans-serif;">';
+  h+='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">'
+    +'<div style="font-size:16px;font-weight:800;color:'+C.grn+';">Folha de Planejamento — '+(SETOR||'')+'</div>'
+    +'<div style="font-size:10px;color:'+C.gray+';">Preencher a meta de cada dia usando a média de venda como referência</div></div>';
+  if(medias&&medias._mes){
+    h+='<div style="font-size:9.5px;color:'+C.gray+';margin-bottom:8px;">Média de venda calculada sobre '+medias._mes+' (dias em que cada produto efetivamente vendeu)</div>';
+  }
+
+  h+='<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+  h+='<thead><tr style="background:'+C.grn+';color:#fff;">'
+    +'<th style="padding:7px 9px;text-align:left;width:23%;">Produto</th>'
+    +'<th style="padding:7px 5px;text-align:center;width:8%;background:'+C.amber+';">Média/dia</th>'
+    +'<th style="padding:7px 3px;text-align:center;">SEG</th>'
+    +'<th style="padding:7px 3px;text-align:center;">TER</th>'
+    +'<th style="padding:7px 3px;text-align:center;">QUA</th>'
+    +'<th style="padding:7px 3px;text-align:center;">QUI</th>'
+    +'<th style="padding:7px 3px;text-align:center;">SEX</th>'
+    +'<th style="padding:7px 3px;text-align:center;">SÁB</th>'
+    +'<th style="padding:7px 3px;text-align:center;">DOM</th>'
+    +'<th style="padding:7px 5px;text-align:center;width:8%;background:'+C.grn2+';">SEMANA</th>'
+    +'</tr></thead><tbody>';
+
+  var catAnterior=null;
+  linhas.forEach(function(l,i){
+    if(l.categoria!==catAnterior){
+      h+='<tr><td colspan="10" style="padding:4px 10px;background:'+l.cor+';color:#fff;'
+        +'font-weight:800;font-size:9px;letter-spacing:.6px;text-transform:uppercase;">'
+        + l.categoria + '</td></tr>';
+    }
+    catAnterior=l.categoria;
+    var bg=(i%2)?'#FAFAF8':'#fff';
+    var mediaTxt=(l.media===null)?'—':(l.ehUnd?Math.round(l.media)+' un':_fmtMeta(l.media)+' kg');
+    h+='<tr style="background:'+bg+';border-bottom:1px solid '+C.border+';">';
+    h+='<td style="padding:4px 9px;border-left:3px solid '+l.cor+';font-weight:700;">'+l.nome+'</td>';
+    h+='<td style="padding:4px 5px;text-align:center;font-weight:800;color:'+C.amber+';background:#FEF3EC;">'+mediaTxt+'</td>';
+    for(var d=0;d<7;d++){
+      h+='<td style="padding:4px 3px;text-align:center;border-left:1px solid '+C.border+';min-width:38px;height:20px;">&nbsp;</td>';
+    }
+    h+='<td style="padding:4px 5px;text-align:center;background:#F4F4F2;">&nbsp;</td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table>';
+  h+='<div style="margin-top:10px;font-size:9px;color:'+C.gray+';">'
+    +'A coluna em destaque mostra quanto o produto vende, em média, nos dias em que está disponível — use como referência para não planejar abaixo da demanda real.</div>';
+  h+='</div>';
+
+  var win=window.open('','_blank');
+  win.document.write('<html><head><title>Folha de Planejamento — '+(SETOR||'')+'</title></head><body>'+h+'</body></html>');
+  win.document.close();
+  setTimeout(function(){ win.print(); }, 400);
 }
 
 async function imprimirPlanejamentoSemanal(){
