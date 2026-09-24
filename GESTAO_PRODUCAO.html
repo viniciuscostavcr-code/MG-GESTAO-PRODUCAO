@@ -4038,24 +4038,18 @@ function abrirDetalheProduto(prodId) {
     + escHtml(prod.setor || SETOR) + ' &middot; ' + escHtml(prod.unidade || 'KG')
     + (prod.cod ? ' &middot; COD ' + escHtml(prod.cod) : '') + '</div>';
 
-  // Mínimos
-  html += '<div style="display:grid;grid-template-columns:1fr'
-    + (temFreezer ? ' 1fr' : '') + ';gap:8px;margin-bottom:12px;">';
-  html += '<div style="background:#F4F4F2;border-radius:9px;'
-    + 'padding:10px;text-align:center;">'
-    + '<div style="font-size:.58rem;color:#6B7280;margin-bottom:2px;">'
-    + 'Mín. Gôndola</div>'
-    + '<div style="font-size:1rem;font-weight:800;">'
-    + (minGond || '—') + '</div></div>';
+  // Mínimo de gôndola removido do cartão (informação de configuração,
+  // não do dia a dia). Mín. Freezer continua quando o produto usa freezer.
   if (temFreezer) {
+    html += '<div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:12px;">';
     html += '<div style="background:#F4F4F2;border-radius:9px;'
       + 'padding:10px;text-align:center;">'
       + '<div style="font-size:.58rem;color:#6B7280;margin-bottom:2px;">'
       + 'Mín. Freezer</div>'
       + '<div style="font-size:1rem;font-weight:800;">'
       + (minFreezer || '—') + '</div></div>';
+    html += '</div>';
   }
-  html += '</div>';
 
   // Ficha técnica — dados reais do módulo de fichas
   var fic = fichaDoProduto(prod);
@@ -4078,9 +4072,14 @@ function abrirDetalheProduto(prodId) {
       + '<div style="font-size:.72rem;font-weight:700;color:var(--brown);">Ficha Técnica de Produção</div>'
       + '<div style="font-size:.63rem;color:#6B7280;margin-top:1px;">'
       + escHtml(fic.nome) + ' · ' + fic.itens + ' ingrediente(s)</div></div>';
-    html += '<button onclick="abrirFichaTecnica(\'' + fic.id + '\')" '
+    html += '<div style="display:flex;gap:6px;">';
+    html += '<button onclick="abrirFichaPorProdutoId(\'' + prodId + '\')" '
       + 'style="font-size:.65rem;font-weight:700;background:var(--grn);color:#fff;'
-      + 'border:none;padding:6px 11px;border-radius:7px;cursor:pointer;font-family:inherit;">Abrir ficha</button>';
+      + 'border:none;padding:6px 11px;border-radius:7px;cursor:pointer;font-family:inherit;white-space:nowrap;">Abrir ficha</button>';
+    html += '<button onclick="abrirFichaPorProdutoId(\'' + prodId + '\',true)" '
+      + 'style="font-size:.65rem;font-weight:700;background:#8A6D3B;color:#fff;'
+      + 'border:none;padding:6px 11px;border-radius:7px;cursor:pointer;font-family:inherit;white-space:nowrap;">🧮 Calculadora</button>';
+    html += '</div>';
     html += '</div>';
 
     // Rendimento aparece para todos; custo e CMV só para administradores,
@@ -6816,9 +6815,17 @@ var FICHAS_NOME=null;     // por nome normalizado (fallback)
 
 
 // Abre o módulo de fichas técnicas (opcionalmente numa ficha específica)
-function abrirFichaTecnica(fichaId){
-  var url='FICHAS_TECNICAS.html' + (fichaId ? ('?ficha='+encodeURIComponent(fichaId)) : '');
-  window.location.href=url;
+// Abre a ficha técnica do produto pelo NOME (o único deep-link que
+// FICHAS_TECNICAS.html sabe ler é ?prod=NOME, não ?ficha=ID — por isso
+// resolvemos o nome aqui, a partir do id do produto, que é seguro de
+// embutir num onclick porque nunca tem aspas ou caractere especial).
+// irCalc=true also passa &calc=1, para abrir direto na calculadora de porção.
+function abrirFichaPorProdutoId(prodId, irCalc){
+  var p = (TODOS_PRODS||[]).find(function(x){ return x.id === prodId; });
+  if(!p){ toast('Produto não encontrado','wa'); return; }
+  var url = 'FICHAS_TECNICAS.html?prod=' + encodeURIComponent(p.nome)
+    + (irCalc ? '&calc=1' : '');
+  window.location.href = url;
 }
 function irParaFichas(){
   window.location.href='FICHAS_TECNICAS.html';

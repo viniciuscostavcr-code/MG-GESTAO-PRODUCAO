@@ -626,9 +626,12 @@ async function carregarTudo(){
     renderProducao();
     renderCMV();
 
-    // Deep-link: ?prod=NOME → abre direto a aba FT Produção com a ficha aberta
+    // Deep-link: ?prod=NOME → abre direto a aba FT Produção com a ficha aberta.
+    // &calc=1 → rola até a calculadora de porção (não só o topo do cartão)
+    // e já coloca o cursor no campo, pronta para digitar a quantidade.
     var params = new URLSearchParams(window.location.search);
     var prodParam = params.get('prod');
+    var irCalc = params.get('calc') === '1';
     if (prodParam) {
       var nomeBusca = decodeURIComponent(prodParam).toUpperCase();
       var ficha = FICHAS.find(function(f) {
@@ -641,7 +644,18 @@ async function carregarTudo(){
           var el = document.getElementById('fp-' + ficha.id);
           if (el) {
             el.classList.add('open');
-            el.scrollIntoView({behavior:'smooth', block:'start'});
+            if (irCalc) {
+              var calcEl = document.getElementById('calc-fp-' + ficha.id);
+              var inpEl = document.getElementById('porcao-fp-' + ficha.id);
+              if (calcEl) {
+                calcEl.scrollIntoView({behavior:'smooth', block:'center'});
+                if (inpEl) setTimeout(function(){ inpEl.focus(); }, 400);
+              } else {
+                el.scrollIntoView({behavior:'smooth', block:'start'});
+              }
+            } else {
+              el.scrollIntoView({behavior:'smooth', block:'start'});
+            }
           }
         }, 300);
       } else {
