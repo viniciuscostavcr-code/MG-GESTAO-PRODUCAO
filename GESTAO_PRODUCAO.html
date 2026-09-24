@@ -720,10 +720,7 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
       <button onclick="imprimirPlanejamentoMensal()"
         style="flex:1;background:#2D6A4F;color:#fff;border:none;border-radius:8px;padding:9px;cursor:pointer;font-size:.78rem;font-weight:600;">🖨️ Imprimir Mensal</button>
     </div>
-    <div style="padding:0 16px 8px;">
-      <button onclick="imprimirFolhaComMedia()"
-        style="width:100%;background:#fff;color:#B45309;border:1.5px solid #B45309;border-radius:8px;padding:9px;cursor:pointer;font-size:.78rem;font-weight:600;">📋 Folha em branco (com média de venda)</button>
-    </div>
+
 
     <!-- Mini resumo -->
     <div id="resumoSemana"
@@ -1183,15 +1180,15 @@ function _fmtMeta(v){
 // ── CURVA ABC REAL, a partir do faturamento do mês mais recente ──
 // Critério de Pareto: A = até 80% do faturamento acumulado,
 // B = de 80% a 95%, C = os 5% restantes.
-var ABC_VENDAS=null;
+var ABC_VENDAS={};   // cache por setor — mesmo cuidado que na média de vendas
 async function carregarCurvaABC(){
-  if(ABC_VENDAS)return ABC_VENDAS;
+  if(ABC_VENDAS[SETOR])return ABC_VENDAS[SETOR];
   var mapa={_mes:null,_ok:false};
   try{
     // Usa o mês mais recente que já tem volume de venda suficiente — evita pegar
     // um mês corrente que mal começou e tem poucos dias de dado (ex.: dia 5 do mês).
     var doisMeses=await sbSelect('vendas_abc','select=mes_ref&order=mes_ref.desc&limit=2000');
-    if(!doisMeses||!doisMeses.length)return (ABC_VENDAS=mapa);
+    if(!doisMeses||!doisMeses.length)return (ABC_VENDAS[SETOR]=mapa);
     var contagem={};
     doisMeses.forEach(function(r){ contagem[r.mes_ref]=(contagem[r.mes_ref]||0)+1; });
     var mesesUnicos=Object.keys(contagem).sort().reverse();
@@ -1221,7 +1218,7 @@ async function carregarCurvaABC(){
                    .filter(function(x){return x.fat>0;})
                    .sort(function(a,b){return b.fat-a.fat;});
     var total=itens.reduce(function(s,x){return s+x.fat;},0);
-    if(total<=0)return (ABC_VENDAS=mapa);
+    if(total<=0)return (ABC_VENDAS[SETOR]=mapa);
 
     // Cortes da curva. Quando um produto domina o faturamento (caso do pão francês),
     // o Pareto puro deixaria pouquíssimos itens em A — então também garantimos
@@ -1247,7 +1244,7 @@ async function carregarCurvaABC(){
     mapa._total=total;
     mapa._qtd=itens.length;
   }catch(e){console.log('Curva ABC indisponível:',e.message);}
-  ABC_VENDAS=mapa;
+  ABC_VENDAS[SETOR]=mapa;
   return mapa;
 }
 
@@ -1278,13 +1275,13 @@ async function carregarCategorias(){
 // produto REALMENTE vendeu (não sobre todos os dias do mês). Esse é o
 // critério certo para planejar produção: mostra a demanda real quando o
 // produto está disponível, sem ser distorcido por dias de ruptura.
-var MEDIA_VENDAS = null;
+var MEDIA_VENDAS = {};   // cache por setor — evita "vazar" dado de um setor para outro
 async function carregarMediaVendas(){
-  if(MEDIA_VENDAS)return MEDIA_VENDAS;
+  if(MEDIA_VENDAS[SETOR])return MEDIA_VENDAS[SETOR];
   var mapa={};
   try{
     var doisMeses=await sbSelect('vendas_abc','select=mes_ref&order=mes_ref.desc&limit=2000');
-    if(!doisMeses||!doisMeses.length){MEDIA_VENDAS=mapa;return mapa;}
+    if(!doisMeses||!doisMeses.length){MEDIA_VENDAS[SETOR]=mapa;return mapa;}
     var contagem={};
     doisMeses.forEach(function(r){ contagem[r.mes_ref]=(contagem[r.mes_ref]||0)+1; });
     var mesesUnicos=Object.keys(contagem).sort().reverse();
@@ -1316,7 +1313,7 @@ async function carregarMediaVendas(){
     mapa._mes=mes;
     mapa._ok=true;
   }catch(e){console.log('Média de vendas indisponível:',e.message);}
-  MEDIA_VENDAS=mapa;
+  MEDIA_VENDAS[SETOR]=mapa;
   return mapa;
 }
 
@@ -1409,6 +1406,8 @@ async function imprimirPlanejamentoSemanal(){
   var abrevDia=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
   var curva=await carregarCurvaABC();
   var cats=await carregarCategorias();
+  var medias=await carregarMediaVendas();
+  await carregarFichas();   // traz o rendimento (tamanho do lote) de cada ficha
   var dataStr=new Date().toLocaleDateString('pt-BR');
   var ini=dias[0].split('-').reverse().join('/');
   var fim=dias[6].split('-').reverse().join('/');
@@ -1441,7 +1440,16 @@ async function imprimirPlanejamentoSemanal(){
       // por isso não quebra se o mês corrente ainda não tiver dado suficiente.
       // Ajustável a qualquer momento direto no cadastro do produto.
       var posVenda=(p.ordem_grupo!==null && p.ordem_grupo!==undefined)?p.ordem_grupo:99999;
-      linhas.push({nome:p.nome,ehUnd:ehUnd,un:(ehUnd?'un':'kg'),metas:metas,total:total,classe:cls,foco:foco,categoria:catNome,cor:catInfo.cor,ordemCat:catInfo.ordem,posVenda:posVenda});
+      // Média semanal de venda: média diária (nos dias em que vendeu) × 7 dias
+      // que o mercado abre — referência para conferir se a meta cobre a demanda.
+      var cnProd=String(p.cod||'').trim().replace(/^0+/,'');
+      var mediaDia=(medias&&medias._ok&&cnProd&&medias[cnProd]!==undefined)?medias[cnProd]:null;
+      var mediaSemana=(mediaDia!==null)?(mediaDia*7):null;
+      // Tamanho do lote (rendimento da ficha técnica) — usado para mostrar
+      // quantos lotes cada meta diária representa, em vez de só o peso solto.
+      var fic=fichaDoProduto({cod:p.cod,nome:p.nome});
+      var loteSize=fic ? (ehUnd ? (fic.rendimentoUn||0) : (fic.rendimentoKg||0)) : 0;
+      linhas.push({nome:p.nome,ehUnd:ehUnd,un:(ehUnd?'un':'kg'),metas:metas,total:total,classe:cls,foco:foco,categoria:catNome,cor:catInfo.cor,ordemCat:catInfo.ordem,posVenda:posVenda,mediaSemana:mediaSemana,loteSize:loteSize});
       if(ehUnd)totUn+=total;else totKg+=total;
       // acumula por dia da semana (kg e und separados)
       metas.forEach(function(q,di){
@@ -1476,7 +1484,10 @@ async function imprimirPlanejamentoSemanal(){
   h+='<div style="border:1px solid '+C.border+';border-radius:12px;overflow:hidden;">';
   h+='<table style="width:100%;border-collapse:collapse;font-size:11.5px;">';
   h+='<thead><tr style="background:'+C.grn2+';color:#fff;">'
-    +'<th style="padding:8px 10px;text-align:left;width:30%;font-weight:700;letter-spacing:.2px;">Produto</th>';
+    +'<th style="padding:8px 10px;text-align:left;width:24%;font-weight:700;letter-spacing:.2px;">Produto</th>'
+    +'<th style="padding:7px 5px;text-align:center;width:9%;background:#8A6D3B;">'
+    +'<div style="font-size:8px;opacity:.9;letter-spacing:.3px;">MÉDIA</div>'
+    +'<div style="font-size:10px;font-weight:800;">SEMANA</div></th>';
   dias.forEach(function(d){
     var num=d.split('-')[2];
     var ehDom=(_diaSemNum(d)===0);
@@ -1484,6 +1495,9 @@ async function imprimirPlanejamentoSemanal(){
       +'<div style="font-size:9px;opacity:.85;letter-spacing:.4px;">'+abrevDia[_diaSemNum(d)]+'</div>'
       +'<div style="font-size:14px;font-weight:900;line-height:1.1;">'+num+'</div></th>';
   });
+  h+='<th style="padding:7px 5px;text-align:center;width:9%;background:#8A6D3B;">'
+    +'<div style="font-size:8px;opacity:.9;letter-spacing:.3px;">MÉDIA</div>'
+    +'<div style="font-size:10px;font-weight:800;">SEMANA</div></th>';
 
   h+='</tr></thead><tbody>';
 
@@ -1494,7 +1508,7 @@ async function imprimirPlanejamentoSemanal(){
 
     // Faixa colorida quando muda de categoria
     if(l.categoria!==catAnterior){
-      h+='<tr><td colspan="8" style="padding:3px 10px;background:'+l.cor+';color:#fff;'
+      h+='<tr><td colspan="9" style="padding:3px 10px;background:'+l.cor+';color:#fff;'
         +'font-weight:800;font-size:9px;letter-spacing:.6px;text-transform:uppercase;">'
         + l.categoria + '</td></tr>';
     }
@@ -1504,12 +1518,26 @@ async function imprimirPlanejamentoSemanal(){
     h+='<td style="padding:3px 9px;line-height:1.15;border-left:4px solid '+l.cor+';">'
       +(l.foco?'<span style="color:'+C.amber+';margin-right:2px;">⭐</span>':'')
       +'<span style="font-weight:'+(l.foco?'800':'700')+';">'+l.nome+'</span> '
-      +'<span style="display:inline-block;background:'+(l.ehUnd?C.orangeL:C.redL)+';color:'+cor+';font-size:8.5px;font-weight:800;padding:1px 5px;border-radius:4px;vertical-align:middle;">'+l.un.toUpperCase()+'</span></td>';
+      +'<span style="display:inline-block;background:'+(l.ehUnd?C.orangeL:C.redL)+';color:'+cor+';font-size:8.5px;font-weight:800;padding:1px 5px;border-radius:4px;vertical-align:middle;">'+l.un.toUpperCase()+'</span>'
+      +(l.loteSize>0
+        ? ' <span style="font-size:8px;color:'+C.gray+';">· lote '+_fmtMeta(l.loteSize)+(l.ehUnd?'un':'kg')+'</span>'
+        : '')+'</td>';
+    // Média semanal de venda — ao lado do produto, para servir de referência
+    // direta na hora de preencher a meta de cada dia.
+    h+='<td style="padding:3px 5px;text-align:center;background:#FEF3EC;">'
+      +(l.mediaSemana!==null
+        ? '<span style="font-weight:800;color:'+C.amber+';font-size:11.5px;">'+_fmtMeta(l.mediaSemana)+'</span>'
+        : '<span style="color:#D9DDD9;font-size:10px;">—</span>')+'</td>';
     l.metas.forEach(function(q,j){
       var ehDom=(_diaSemNum(dias[j])===0);
-      h+='<td style="padding:3px 3px;text-align:center;'+(ehDom?'background:rgba(217,119,6,.05);':'')+'">'
-        +(q>0?'<span style="font-weight:800;color:'+cor+';font-size:12px;">'+_fmtMeta(q)+'</span>'
-             :'<span style="color:#D9DDD9;font-size:10px;">·</span>')+'</td>';
+      var nLotes=(q>0 && l.loteSize>0)?(q/l.loteSize):null;
+      h+='<td style="padding:3px 3px;text-align:center;line-height:1.1;'+(ehDom?'background:rgba(217,119,6,.05);':'')+'">'
+        +(q>0
+          ?('<span style="font-weight:800;color:'+cor+';font-size:12px;">'+_fmtMeta(q)+'</span>'
+            +(nLotes!==null
+              ? '<br><span style="font-size:8px;color:'+C.gray+';font-weight:600;">'+_fmtMeta(nLotes)+'L</span>'
+              : ''))
+          :'<span style="color:#D9DDD9;font-size:10px;">·</span>')+'</td>';
     });
 
     h+='</tr>';
@@ -1517,7 +1545,8 @@ async function imprimirPlanejamentoSemanal(){
   // Linha de totais por dia (kg e und de cada dia)
   h+='<tfoot>';
   h+='<tr style="background:'+C.grn2+';color:#fff;">'
-    +'<td style="padding:6px 9px;font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:.4px;">Total kg no dia</td>';
+    +'<td style="padding:6px 9px;font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:.4px;">Total kg no dia</td>'
+    +'<td style="background:'+C.grn+';"></td>';
   for(var td=0;td<7;td++){
     var ehDom=(_diaSemNum(dias[td])===0);
     h+='<td style="padding:6px 3px;text-align:center;font-weight:800;font-size:12px;'+(ehDom?'background:'+C.amber+';':'')+'">'
@@ -1527,7 +1556,8 @@ async function imprimirPlanejamentoSemanal(){
   // linha de unidades só se houver algum produto em unidade
   if(totUn>0){
     h+='<tr style="background:'+C.grn+';color:#fff;">'
-      +'<td style="padding:6px 9px;font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:.4px;">Total und no dia</td>';
+      +'<td style="padding:6px 9px;font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:.4px;">Total und no dia</td>'
+      +'<td style="background:'+C.grn2+';"></td>';
     for(var tu=0;tu<7;tu++){
       var ehDom2=(_diaSemNum(dias[tu])===0);
       h+='<td style="padding:6px 3px;text-align:center;font-weight:800;font-size:12px;'+(ehDom2?'background:'+C.amber+';':'')+'">'
@@ -3750,7 +3780,7 @@ function _popularBodyTabela(dias, hoje) {
   // Agrupar por PRIORIDADE (foco do mês → curva ABC de vendas)
   var grupos = {FOCO:[], A:[], B:[], C:[]};
   prodsFiltrados.forEach(function(p) {
-    var g = _ehFoco(p) ? 'FOCO' : _classeProduto(p, ABC_VENDAS);
+    var g = _ehFoco(p) ? 'FOCO' : _classeProduto(p, ABC_VENDAS[SETOR]||{});
     if (!grupos[g]) grupos[g] = [];
     grupos[g].push(p);
   });
