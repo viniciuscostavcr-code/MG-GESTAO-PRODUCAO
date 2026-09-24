@@ -1561,7 +1561,9 @@ async function imprimirPlanejamentoSemanal(){
         : '<span style="color:#D9DDD9;font-size:10px;">—</span>')+'</td>';
     l.metas.forEach(function(q,j){
       var ehDom=(_diaSemNum(dias[j])===0);
-      var nLotes=(q>0 && l.loteSize>0)?(q/l.loteSize):null;
+      // Arredonda para cima em passos de 0,5 lote — é referência para o
+      // confeiteiro decidir, então nunca sugere menos do que precisa.
+      var nLotes=(q>0 && l.loteSize>0)?(Math.ceil((q/l.loteSize)*2)/2):null;
       h+='<td style="padding:3px 3px;text-align:center;line-height:1.1;'+(ehDom?'background:rgba(217,119,6,.05);':'')+'">'
         +(q>0
           ?('<span style="font-weight:800;color:'+cor+';font-size:12px;">'+_fmtMeta(q)+'</span>'
@@ -4549,7 +4551,8 @@ function _sugestaoDados(p) {
 
   var fic = (typeof fichaDoProduto==='function') ? fichaDoProduto({cod:p.cod, nome:p.nome}) : null;
   var loteSize = fic ? (ehUnd ? (fic.rendimentoUn||0) : (fic.rendimentoKg||0)) : 0;
-  var lotes = (loteSize>0) ? (sugerido/loteSize) : null;
+  // Arredonda para cima em passos de 0,5 lote — mesma lógica da impressão.
+  var lotes = (loteSize>0) ? (Math.ceil((sugerido/loteSize)*2)/2) : null;
 
   return {
     valor: Math.round(sugerido*10)/10,
