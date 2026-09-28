@@ -4781,10 +4781,13 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
   // está cadastrado manualmente na projeção. Só aparece quando há dado.
   var _sd = _sugestaoDados(p);
   var sugDadosHtml = '';
-  if (_sd) {
-    var _lotesTxt = (_sd.lotes!==null) ? (' <span style="color:#8A9590;">(~'+_sd.lotes+' lote'+(_sd.lotes!=1?'s':'')+')</span>') : '';
+  // Só o admin vê: é referência de planejamento. O operador segue a meta
+  // cadastrada, sem a tentação de "usar" a venda no lugar do plano.
+  if (_sd && IS_ADMIN) {
+    var _lTxt = (_sd.lotes===0.5) ? '½' : _fmtLote(_sd.lotes);
+    var _lotesTxt = (_sd.lotes!==null) ? (' <span style="color:#8A9590;">(~'+_lTxt+' lote'+(_sd.lotes>1?'s':'')+')</span>') : '';
     sugDadosHtml = '<div class="phoje-sug" style="background:#FEF3EC;border-radius:7px;padding:4px 8px;margin-top:3px;">'
-      +'📊 Baseado na venda: <strong style="color:#B45309;">'+_sd.valor+und.toLowerCase()+'</strong>'+_lotesTxt
+      +'📊 Baseado na venda: <strong style="color:#B45309;">'+_fmtNum(_sd.valor)+und.toLowerCase()+'</strong>'+_lotesTxt
       +' <span onclick="_usarSugestaoDados(\''+p.id+'\','+_sd.valor+')" '
       +'style="margin-left:6px;color:#2D6A4F;font-weight:700;text-decoration:underline;cursor:pointer;">usar</span>'
       +'</div>';
