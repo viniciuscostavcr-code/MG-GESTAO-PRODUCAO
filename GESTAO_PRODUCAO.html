@@ -601,7 +601,7 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
 /* popup meta */
 .meta-pop-ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1100;display:none;align-items:center;justify-content:center;padding:16px;}
 .meta-pop-ov.on{display:flex;}
-.meta-pop-box{background:#fff;border-radius:16px;padding:20px;width:min(320px,100%);box-shadow:0 8px 32px rgba(0,0,0,.2);}
+.meta-pop-box{background:#fff;border-radius:16px;padding:20px;width:min(320px,100%);max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2);}
 .meta-pop-ttl{font-weight:800;font-size:.9rem;color:#1B4332;margin-bottom:2px;}
 .meta-pop-prod{font-size:.78rem;color:#6B7280;margin-bottom:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .meta-pop-lbl{font-size:.78rem;font-weight:700;color:#374151;margin-bottom:6px;}
@@ -612,6 +612,19 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
 .meta-pop-inp{width:90px;border:1.5px solid #D1D5DB;border-radius:8px;padding:8px 10px;font-size:.95rem;font-weight:700;text-align:center;outline:none;}
 .meta-pop-inp:focus{border-color:#2D6A4F;}
 .meta-pop-und{font-size:.82rem;color:#6B7280;}
+/* Meta por lotes — um contador por dia da semana */
+.mpl-ref{background:#FEF3EC;border-radius:8px;padding:6px 9px;font-size:.7rem;color:#8A6D3B;margin-bottom:10px;line-height:1.45;}
+.mpl-row{display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid #F3F4F6;}
+.mpl-dia{width:34px;font-size:.78rem;font-weight:700;color:#374151;}
+.mpl-btn{width:32px;height:32px;flex-shrink:0;border-radius:8px;border:1.5px solid #E9C39A;background:#fff;color:#B45309;font-size:1.1rem;font-weight:800;cursor:pointer;font-family:inherit;line-height:1;-webkit-appearance:none;}
+.mpl-btn:active{background:#FEF3EC;}
+.mpl-val{flex:1;text-align:center;font-size:.85rem;font-weight:800;color:#9CA3AF;}
+.mpl-val.on{color:#1B4332;}
+.mpl-kg{width:58px;text-align:right;font-size:.68rem;color:#6B7280;}
+.mpl-massa{font-size:.62rem;color:#B45309;padding:0 0 3px 42px;margin-top:-2px;}
+.mpl-massa:empty{display:none;}
+.mpl-tot{display:flex;justify-content:space-between;align-items:baseline;margin:10px 0 16px;font-size:.8rem;font-weight:700;color:#1B4332;}
+.mpl-tot small{font-weight:600;color:#6B7280;font-size:.7rem;}
 .prod-tabela td.col-dia{min-width:58px;text-align:center;padding:8px 4px;vertical-align:middle;cursor:pointer;}
 .dia-hoje{background:#F0F9F4!important;}
 .prod-tabela th.dia-hoje{background:#1B4332!important;font-weight:800;}
@@ -855,14 +868,19 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
   <div class="meta-pop-box">
     <div class="meta-pop-ttl">📊 Meta de Produção</div>
     <div class="meta-pop-prod" id="mpProdNm"></div>
-    <div class="meta-pop-lbl">Dias de produção:</div>
-    <div class="mp-dias-row" id="mpDiasRow"></div>
-    <div class="meta-pop-lbl">Meta semanal:</div>
-    <div class="meta-pop-row">
-      <input class="meta-pop-inp" type="number" min="0" inputmode="numeric" id="mpMetaInp"
-        placeholder="0"
-        onkeydown="if(event.key==='Enter'){event.preventDefault();_salvarMetaPop()}">
-      <span class="meta-pop-und" id="mpUndLbl">kg</span>
+    <!-- Modo LOTE: produto com ficha técnica — distribui lotes por dia -->
+    <div id="mpLoteBox" style="display:none;"></div>
+    <!-- Modo PESO: produto sem ficha — meta total dividida pelos dias -->
+    <div id="mpPesoBox">
+      <div class="meta-pop-lbl">Dias de produção:</div>
+      <div class="mp-dias-row" id="mpDiasRow"></div>
+      <div class="meta-pop-lbl">Meta semanal:</div>
+      <div class="meta-pop-row">
+        <input class="meta-pop-inp" type="number" min="0" inputmode="numeric" id="mpMetaInp"
+          placeholder="0"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();_salvarMetaPop()}">
+        <span class="meta-pop-und" id="mpUndLbl">kg</span>
+      </div>
     </div>
     <div class="emb-modal-btns">
       <button class="conf-cn" onclick="_fecharMetaPop()">Cancelar</button>
@@ -1463,8 +1481,8 @@ async function imprimirPlanejamentoSemanal(){
       // Tamanho do lote (rendimento da ficha técnica) — usado para mostrar
       // quantos lotes cada meta diária representa, em vez de só o peso solto.
       var fic=fichaDoProduto({cod:p.cod,nome:p.nome});
-      var loteSize=fic ? (ehUnd ? (fic.rendimentoUn||0) : (fic.rendimentoKg||0)) : 0;
-      var ratioMassa=fic ? (fic.ratioMassaTrigo||0) : 0;
+      var loteSize=_loteDaFicha(fic, ehUnd?'UND':'KG');
+      var ratioMassa=_massaPorUnid(fic, ehUnd?'UND':'KG');
       linhas.push({nome:p.nome,ehUnd:ehUnd,un:(ehUnd?'un':'kg'),metas:metas,total:total,classe:cls,foco:foco,categoria:catNome,cor:catInfo.cor,ordemCat:catInfo.ordem,posVenda:posVenda,mediaSemana:mediaSemana,loteSize:loteSize,ratioMassa:ratioMassa});
       if(ehUnd)totUn+=total;else totKg+=total;
       // acumula por dia da semana (kg e und separados)
@@ -1491,7 +1509,7 @@ async function imprimirPlanejamentoSemanal(){
   // convertidos pela proporção massa/rendimento de cada ficha.
   var aggMassaDia=[0,0,0,0,0,0,0];
   linhas.forEach(function(l){
-    if(l.categoria==='BOLOS MASSA DE TRIGO' && l.ratioMassa>0){
+    if(l.ratioMassa>0){
       l.metas.forEach(function(q,di){ aggMassaDia[di]+=q*l.ratioMassa; });
     }
   });
@@ -3900,7 +3918,7 @@ function _buildTabelaRow(p, dias, hoje, num) {
   // Tamanho do lote (rendimento da ficha técnica) — referência visual para
   // quem está distribuindo a meta da semana em lotes inteiros ou fracionados.
   var _ficRow = (typeof fichaDoProduto==='function') ? fichaDoProduto({cod:p.cod, nome:p.nome}) : null;
-  var _loteRow = _ficRow ? (und==='UND' ? (_ficRow.rendimentoUn||0) : (_ficRow.rendimentoKg||0)) : 0;
+  var _loteRow = _loteDaFicha(_ficRow, und);
   var loteCell = '<td class="col-lote" style="text-align:center;font-size:.72rem;color:#8A6D3B;'+corLinha+'">'
     + (_loteRow>0 ? (_loteRow.toFixed(2).replace('.',',')+und.toLowerCase()) : '—') + '</td>';
 
@@ -3960,13 +3978,17 @@ function _buildTabelaRow(p, dias, hoje, num) {
     }
   });
 
+  // Meta também em lotes (quando há ficha), para ler a semana em lotes.
+  var _mL = (_loteRow>0 && meta>0) ? Math.round((meta/_loteRow)*2)/2 : 0;
+  var metaLotesTxt = _mL>0 ? ('<div style="font-size:.6rem;color:#8A6D3B;font-weight:600;">'+_fmtLote(_mL)+'L</div>') : '';
+
   const metaCell = IS_ADMIN
     ? `<td class="col-meta" title="Configurar dias e meta" style="cursor:pointer;"
          onclick="_metaPopClick(this)" data-pid="${p.id}" data-nome="${escHtml(p.nome)}">
-         <span class="col-meta-val" id="mp_meta_${p.id}">${metaVal || '—'}</span>
+         <span class="col-meta-val" id="mp_meta_${p.id}">${metaVal || '—'}</span>${metaLotesTxt}
        </td>`
     : `<td class="col-meta">
-         <span class="col-meta-val" id="mp_meta_${p.id}">${metaVal || '—'}</span>
+         <span class="col-meta-val" id="mp_meta_${p.id}">${metaVal || '—'}</span>${metaLotesTxt}
        </td>`;
 
   var ehFoco=_ehFoco(p);
@@ -4236,7 +4258,28 @@ function _abrirMetaPop(prodId, prodNome) {
 
   const currentMeta = existing ? Number(existing.meta_semanal || 0) : 0;
 
+  // Produto com ficha técnica → meta montada em LOTES por dia.
+  const und = (prod?.unidade || 'KG').toUpperCase();
+  const fic = (prod && typeof fichaDoProduto==='function') ? fichaDoProduto(prod) : null;
+  _mpLoteSize = _loteDaFicha(fic, und);
+  _mpFic = fic;
+  const modoLote = _mpLoteSize > 0;
+  document.getElementById('mpLoteBox').style.display = modoLote ? 'block' : 'none';
+  document.getElementById('mpPesoBox').style.display = modoLote ? 'none' : 'block';
   document.getElementById('mpProdNm').textContent = prodNome;
+  if (modoLote) {
+    _mpLotes = {};
+    _MP_DIAS.forEach(function(d){
+      var v = existing ? (Number(existing[d]) || 0) : 0;
+      // Converte a meta antiga (peso) para lotes, em passos de 0,5.
+      // Nunca zera um dia que tinha produção: mínimo meio lote.
+      var l = v > 0 ? Math.max(0.5, Math.round((v / _mpLoteSize) * 2) / 2) : 0;
+      _mpLotes[d] = l;
+    });
+    _mpRenderLotes(prod, und);
+    document.getElementById('metaPopOv').classList.add('on');
+    return;
+  }
   document.getElementById('mpUndLbl').textContent = (prod?.unidade || 'kg').toLowerCase();
   document.getElementById('mpMetaInp').value = currentMeta > 0 ? currentMeta : '';
 
@@ -4248,6 +4291,101 @@ function _abrirMetaPop(prodId, prodNome) {
 
   document.getElementById('metaPopOv').classList.add('on');
   setTimeout(() => document.getElementById('mpMetaInp').focus(), 100);
+}
+
+// ── Meta por lotes ──
+let _mpLoteSize = 0;   // tamanho do lote (ficha) do produto aberto no modal
+let _mpLotes    = {};  // dia → nº de lotes (passos de 0,5)
+let _mpUnd      = 'KG';
+let _mpFic      = null;  // ficha do produto aberto (para saber se é derivado)
+let _mpMassaOutros = {}; // dia → kg de massa de trigo já usados pelos OUTROS derivados
+
+function _mpRenderLotes(prod, und) {
+  _mpUnd = und;
+  var u = und.toLowerCase();
+  var html = '';
+
+  // Referência da venda: média diária × dias abertos → lotes/semana
+  // (arredondado para cima em 0,5 — só referência, você decide).
+  var ref = prod ? _sugestaoDados(prod) : null;
+  var diasAbertos = SETOR === 'PADARIA' ? 7 : 6;
+  var ehDeriv = _ehDerivadoMassa(_mpFic);
+  html += '<div class="mpl-ref">1 lote = <strong>' + _fmtNum(_mpLoteSize) + u + '</strong>'
+    + (ehDeriv ? (' = ' + _fmtNum(LOTE_MASSA_TRIGO_KG) + 'kg de massa de trigo') : ' (ficha técnica)');
+
+  // Derivado: soma quanto de massa os outros bolos já usam em cada dia,
+  // para mostrar o total de massa a bater no dia enquanto distribui.
+  _mpMassaOutros = {};
+  if (ehDeriv) {
+    _MP_DIAS.forEach(function(d){ _mpMassaOutros[d] = 0; });
+    Object.keys(PROJ_BASE || {}).forEach(function(pid){
+      if (pid === _mpProdId) return;
+      var r = PROJ_BASE[pid];
+      var op = (TODOS_PRODS||[]).find(function(x){ return x.id === pid; });
+      if (!r || !op) return;
+      var ofic = fichaDoProduto(op);
+      var mpu = _massaPorUnid(ofic, op.unidade || 'KG');
+      if (!(mpu > 0)) return;
+      _MP_DIAS.forEach(function(d){ _mpMassaOutros[d] += (Number(r[d]) || 0) * mpu; });
+    });
+  }
+  if (ref) {
+    var semKg = ref.valor * diasAbertos;
+    var semLotes = Math.ceil((semKg / _mpLoteSize) * 2) / 2;
+    html += '<br>📊 Venda da semana: ~' + _fmtNum(Math.round(semKg*10)/10) + u
+      + ' ≈ <strong>' + _fmtLote(semLotes) + ' lote' + (semLotes!==1?'s':'') + '</strong>';
+  }
+  html += '</div>';
+
+  html += '<div class="meta-pop-lbl">Lotes por dia:</div>';
+  _MP_DIAS.forEach(function(d, i){
+    html += '<div class="mpl-row">'
+      + '<span class="mpl-dia">' + _MP_DIAS_LBL[i] + '</span>'
+      + '<button type="button" class="mpl-btn" onclick="_mpLoteStep(\'' + d + '\',-0.5)">−</button>'
+      + '<span class="mpl-val" id="mplVal_' + d + '"></span>'
+      + '<button type="button" class="mpl-btn" onclick="_mpLoteStep(\'' + d + '\',0.5)">+</button>'
+      + '<span class="mpl-kg" id="mplKg_' + d + '"></span>'
+      + '</div>'
+      + (ehDeriv ? '<div class="mpl-massa" id="mplMs_' + d + '"></div>' : '');
+  });
+  html += '<div class="mpl-tot"><span id="mplTotL"></span><small id="mplTotKg"></small></div>';
+  document.getElementById('mpLoteBox').innerHTML = html;
+  _mpAtualizarLotes();
+}
+
+function _mpLoteStep(d, delta) {
+  _mpLotes[d] = Math.max(0, Math.round(((_mpLotes[d]||0) + delta) * 2) / 2);
+  _mpAtualizarLotes();
+}
+
+function _mpAtualizarLotes() {
+  var u = _mpUnd.toLowerCase();
+  var totL = 0;
+  _MP_DIAS.forEach(function(d){
+    var l = _mpLotes[d] || 0;
+    totL += l;
+    var vEl = document.getElementById('mplVal_' + d);
+    var kEl = document.getElementById('mplKg_' + d);
+    if (vEl) {
+      vEl.textContent = l > 0 ? (_fmtLote(l) + ' lote' + (l!==1?'s':'')) : '—';
+      vEl.className = 'mpl-val' + (l > 0 ? ' on' : '');
+    }
+    if (kEl) kEl.textContent = l > 0 ? (_fmtNum(l * _mpLoteSize) + u) : '';
+    // Massa de trigo do dia somando todos os derivados (este + outros)
+    var mEl = document.getElementById('mplMs_' + d);
+    if (mEl) {
+      var outros = Math.round((_mpMassaOutros[d] || 0) * 10) / 10;
+      var este = l * LOTE_MASSA_TRIGO_KG;
+      var tot = Math.round((outros + este) * 10) / 10;
+      mEl.textContent = tot > 0
+        ? ('🧈 massa do dia: ' + _fmtNum(tot) + 'kg' + (outros > 0 ? (' (outros bolos ' + _fmtNum(outros) + 'kg)') : ''))
+        : '';
+    }
+  });
+  var tl = document.getElementById('mplTotL');
+  var tk = document.getElementById('mplTotKg');
+  if (tl) tl.textContent = 'Meta: ' + _fmtLote(totL) + ' lote' + (totL!==1?'s':'') + '/semana';
+  if (tk) tk.textContent = '= ' + _fmtNum(totL * _mpLoteSize) + u;
 }
 
 function _mpToggleDia(d) {
@@ -4268,15 +4406,24 @@ function _fecharMetaPop() {
 
 async function _salvarMetaPop() {
   if (!_mpProdId) return;
-  const novoTotal = parseFloat(document.getElementById('mpMetaInp').value) || 0;
   const prod = TODOS_PRODS.find(p => p.id === _mpProdId);
   if (!prod) return;
+  const modoLote = _mpLoteSize > 0;
+  let novoTotal = modoLote ? 0 : (parseFloat(document.getElementById('mpMetaInp').value) || 0);
 
-  // Distribuir a meta igualmente entre os dias selecionados.
-  // Usa uma casa decimal em vez de arredondar para baixo — com Math.floor,
-  // 7,5 em 3 dias virava 2 + 2 + 3,5 (toda a sobra no último dia).
   const diasVals = { seg:0, ter:0, qua:0, qui:0, sex:0, sab:0, dom:0 };
-  if (novoTotal > 0 && _mpDiasSel.length > 0) {
+  if (modoLote) {
+    // Meta por lotes: cada dia = nº de lotes × tamanho do lote da ficha.
+    // A meta semanal é a soma — nada é dividido por igual.
+    _MP_DIAS.forEach(function(d){
+      diasVals[d] = Math.round((_mpLotes[d] || 0) * _mpLoteSize * 100) / 100;
+      novoTotal += diasVals[d];
+    });
+    novoTotal = Math.round(novoTotal * 100) / 100;
+  } else if (novoTotal > 0 && _mpDiasSel.length > 0) {
+    // Sem ficha: distribui a meta igualmente entre os dias selecionados.
+    // Usa uma casa decimal em vez de arredondar para baixo — com Math.floor,
+    // 7,5 em 3 dias virava 2 + 2 + 3,5 (toda a sobra no último dia).
     const n = _mpDiasSel.length;
     const porDia = Math.round((novoTotal / n) * 10) / 10;
     let acumulado = 0;
@@ -4562,7 +4709,7 @@ function _sugestaoDados(p) {
   var sugerido = mediaDia * 1.10;  // +10% de folga para não faltar
 
   var fic = (typeof fichaDoProduto==='function') ? fichaDoProduto({cod:p.cod, nome:p.nome}) : null;
-  var loteSize = fic ? (ehUnd ? (fic.rendimentoUn||0) : (fic.rendimentoKg||0)) : 0;
+  var loteSize = _loteDaFicha(fic, ehUnd?'UND':'KG');
   // Arredonda para cima em passos de 0,5 lote — mesma lógica da impressão.
   var lotes = (loteSize>0) ? (Math.ceil((sugerido/loteSize)*2)/2) : null;
 
@@ -4590,7 +4737,7 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
   // automaticamente a partir do número de lotes. Sem ficha cadastrada,
   // ou se o operador clicar em "peso exato", cai no campo de peso livre.
   const _fic = (typeof fichaDoProduto==='function') ? fichaDoProduto(p) : null;
-  const loteSize = _fic ? (und==='UND' ? (_fic.rendimentoUn||0) : (_fic.rendimentoKg||0)) : 0;
+  const loteSize = _loteDaFicha(_fic, und);
   const temLote = loteSize > 0;
   const modoAtual = PROD_HOJE_MODE[p.id] || (temLote ? 'lote' : 'peso');
   const pesoBase = (valAtual !== '' && valAtual !== null && valAtual !== undefined) ? (parseFloat(valAtual)||0) : (lote.qtd||0);
@@ -4603,7 +4750,7 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
       + '<button type="button" class="phoje-lote-btn" onclick="_loteStep(\'' + p.id + '\',-0.5)">−</button>'
       + '<div class="phoje-lote-mid">'
       + '<div class="phoje-lote-val" id="phoje-lote-val-' + p.id + '">' + _fmtLote(lotesAtual) + ' lote' + (lotesAtual!==1?'s':'') + '</div>'
-      + '<div class="phoje-lote-peso" id="phoje-lote-peso-' + p.id + '">(' + _fmtNum(lotesAtual*loteSize) + und.toLowerCase() + ' · 1 lote = ' + _fmtNum(loteSize) + und.toLowerCase() + ')</div>'
+      + '<div class="phoje-lote-peso" id="phoje-lote-peso-' + p.id + '">' + _lotePesoTxt(lotesAtual*loteSize, loteSize, und, _fic) + '</div>'
       + '</div>'
       + '<button type="button" class="phoje-lote-btn" onclick="_loteStep(\'' + p.id + '\',0.5)">+</button>'
       + '</div>'
@@ -4711,7 +4858,7 @@ function _loteStep(prodId, delta) {
   if (!p) return;
   var fic = (typeof fichaDoProduto==='function') ? fichaDoProduto(p) : null;
   var und = p.unidade || 'KG';
-  var loteSize = fic ? (und==='UND' ? (fic.rendimentoUn||0) : (fic.rendimentoKg||0)) : 0;
+  var loteSize = _loteDaFicha(fic, und);
   if (!(loteSize > 0)) return;
 
   var valEl = document.getElementById('phoje-lote-val-'+prodId);
@@ -4721,7 +4868,7 @@ function _loteStep(prodId, delta) {
 
   var subEl = document.getElementById('phoje-lote-peso-'+prodId);
   if (valEl) valEl.textContent = _fmtLote(novo) + ' lote' + (novo!==1?'s':'');
-  if (subEl) subEl.textContent = '(' + _fmtNum(peso) + und.toLowerCase() + ' · 1 lote = ' + _fmtNum(loteSize) + und.toLowerCase() + ')';
+  if (subEl) subEl.textContent = _lotePesoTxt(peso, loteSize, und, fic);
 
   var inp = document.getElementById('phoje-inp-'+prodId);
   if (inp) inp.value = peso;
@@ -4757,7 +4904,7 @@ function _toggleLoteModo(prodId) {
   var p = (TODOS_PRODS||[]).find(function(x){ return x.id === prodId; });
   var fic = p && typeof fichaDoProduto==='function' ? fichaDoProduto(p) : null;
   var und = p ? (p.unidade||'KG') : 'KG';
-  var loteSize = fic ? (und==='UND' ? (fic.rendimentoUn||0) : (fic.rendimentoKg||0)) : 0;
+  var loteSize = _loteDaFicha(fic, und);
   var inp = document.getElementById('phoje-inp-'+prodId);
   if (loteSize > 0 && inp) {
     var peso  = parseFloat(inp.value) || 0;
@@ -4765,7 +4912,7 @@ function _toggleLoteModo(prodId) {
     var valEl = document.getElementById('phoje-lote-val-'+prodId);
     var subEl = document.getElementById('phoje-lote-peso-'+prodId);
     if (valEl) valEl.textContent = _fmtLote(lotes) + ' lote' + (lotes!==1?'s':'');
-    if (subEl) subEl.textContent = '(' + _fmtNum(peso) + und.toLowerCase() + ' · 1 lote = ' + _fmtNum(loteSize) + und.toLowerCase() + ')';
+    if (subEl) subEl.textContent = _lotePesoTxt(peso, loteSize, und, fic);
   }
 }
 
@@ -6996,7 +7143,11 @@ async function carregarFichas(){
         precoUn: parseFloat(fc.preco_venda_und)||0,
         itens: nItens[fc.id]||0,
         // kg de massa de trigo crua necessários por kg de produto pronto
-        ratioMassaTrigo: (mQtd>0 && rendKg>0) ? (mQtd/rendKg) : 0
+        ratioMassaTrigo: (mQtd>0 && rendKg>0) ? (mQtd/rendKg) : 0,
+        // kg de massa por UNIDADE pronta (derivados vendidos em und)
+        ratioMassaTrigoUn: (mQtd>0 && rendUn>0) ? (mQtd/rendUn) : 0,
+        // kg de massa de trigo que a receita inteira usa (0 = não é derivado)
+        massaTrigoKg: mQtd
       };
       var cn=(dados.cod||'').replace(/^0+/,'');
       if(cn)porCod[cn]=dados;
@@ -7005,6 +7156,34 @@ async function carregarFichas(){
   }catch(e){console.log('Fichas indisponíveis:',e.message);}
   FICHAS_MAP=porCod; FICHAS_NOME=porNome;
   return FICHAS_MAP;
+}
+
+// ── Tamanho do lote ──
+// Regra geral: 1 lote = o rendimento da ficha técnica.
+// Derivados da massa de trigo (a ficha usa o insumo MASSA BOLO DE TRIGO):
+// 1 lote = o quanto de bolo sai de LOTE_MASSA_TRIGO_KG de massa. Assim todo
+// derivado conta na mesma moeda — "2 lotes de formigueiro" = 2 kg de massa.
+var LOTE_MASSA_TRIGO_KG = 1;
+function _loteDaFicha(fic, und){
+  if(!fic) return 0;
+  var ehUnd = String(und||'KG').toUpperCase()==='UND';
+  var rend = ehUnd ? (fic.rendimentoUn||0) : (fic.rendimentoKg||0);
+  if(!(rend>0)) return 0;
+  if(fic.massaTrigoKg>0) return rend * (LOTE_MASSA_TRIGO_KG / fic.massaTrigoKg);
+  return rend;
+}
+function _ehDerivadoMassa(fic){ return !!(fic && fic.massaTrigoKg>0); }
+// kg de massa por unidade do produto (kg ou und) — 0 se não é derivado
+function _massaPorUnid(fic, und){
+  if(!_ehDerivadoMassa(fic)) return 0;
+  return String(und||'KG').toUpperCase()==='UND' ? (fic.ratioMassaTrigoUn||0) : (fic.ratioMassaTrigo||0);
+}
+// Texto "(7,5kg · 1 lote = 5kg)" — nos derivados acrescenta a massa
+function _lotePesoTxt(peso, loteSize, und, fic){
+  var u = String(und||'KG').toLowerCase();
+  var t = '(' + _fmtNum(peso) + u + ' · 1 lote = ' + _fmtNum(loteSize) + u;
+  if(_ehDerivadoMassa(fic)) t += ' = ' + _fmtNum(LOTE_MASSA_TRIGO_KG) + 'kg de massa';
+  return t + ')';
 }
 
 // Ficha de um produto: tenta pelo código, cai no nome
