@@ -334,6 +334,17 @@ body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif
 .phoje-inp{flex:1;height:52px;border:1.5px solid var(--border);border-radius:10px;padding:0 12px;font-size:1.05rem;font-weight:700;font-family:inherit;text-align:center;outline:none;color:var(--brown);-webkit-appearance:none;}
 .phoje-inp:focus{border-color:var(--grn);}
 .phoje-inp-und{font-size:.74rem;color:var(--gray);flex-shrink:0;}
+/* Registro por lote — padrão quando o produto tem ficha técnica com
+   rendimento cadastrado. O tamanho do lote é fixo (vem da ficha); o
+   operador só ajusta QUANTOS lotes fez. */
+.phoje-lote-row{margin-bottom:8px;}
+.phoje-lote-stepper{display:flex;align-items:center;justify-content:center;gap:12px;background:#FEF3EC;border:1.5px solid #F5D9BC;border-radius:10px;padding:7px 10px;}
+.phoje-lote-btn{width:40px;height:40px;flex-shrink:0;border-radius:9px;border:1.5px solid #E9C39A;background:#fff;color:#B45309;font-size:1.3rem;font-weight:800;cursor:pointer;font-family:inherit;line-height:1;-webkit-appearance:none;}
+.phoje-lote-btn:active{background:#FEF3EC;}
+.phoje-lote-mid{flex:1;text-align:center;}
+.phoje-lote-val{font-size:1.05rem;font-weight:800;color:var(--brown);}
+.phoje-lote-peso{font-size:.66rem;color:#8A6D3B;margin-top:1px;}
+.phoje-lote-alt{display:block;text-align:center;font-size:.68rem;color:var(--gray);text-decoration:underline;margin-top:5px;cursor:pointer;}
 .phoje-conf-btn{width:100%;padding:10px;border-radius:9px;border:1.5px solid #C6E6D4;background:var(--grn-l);color:var(--grn2);font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;}
 .phoje-conf-btn.done{background:#F0FDF4;border-color:#86EFAC;color:#15803D;}
 .phoje-conf-btn:active{opacity:.7;}
@@ -1856,6 +1867,7 @@ async function setSetor(s) {
   TODOS_PRODS    = [];
   PROD_ITENS     = {};
   PROD_HOJE_VALS = {};
+  PROD_HOJE_MODE = {};
   PROJ_BASE      = {};
 
   // Resetar estado do histórico
@@ -3155,6 +3167,7 @@ let PROD_ITENS    = {};          // `${prodId}_${dateISO}` → row de producao_i
 let PROD_SEM_ID   = null;        // uuid de producao_semanas
 let PROD_SEM_ISO  = null;        // ISO Monday atual exibida
 let PROD_HOJE_VALS= {};          // prodId → { val, und, done } — rascunho ConfirmarHoje
+let PROD_HOJE_MODE= {};          // prodId → 'lote' | 'peso' — modo de registro escolhido na tela Hoje
 let PROD_GRP_COL  = {};          // grupoNome → true se colapsado
 let _planProdId   = null;        // prodId sendo planejado no modal
 let _planDateISO  = null;        // data sendo planejada
@@ -4570,6 +4583,34 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
   const isDone = rascunho?.done || item?.status === 'confirmado';
   const valAtual = rascunho?.val ?? item?.qtd_produzida ?? item?.qtd_planejada ?? lote.qtd ?? '';
 
+  // Tamanho do lote (rendimento da ficha técnica) — quando existe, o
+  // registro do dia é feito em MÚLTIPLOS DE LOTE ("1 lote", "1,5 lote")
+  // em vez de digitar o peso na mão. O lote é fixo (vem da ficha); o peso
+  // continua sendo o que de fato é salvo (qtd_produzida), só calculado
+  // automaticamente a partir do número de lotes. Sem ficha cadastrada,
+  // ou se o operador clicar em "peso exato", cai no campo de peso livre.
+  const _fic = (typeof fichaDoProduto==='function') ? fichaDoProduto(p) : null;
+  const loteSize = _fic ? (und==='UND' ? (_fic.rendimentoUn||0) : (_fic.rendimentoKg||0)) : 0;
+  const temLote = loteSize > 0;
+  const modoAtual = PROD_HOJE_MODE[p.id] || (temLote ? 'lote' : 'peso');
+  const pesoBase = (valAtual !== '' && valAtual !== null && valAtual !== undefined) ? (parseFloat(valAtual)||0) : (lote.qtd||0);
+  const lotesAtual = temLote ? Math.max(0, Math.round((pesoBase / loteSize) * 2) / 2) : 0;
+
+  let loteHtml = '';
+  if (temLote) {
+    loteHtml = '<div class="phoje-lote-row" id="phoje-lote-row-' + p.id + '"' + (modoAtual!=='lote'?' style="display:none;"':'') + '>'
+      + '<div class="phoje-lote-stepper">'
+      + '<button type="button" class="phoje-lote-btn" onclick="_loteStep(\'' + p.id + '\',-0.5)">−</button>'
+      + '<div class="phoje-lote-mid">'
+      + '<div class="phoje-lote-val" id="phoje-lote-val-' + p.id + '">' + _fmtLote(lotesAtual) + ' lote' + (lotesAtual!==1?'s':'') + '</div>'
+      + '<div class="phoje-lote-peso" id="phoje-lote-peso-' + p.id + '">(' + _fmtNum(lotesAtual*loteSize) + und.toLowerCase() + ' · 1 lote = ' + _fmtNum(loteSize) + und.toLowerCase() + ')</div>'
+      + '</div>'
+      + '<button type="button" class="phoje-lote-btn" onclick="_loteStep(\'' + p.id + '\',0.5)">+</button>'
+      + '</div>'
+      + '<span class="phoje-lote-alt" onclick="_togglePesoLivre(\'' + p.id + '\')">✏️ registrar peso exato</span>'
+      + '</div>';
+  }
+
   const ckSt = _getStatus(p.id);
   const ckVal = (() => {
     const reg = REGISTROS[p.id];
@@ -4607,7 +4648,8 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
   <div class="phoje-sug">Sugestão: <strong>${lote.qtd}${und.toLowerCase()}</strong>${lote.sazonalidade!==1?' · sazon. ×'+lote.sazonalidade:''}</div>
   ${sugDadosHtml}
   ${alertHtml}
-  <div class="phoje-inp-row">
+  ${loteHtml}
+  <div class="phoje-inp-row" id="phoje-inp-row-${p.id}"${(temLote && modoAtual==='lote')?' style="display:none;"':''}>
     <input class="phoje-inp" type="number" inputmode="decimal" min="0" step="0.5"
       id="phoje-inp-${p.id}"
       value="${valAtual}"
@@ -4619,6 +4661,7 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
       onkeydown="onPhojeKey(event,'${p.id}')">
     <span class="phoje-inp-und">${und.toLowerCase()}</span>
   </div>
+  ${temLote ? '<span class="phoje-lote-alt" id="phoje-lote-back-'+p.id+'"'+(modoAtual==='lote'?' style="display:none;"':'')+' onclick="_toggleLoteModo(\''+p.id+'\')">🔢 voltar para lotes</span>' : ''}
   <button class="phoje-conf-btn${isDone?' done':''}" id="phoje-btn-${p.id}"
     onclick="confirmarItemHoje('${p.id}',${lote.qtd})">
     ${isDone ? '✅ Confirmado' : '✅ Confirmar '+lote.qtd+und.toLowerCase()}
@@ -4647,14 +4690,99 @@ function _buildPhojeResumo(prods, hoje) {
 </div>`;
 }
 
+// ── Registro por lote (tela Hoje) ──
+// Formata o número de lotes: inteiro sem casa decimal, fração com 1 casa
+// (1, 1,5, 2 — nunca "1,0" nem "1,50").
+function _fmtLote(n) {
+  n = Math.round((Number(n)||0) * 2) / 2;
+  return n.toLocaleString('pt-BR', { minimumFractionDigits: (n % 1 !== 0 ? 1 : 0), maximumFractionDigits: 1 });
+}
+function _fmtNum(n) {
+  n = Math.round((Number(n)||0) * 100) / 100;
+  return n.toLocaleString('pt-BR');
+}
+
+// +0.5 / -0.5 no contador de lotes. O peso correspondente (lotes × tamanho
+// do lote da ficha técnica) é recalculado e jogado no input de peso, que
+// continua sendo o valor de fato salvo — o resto do fluxo (confirmar,
+// salvar em producao_itens) não muda nada.
+function _loteStep(prodId, delta) {
+  var p = (TODOS_PRODS||[]).find(function(x){ return x.id === prodId; });
+  if (!p) return;
+  var fic = (typeof fichaDoProduto==='function') ? fichaDoProduto(p) : null;
+  var und = p.unidade || 'KG';
+  var loteSize = fic ? (und==='UND' ? (fic.rendimentoUn||0) : (fic.rendimentoKg||0)) : 0;
+  if (!(loteSize > 0)) return;
+
+  var valEl = document.getElementById('phoje-lote-val-'+prodId);
+  var atual = valEl ? (parseFloat((valEl.textContent||'0').replace(',','.'))||0) : 0;
+  var novo  = Math.max(0, Math.round((atual + delta) * 2) / 2);
+  var peso  = Math.round(novo * loteSize * 100) / 100;
+
+  var subEl = document.getElementById('phoje-lote-peso-'+prodId);
+  if (valEl) valEl.textContent = _fmtLote(novo) + ' lote' + (novo!==1?'s':'');
+  if (subEl) subEl.textContent = '(' + _fmtNum(peso) + und.toLowerCase() + ' · 1 lote = ' + _fmtNum(loteSize) + und.toLowerCase() + ')';
+
+  var inp = document.getElementById('phoje-inp-'+prodId);
+  if (inp) inp.value = peso;
+  onPhojeChange(prodId, peso);
+}
+
+// Sai do modo lote e mostra o campo de peso livre — usado quando o produto
+// não tem ficha (chamado automaticamente, ver _buildPhojeCard) ou quando o
+// operador precisa fugir do lote padrão por algum motivo.
+function _togglePesoLivre(prodId) {
+  PROD_HOJE_MODE[prodId] = 'peso';
+  var loteRow = document.getElementById('phoje-lote-row-'+prodId);
+  var pesoRow = document.getElementById('phoje-inp-row-'+prodId);
+  var back    = document.getElementById('phoje-lote-back-'+prodId);
+  if (loteRow) loteRow.style.display = 'none';
+  if (pesoRow) pesoRow.style.display = 'flex';
+  if (back)    back.style.display = 'block';
+  var inp = document.getElementById('phoje-inp-'+prodId);
+  if (inp) { inp.focus(); inp.select(); }
+}
+
+// Volta para o modo lote, sincronizando o contador com o peso que estiver
+// no campo livre (caso o operador tenha digitado algo lá antes de voltar).
+function _toggleLoteModo(prodId) {
+  PROD_HOJE_MODE[prodId] = 'lote';
+  var loteRow = document.getElementById('phoje-lote-row-'+prodId);
+  var pesoRow = document.getElementById('phoje-inp-row-'+prodId);
+  var back    = document.getElementById('phoje-lote-back-'+prodId);
+  if (loteRow) loteRow.style.display = 'block';
+  if (pesoRow) pesoRow.style.display = 'none';
+  if (back)    back.style.display = 'none';
+
+  var p = (TODOS_PRODS||[]).find(function(x){ return x.id === prodId; });
+  var fic = p && typeof fichaDoProduto==='function' ? fichaDoProduto(p) : null;
+  var und = p ? (p.unidade||'KG') : 'KG';
+  var loteSize = fic ? (und==='UND' ? (fic.rendimentoUn||0) : (fic.rendimentoKg||0)) : 0;
+  var inp = document.getElementById('phoje-inp-'+prodId);
+  if (loteSize > 0 && inp) {
+    var peso  = parseFloat(inp.value) || 0;
+    var lotes = Math.round((peso / loteSize) * 2) / 2;
+    var valEl = document.getElementById('phoje-lote-val-'+prodId);
+    var subEl = document.getElementById('phoje-lote-peso-'+prodId);
+    if (valEl) valEl.textContent = _fmtLote(lotes) + ' lote' + (lotes!==1?'s':'');
+    if (subEl) subEl.textContent = '(' + _fmtNum(peso) + und.toLowerCase() + ' · 1 lote = ' + _fmtNum(loteSize) + und.toLowerCase() + ')';
+  }
+}
+
 // Preenche o campo do dia com a sugestão calculada pela venda real,
-// substituindo o que estava lá (cadastro manual ou vazio).
+// substituindo o que estava lá (cadastro manual ou vazio). Sincroniza o
+// contador de lotes também, se o cartão estiver nesse modo.
 function _usarSugestaoDados(prodId, valor) {
   var inp = document.getElementById('phoje-inp-'+prodId);
   if (inp) {
     inp.value = valor;
     onPhojeChange(prodId, valor);
-    inp.focus();
+    var loteRow = document.getElementById('phoje-lote-row-'+prodId);
+    if (loteRow && loteRow.style.display !== 'none') {
+      _toggleLoteModo(prodId); // reaproveita a sincronização peso→lotes
+    } else {
+      inp.focus();
+    }
   }
 }
 
