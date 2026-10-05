@@ -1473,11 +1473,11 @@ async function imprimirPlanejamentoSemanal(){
       // por isso não quebra se o mês corrente ainda não tiver dado suficiente.
       // Ajustável a qualquer momento direto no cadastro do produto.
       var posVenda=(p.ordem_grupo!==null && p.ordem_grupo!==undefined)?p.ordem_grupo:99999;
-      // Média semanal de venda: média diária (nos dias em que vendeu) × 7 dias
-      // que o mercado abre — referência para conferir se a meta cobre a demanda.
+      // Venda semanal: média diária (nos dias em que vendeu) × dias que o setor
+      // produz (padaria 7, confeitaria 6 — fecha no domingo).
       var cnProd=String(p.cod||'').trim().replace(/^0+/,'');
       var mediaDia=(medias&&medias._ok&&cnProd&&medias[cnProd]!==undefined)?medias[cnProd]:null;
-      var mediaSemana=(mediaDia!==null)?(mediaDia*7):null;
+      var mediaSemana=(mediaDia!==null)?(mediaDia*(SETOR==='PADARIA'?7:6)):null;
       // Tamanho do lote (rendimento da ficha técnica) — usado para mostrar
       // quantos lotes cada meta diária representa, em vez de só o peso solto.
       var fic=fichaDoProduto({cod:p.cod,nome:p.nome});
@@ -1525,110 +1525,138 @@ async function imprimirPlanejamentoSemanal(){
     +'<div style="text-align:right;font-size:10px;color:'+C.gray+';">impresso em<br><b style="color:'+C.brown+';">'+dataStr+'</b></div></div>';
 
   // ── Tabela ──
+  // Colunas: Produto | Seg..Dom | META da semana | VENDA da semana.
+  // Meta e venda lado a lado no fim, para comparar de bate-pronto.
+  // Nas células do dia: produto com ficha → LOTES em destaque (é o que o
+  // confeiteiro executa) e o peso pequeno embaixo; sem ficha → só o peso.
+  function _fL(n){ return n===0.5 ? '½' : _fmtLote(n); }
   h+='<div style="border:1px solid '+C.border+';border-radius:12px;overflow:hidden;">';
   h+='<table style="width:100%;border-collapse:collapse;font-size:11.5px;">';
   h+='<thead><tr style="background:'+C.grn2+';color:#fff;">'
-    +'<th style="padding:8px 10px;text-align:left;width:24%;font-weight:700;letter-spacing:.2px;">Produto</th>'
-    +'<th style="padding:7px 5px;text-align:center;width:9%;background:#8A6D3B;">'
-    +'<div style="font-size:8px;opacity:.9;letter-spacing:.3px;">MÉDIA</div>'
-    +'<div style="font-size:10px;font-weight:800;">SEMANA</div></th>';
+    +'<th style="padding:8px 10px;text-align:left;width:25%;font-weight:700;letter-spacing:.2px;">Produto</th>';
   dias.forEach(function(d){
     var num=d.split('-')[2];
     var ehDom=(_diaSemNum(d)===0);
-    h+='<th style="padding:7px 3px;text-align:center;width:9%;'+(ehDom?'background:'+C.amber+';':'')+'">'
+    h+='<th style="padding:7px 3px;text-align:center;width:8.5%;'+(ehDom?'background:'+C.amber+';':'')+'">'
       +'<div style="font-size:9px;opacity:.85;letter-spacing:.4px;">'+abrevDia[_diaSemNum(d)]+'</div>'
       +'<div style="font-size:14px;font-weight:900;line-height:1.1;">'+num+'</div></th>';
   });
-  h+='<th style="padding:7px 5px;text-align:center;width:9%;background:#8A6D3B;">'
-    +'<div style="font-size:8px;opacity:.9;letter-spacing:.3px;">MÉDIA</div>'
+  h+='<th style="padding:7px 4px;text-align:center;width:8%;background:'+C.grn+';">'
+    +'<div style="font-size:8px;opacity:.9;letter-spacing:.3px;">META</div>'
     +'<div style="font-size:10px;font-weight:800;">SEMANA</div></th>';
-
+  h+='<th style="padding:7px 4px;text-align:center;width:8%;background:#8A6D3B;">'
+    +'<div style="font-size:8px;opacity:.9;letter-spacing:.3px;">VENDA</div>'
+    +'<div style="font-size:10px;font-weight:800;">SEMANA</div></th>';
   h+='</tr></thead><tbody>';
 
-  var catAnterior=null;
+  var NCOL=10;
+  var catAnterior=null, massaMostrada=false;
+  var totMassaSem=aggMassaDia.reduce(function(a,b){return a+b;},0);
   linhas.forEach(function(l,i){
     var cor=l.ehUnd?C.orange:C.red;
     var bg=l.foco?'#FFF8E7':((i%2)?C.grayL:'#fff');
 
     // Faixa colorida quando muda de categoria
     if(l.categoria!==catAnterior){
-      h+='<tr><td colspan="9" style="padding:3px 10px;background:'+l.cor+';color:#fff;'
+      h+='<tr><td colspan="'+NCOL+'" style="padding:3px 10px;background:'+l.cor+';color:#fff;'
         +'font-weight:800;font-size:9px;letter-spacing:.6px;text-transform:uppercase;">'
         + l.categoria + '</td></tr>';
-      // Linha de resumo: quanto de massa de trigo crua bater no total,
-      // antes de listar como ela se reparte entre os derivados.
-      if(l.categoria==='BOLOS MASSA DE TRIGO'){
-        h+='<tr style="background:#FDF0E0;border-bottom:2px solid '+C.amber+';">';
-        h+='<td style="padding:4px 9px;font-weight:800;color:'+C.amber+';border-left:4px solid '+C.amber+';">'
-          +'🧈 MASSA DE TRIGO <span style="font-weight:600;font-size:8.5px;color:'+C.gray+';">(total a bater — depois rateado nos bolos abaixo)</span></td>';
-        h+='<td style="background:#FEF3EC;"></td>';
-        for(var dm=0;dm<7;dm++){
-          var ehDomM=(_diaSemNum(dias[dm])===0);
-          h+='<td style="padding:4px 3px;text-align:center;'+(ehDomM?'background:rgba(217,119,6,.05);':'')+'">'
-            +(aggMassaDia[dm]>0
-              ? '<span style="font-weight:800;color:'+C.amber+';font-size:12.5px;">'+_fmtMeta(aggMassaDia[dm])+'</span>'
-              : '<span style="color:#D9DDD9;font-size:10px;">·</span>')+'</td>';
-        }
-        h+='</tr>';
-      }
     }
     catAnterior=l.categoria;
 
+    // Linha da MASSA DE TRIGO: aparece uma vez, logo antes do primeiro bolo
+    // derivado (qualquer categoria). 1 lote de derivado = 1 kg de massa,
+    // então o total em kg já é o total de lotes do dia.
+    if(!massaMostrada && l.ratioMassa>0 && totMassaSem>0){
+      massaMostrada=true;
+      h+='<tr style="background:#FDF0E0;border-bottom:2px solid '+C.amber+';">';
+      h+='<td style="padding:4px 9px;font-weight:800;color:'+C.amber+';border-left:4px solid '+C.amber+';">'
+        +'🧈 MASSA DE TRIGO <span style="font-weight:600;font-size:8.5px;color:'+C.gray+';">(bater no dia — 1 lote = '+_fmtNum(LOTE_MASSA_TRIGO_KG)+'kg)</span></td>';
+      for(var dm=0;dm<7;dm++){
+        var ehDomM=(_diaSemNum(dias[dm])===0);
+        h+='<td style="padding:4px 3px;text-align:center;'+(ehDomM?'background:rgba(217,119,6,.05);':'')+'">'
+          +(aggMassaDia[dm]>0
+            ? '<span style="font-weight:800;color:'+C.amber+';font-size:12.5px;">'+_fmtNum(Math.round(aggMassaDia[dm]*10)/10)+'kg</span>'
+            : '<span style="color:#D9DDD9;font-size:10px;">·</span>')+'</td>';
+      }
+      h+='<td style="padding:4px 3px;text-align:center;background:#FDE8CC;font-weight:800;color:'+C.amber+';">'+_fmtNum(Math.round(totMassaSem*10)/10)+'kg</td>';
+      h+='<td style="background:#FEF3EC;"></td></tr>';
+    }
+
+    var temLote=l.loteSize>0;
     h+='<tr style="background:'+bg+';border-bottom:1px solid '+C.border+';">';
     h+='<td style="padding:3px 9px;line-height:1.15;border-left:4px solid '+l.cor+';">'
       +(l.foco?'<span style="color:'+C.amber+';margin-right:2px;">⭐</span>':'')
       +'<span style="font-weight:'+(l.foco?'800':'700')+';">'+l.nome+'</span> '
       +'<span style="display:inline-block;background:'+(l.ehUnd?C.orangeL:C.redL)+';color:'+cor+';font-size:8.5px;font-weight:800;padding:1px 5px;border-radius:4px;vertical-align:middle;">'+l.un.toUpperCase()+'</span>'
-      +(l.loteSize>0
-        ? ' <span style="font-size:8px;color:'+C.gray+';">· lote '+_fmtMeta(l.loteSize)+(l.ehUnd?'un':'kg')+'</span>'
+      +(temLote
+        ? '<div style="font-size:8px;color:'+C.gray+';">1 lote = '+_fmtNum(Math.round(l.loteSize*100)/100)+l.un
+          +(l.ratioMassa>0?' ('+_fmtNum(LOTE_MASSA_TRIGO_KG)+'kg de massa)':'')+'</div>'
         : '')+'</td>';
-    // Média semanal de venda — ao lado do produto, para servir de referência
-    // direta na hora de preencher a meta de cada dia.
-    h+='<td style="padding:3px 5px;text-align:center;background:#FEF3EC;">'
-      +(l.mediaSemana!==null
-        ? '<span style="font-weight:800;color:'+C.amber+';font-size:11.5px;">'+_fmtMeta(l.mediaSemana)+'</span>'
-        : '<span style="color:#D9DDD9;font-size:10px;">—</span>')+'</td>';
+
+    var totLotes=0;
     l.metas.forEach(function(q,j){
       var ehDom=(_diaSemNum(dias[j])===0);
-      // Arredonda para cima em passos de 0,5 lote — é referência para o
-      // confeiteiro decidir, então nunca sugere menos do que precisa.
-      var nLotes=(q>0 && l.loteSize>0)?(Math.ceil((q/l.loteSize)*2)/2):null;
-      h+='<td style="padding:3px 3px;text-align:center;line-height:1.1;'+(ehDom?'background:rgba(217,119,6,.05);':'')+'">'
-        +(q>0
-          ?('<span style="font-weight:800;color:'+cor+';font-size:12px;">'+_fmtMeta(q)+'</span>'
-            +(nLotes!==null
-              ? '<br><span style="font-size:8px;color:'+C.gray+';font-weight:600;">'+_fmtMeta(nLotes)+'L</span>'
-              : ''))
-          :'<span style="color:#D9DDD9;font-size:10px;">·</span>')+'</td>';
+      // Arredonda para cima em passos de 0,5 lote — referência, nunca a menos.
+      // Tolerância de 0,05 lote: 2,4kg com lote de 1,19kg = 2,02 lotes → "2 L",
+      // não "2,5 L" (a sobra é só arredondamento de peso, não meio lote a mais).
+      var nLotes=(q>0 && temLote)?Math.max(0.5,Math.ceil((q/l.loteSize)*2-0.1)/2):null;
+      if(nLotes)totLotes+=nLotes;
+      var inner;
+      if(q<=0){
+        inner='<span style="color:#D9DDD9;font-size:10px;">·</span>';
+      }else if(nLotes!==null){
+        inner='<span style="font-weight:900;color:'+C.grn2+';font-size:13px;">'+_fL(nLotes)+' L</span>'
+          +'<br><span style="font-size:8.5px;color:'+cor+';font-weight:700;">'+_fmtMeta(q)+l.un+'</span>';
+      }else{
+        inner='<span style="font-weight:800;color:'+cor+';font-size:12px;">'+_fmtMeta(q)+'</span>';
+      }
+      h+='<td style="padding:3px 3px;text-align:center;line-height:1.1;'+(ehDom?'background:rgba(217,119,6,.05);':'')+'">'+inner+'</td>';
     });
 
+    // META da semana (soma dos dias)
+    h+='<td style="padding:3px 4px;text-align:center;line-height:1.1;background:'+C.grnL+';">'
+      +'<span style="font-weight:800;color:'+cor+';font-size:12px;">'+_fmtMeta(l.total)+'</span>'
+      +(temLote?'<br><span style="font-size:8.5px;color:'+C.grn2+';font-weight:700;">'+_fL(totLotes)+' L</span>':'')
+      +'</td>';
+
+    // VENDA da semana + alerta quando a meta foge muito da venda
+    var vendaHtml='<span style="color:#D9DDD9;font-size:10px;">—</span>';
+    if(l.mediaSemana!==null && l.mediaSemana>0){
+      var r=l.total/l.mediaSemana, alerta='';
+      if(r<0.9) alerta='<br><span style="font-size:8px;font-weight:800;color:'+C.red+';">▼ pode faltar</span>';
+      else if(r>1.3) alerta='<br><span style="font-size:8px;font-weight:800;color:'+C.amber+';">▲ pode sobrar</span>';
+      vendaHtml='<span style="font-weight:800;color:#8A6D3B;font-size:11.5px;">'+_fmtMeta(Math.round(l.mediaSemana*10)/10)+'</span>'+alerta;
+    }
+    h+='<td style="padding:3px 4px;text-align:center;line-height:1.1;background:#FEF3EC;">'+vendaHtml+'</td>';
     h+='</tr>';
   });
+  h+='</tbody>';
+
   // Linha de totais por dia (kg e und de cada dia)
   h+='<tfoot>';
   h+='<tr style="background:'+C.grn2+';color:#fff;">'
-    +'<td style="padding:6px 9px;font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:.4px;">Total kg no dia</td>'
-    +'<td style="background:'+C.grn+';"></td>';
+    +'<td style="padding:6px 9px;font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:.4px;">Total kg no dia</td>';
   for(var td=0;td<7;td++){
     var ehDom=(_diaSemNum(dias[td])===0);
     h+='<td style="padding:6px 3px;text-align:center;font-weight:800;font-size:12px;'+(ehDom?'background:'+C.amber+';':'')+'">'
-      +(totDiaKg[td]>0?_fmtMeta(totDiaKg[td]):'—')+'</td>';
+      +(totDiaKg[td]>0?_fmtMeta(Math.round(totDiaKg[td]*10)/10):'—')+'</td>';
   }
-  h+='</tr>';
-  // linha de unidades só se houver algum produto em unidade
+  h+='<td style="padding:6px 3px;text-align:center;font-weight:900;font-size:12px;background:'+C.grn+';">'+(totKg>0?_fmtMeta(Math.round(totKg*10)/10):'—')+'</td>'
+    +'<td style="background:#8A6D3B;"></td></tr>';
   if(totUn>0){
     h+='<tr style="background:'+C.grn+';color:#fff;">'
-      +'<td style="padding:6px 9px;font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:.4px;">Total und no dia</td>'
-      +'<td style="background:'+C.grn2+';"></td>';
+      +'<td style="padding:6px 9px;font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:.4px;">Total und no dia</td>';
     for(var tu=0;tu<7;tu++){
       var ehDom2=(_diaSemNum(dias[tu])===0);
       h+='<td style="padding:6px 3px;text-align:center;font-weight:800;font-size:12px;'+(ehDom2?'background:'+C.amber+';':'')+'">'
         +(totDiaUn[tu]>0?_fmtMeta(totDiaUn[tu]):'—')+'</td>';
     }
-    h+='</tr>';
+    h+='<td style="padding:6px 3px;text-align:center;font-weight:900;font-size:12px;background:'+C.grn2+';">'+_fmtMeta(totUn)+'</td>'
+      +'<td style="background:#8A6D3B;"></td></tr>';
   }
   h+='</tfoot>';
-  h+='</tbody></table></div>';
+  h+='</table></div>';
 
   // ── Legenda e rodapé ──
   h+='<div style="margin-top:11px;font-size:10px;color:'+C.gray+';">'
@@ -1636,7 +1664,9 @@ async function imprimirPlanejamentoSemanal(){
     +'<span style="margin-right:18px;">peso (kg)</span>'
     +'<span style="display:inline-block;width:9px;height:9px;background:'+C.orange+';border-radius:3px;margin-right:5px;vertical-align:middle;"></span>'
     +'<span style="margin-right:18px;">unidades (un)</span>'
-    +'<span>O ponto (·) indica dia sem produção prevista</span></div>';
+    +'<span style="margin-right:18px;"><b style="color:'+C.grn2+';">L</b> = lotes (ficha técnica)</span>'
+    +'<span style="margin-right:18px;">· = sem produção no dia</span>'
+    +'<span>▼ meta abaixo de 90% da venda · ▲ meta acima de 130%</span></div>';
   var origemABC = (curva&&curva._ok)
     ? 'Classificação ABC calculada pelas vendas de '+(curva._mes||'')+' ('+curva._qtd+' produtos)'
     : 'Classificação ABC conforme cadastro do sistema';
