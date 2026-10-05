@@ -743,8 +743,10 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
 
     <!-- Botões de impressão do planejamento -->
     <div style="display:flex;gap:8px;padding:0 16px 8px;">
-      <button onclick="imprimirPlanejamentoSemanal()"
-        style="flex:1;background:#1B4332;color:#fff;border:none;border-radius:8px;padding:9px;cursor:pointer;font-size:.78rem;font-weight:600;">🖨️ Imprimir Semanal</button>
+      <button onclick="imprimirPlanejamentoSemanal('chao')"
+        style="flex:1;background:#1B4332;color:#fff;border:none;border-radius:8px;padding:9px;cursor:pointer;font-size:.78rem;font-weight:600;">🖨️ Semanal — Equipe</button>
+      <button onclick="imprimirPlanejamentoSemanal('gerencia')"
+        style="flex:1;background:#8A6D3B;color:#fff;border:none;border-radius:8px;padding:9px;cursor:pointer;font-size:.78rem;font-weight:600;">🖨️ Semanal — Gerência</button>
       <button onclick="imprimirPlanejamentoMensal()"
         style="flex:1;background:#2D6A4F;color:#fff;border:none;border-radius:8px;padding:9px;cursor:pointer;font-size:.78rem;font-weight:600;">🖨️ Imprimir Mensal</button>
     </div>
@@ -1432,8 +1434,160 @@ async function imprimirFolhaComMedia(){
   setTimeout(function(){ win.print(); }, 400);
 }
 
-async function imprimirPlanejamentoSemanal(){
+// ══ Impressão da EQUIPE ══
+// Página 1 — Tamanho dos lotes: referência fixa (pode plastificar), todos os
+//            produtos do setor com ficha técnica, agrupados por categoria.
+// Página 2 — Calendário da semana: uma coluna por dia, com o que produzir e
+//            quantos lotes, em letra grande. Massa de trigo no topo do dia.
+function _nomeCurto(n){ return String(n||'').replace(/\s+(KG|UND|UN)\s*$/i,'').trim(); }
+function _htmlEquipe(o){
+  var C=o.C, dias=o.dias;
+  function fL(n){ return n===0.5 ? '½' : _fmtLote(n); }
+  var cab=function(sub){
+    return '<div style="display:flex;align-items:center;gap:12px;padding-bottom:9px;margin-bottom:10px;border-bottom:3px solid '+C.grn2+';">'
+      +'<div style="width:36px;height:36px;background:linear-gradient(135deg,'+C.grn2+','+C.grn+');border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:800;">G</div>'
+      +'<div style="flex:1;"><div style="font-size:16px;font-weight:800;color:'+C.grn2+';">'+sub+'</div>'
+      +'<div style="font-size:11px;color:'+C.gray+';margin-top:1px;">'+o.setorIco+' '+SETOR+' · Semana '+o.ini+' a '+o.fim+'</div></div>'
+      +'<div style="text-align:right;font-size:9.5px;color:'+C.gray+';">impresso em<br><b style="color:'+C.brown+';">'+o.dataStr+'</b></div></div>';
+  };
+  var h='<style>@media print{@page{size:A4 landscape;margin:8mm;} *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}}</style>';
+  h+='<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;color:'+C.brown+';">';
+
+  // ───────── PÁGINA 1: TAMANHO DOS LOTES ─────────
+  var porCat={}, ordemCat={};
+  (TODOS_PRODS||[]).forEach(function(p){
+    var und=(p.unidade||'KG').toUpperCase();
+    var fic=fichaDoProduto({cod:p.cod,nome:p.nome});
+    var lote=_loteDaFicha(fic,und);
+    if(!(lote>0)) return;
+    var cat=p.categoria||'SEM CATEGORIA';
+    var ci=o.cats[cat]||{cor:'#9CA3AF',ordem:98};
+    ordemCat[cat]=ci;
+    (porCat[cat]=porCat[cat]||[]).push({nome:_nomeCurto(p.nome),und:und.toLowerCase(),lote:lote,deriv:_ehDerivadoMassa(fic)});
+  });
+  var catsOrd=Object.keys(porCat).sort(function(a,b){ return ordemCat[a].ordem-ordemCat[b].ordem; });
+  h+=cab('Tamanho dos Lotes');
+  h+='<div style="background:#FDF0E0;border-left:4px solid '+C.amber+';border-radius:6px;padding:7px 11px;margin-bottom:11px;font-size:11px;">'
+    +'<b style="color:'+C.amber+';">🧈 Bolos da massa de trigo:</b> 1 lote = <b>'+_fmtNum(LOTE_MASSA_TRIGO_KG)+' kg de massa</b>. '
+    +'Bata a massa do dia (está no calendário) e separe '+_fmtNum(LOTE_MASSA_TRIGO_KG)+' kg para cada lote de cada bolo.</div>';
+  h+='<div style="column-count:3;column-gap:16px;">';
+  catsOrd.forEach(function(cat){
+    var lst=porCat[cat].sort(function(a,b){ return a.nome<b.nome?-1:1; });
+    h+='<div style="break-inside:avoid;page-break-inside:avoid;margin-bottom:10px;border:1px solid '+C.border+';border-radius:7px;overflow:hidden;">'
+      +'<div style="background:'+ordemCat[cat].cor+';color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.5px;padding:4px 9px;text-transform:uppercase;">'+cat+'</div>';
+    lst.forEach(function(it,i){
+      h+='<div style="display:flex;justify-content:space-between;gap:6px;padding:4px 9px;font-size:12px;'+(i%2?'background:'+C.grayL+';':'')+'">'
+        +'<span style="font-weight:600;">'+it.nome+'</span>'
+        +'<span style="white-space:nowrap;font-weight:800;color:'+C.grn2+';">'+_fmtNum(Math.round(it.lote*100)/100)+it.und
+        +(it.deriv?' <span style="font-weight:600;color:'+C.amber+';font-size:9px;">(1kg massa)</span>':'')+'</span></div>';
+    });
+    h+='</div>';
+  });
+  h+='</div>';
+  h+='<div style="margin-top:8px;font-size:9px;color:#A0A5A0;">Valores das fichas técnicas. Produto sem ficha não aparece aqui — no calendário ele vem em kg/un.</div>';
+
+  // ───────── PÁGINA 2: CALENDÁRIO DA SEMANA ─────────
+  h+='<div style="page-break-before:always;break-before:page;"></div>';
+  h+=cab('Produção da Semana');
+  // só os dias que têm produção (confeitaria some o domingo)
+  var idxDias=[];
+  dias.forEach(function(d,j){
+    var tem=o.linhas.some(function(l){ return l.metas[j]>0; });
+    if(tem) idxDias.push(j);
+  });
+  h+='<div style="display:grid;grid-template-columns:repeat('+idxDias.length+',1fr);gap:6px;align-items:start;">';
+  idxDias.forEach(function(j){
+    var d=dias[j];
+    h+='<div style="border:1px solid '+C.border+';border-radius:8px;overflow:hidden;">';
+    h+='<div style="background:'+C.grn2+';color:#fff;text-align:center;padding:5px 2px;">'
+      +'<div style="font-size:10px;font-weight:700;letter-spacing:.5px;">'+o.abrevDia[_diaSemNum(d)]+'</div>'
+      +'<div style="font-size:16px;font-weight:900;line-height:1;">'+d.split('-')[2]+'</div></div>';
+    h+='<div style="padding:5px;">';
+    if(o.aggMassaDia[j]>0){
+      h+='<div style="background:#FDF0E0;border:1.5px solid '+C.amber+';border-radius:6px;padding:4px 5px;margin-bottom:5px;text-align:center;">'
+        +'<div style="font-size:8.5px;font-weight:800;color:'+C.amber+';">🧈 BATER MASSA</div>'
+        +'<div style="font-size:15px;font-weight:900;color:'+C.amber+';line-height:1.1;">'+_fmtNum(Math.round(o.aggMassaDia[j]*10)/10)+' kg</div></div>';
+    }
+    o.linhas.forEach(function(l){
+      var q=l.metas[j];
+      if(!(q>0)) return;
+      var temLote=l.loteSize>0;
+      var nL=temLote?Math.max(0.5,Math.ceil((q/l.loteSize)*2-0.1)/2):null;
+      var qtd=temLote
+        ? fL(nL)+' lote'+(nL>1?'s':'')
+        : _fmtMeta(q)+' '+l.un;
+      h+='<div style="border:1px solid '+C.border+';border-left:4px solid '+l.cor+';border-radius:5px;padding:3px 5px;margin-bottom:4px;break-inside:avoid;page-break-inside:avoid;'+(l.ratioMassa>0?'background:#FFFAF3;':'')+'">'
+        +'<div style="font-size:9.5px;font-weight:700;line-height:1.15;">'
+        +'<span style="display:inline-block;width:9px;height:9px;border:1.3px solid '+C.gray+';border-radius:2px;margin-right:3px;vertical-align:-1px;"></span>'
+        +(l.foco?'⭐':'')+_nomeCurto(l.nome)+'</div>'
+        +'<div style="font-size:14px;font-weight:900;color:'+(temLote?C.grn2:(l.ehUnd?C.orange:C.red))+';line-height:1.15;">'+qtd+'</div>'
+        +'</div>';
+    });
+    h+='</div></div>';
+  });
+  h+='</div>';
+  // Legenda das cores de categoria (a borda de cada cartão)
+  var catsCal={};
+  o.linhas.forEach(function(l){ catsCal[l.categoria]=l.cor; });
+  h+='<div style="margin-top:8px;font-size:9.5px;display:flex;flex-wrap:wrap;gap:10px;">';
+  Object.keys(catsCal).forEach(function(c){
+    h+='<span><span style="display:inline-block;width:9px;height:9px;background:'+catsCal[c]+';border-radius:2px;margin-right:4px;vertical-align:-1px;"></span>'+c+'</span>';
+  });
+  h+='</div>';
+  h+='<div style="margin-top:4px;font-size:9.5px;color:'+C.gray+';">☐ marque quando terminar · ⭐ foco do mês · produto sem ficha vem em kg/un · registre no sistema o que foi produzido de fato</div>';
+  h+='</div>';
+  return h;
+}
+
+// Quadro de conferência das massas (só na impressão de gerência).
+// Lê as fichas REAIS de todos os produtos do setor e mostra, para cada bolo
+// que usa MASSA BOLO DE TRIGO, quanto de massa a ficha leva, quanto rende e
+// quanto de bolo sai de 1 kg de massa (= 1 lote). Aponta o que parece errado.
+function _quadroConferenciaMassas(C){
+  var linhas=[];
+  (TODOS_PRODS||[]).forEach(function(p){
+    var fic=fichaDoProduto({cod:p.cod,nome:p.nome});
+    var und=(p.unidade||'KG').toUpperCase();
+    var ehCatMassa=String(p.categoria||'').toUpperCase()==='BOLOS MASSA DE TRIGO';
+    var deriv=_ehDerivadoMassa(fic);
+    if(!deriv && !ehCatMassa) return;
+    var rend=fic?(und==='UND'?(fic.rendimentoUn||0):(fic.rendimentoKg||0)):0;
+    var massa=fic?(fic.massaTrigoKg||0):0;
+    var lote=_loteDaFicha(fic,und);
+    var st='✅ ok', stCor=C.grn;
+    if(!fic){ st='⚠️ sem ficha técnica'; stCor=C.red; }
+    else if(!deriv){ st='⚠️ ficha sem o insumo MASSA BOLO DE TRIGO — fica fora da massa do dia'; stCor=C.red; }
+    else if(!(rend>0)){ st='⚠️ ficha sem rendimento'; stCor=C.red; }
+    else if(massa>=50){ st='⚠️ massa parece em gramas — deveria ser kg'; stCor=C.red; }
+    else if(und==='KG' && (lote<0.7 || lote>3)){ st='⚠️ 1 kg de massa rende '+_fmtNum(Math.round(lote*100)/100)+'kg de bolo — conferir'; stCor=C.amber; }
+    linhas.push({nome:p.nome,und:und.toLowerCase(),massa:massa,rend:rend,lote:lote,st:st,stCor:stCor});
+  });
+  if(!linhas.length) return '';
+  linhas.sort(function(a,b){ return a.nome<b.nome?-1:1; });
+  var td='padding:4px 7px;border-bottom:1px solid '+C.border+';';
+  var h='<div style="margin-top:16px;page-break-inside:avoid;">'
+    +'<div style="font-size:12px;font-weight:800;color:'+C.amber+';margin-bottom:5px;">🧈 Conferência — bolos da massa de trigo</div>'
+    +'<div style="font-size:9.5px;color:'+C.gray+';margin-bottom:6px;">Lido das fichas técnicas. 1 lote = o bolo que sai de '+_fmtNum(LOTE_MASSA_TRIGO_KG)+'kg de massa. Linhas com ⚠️ precisam de ajuste na ficha.</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:10.5px;border:1px solid '+C.border+';">'
+    +'<tr style="background:'+C.grayL+';font-weight:800;">'
+    +'<td style="'+td+'">Produto</td><td style="'+td+'text-align:center;">Massa na ficha</td>'
+    +'<td style="'+td+'text-align:center;">Rendimento da ficha</td><td style="'+td+'text-align:center;">1 lote (1kg massa)</td>'
+    +'<td style="'+td+'">Situação</td></tr>';
+  linhas.forEach(function(l){
+    h+='<tr><td style="'+td+'font-weight:700;">'+l.nome+'</td>'
+      +'<td style="'+td+'text-align:center;">'+(l.massa>0?_fmtNum(Math.round(l.massa*1000)/1000)+'kg':'—')+'</td>'
+      +'<td style="'+td+'text-align:center;">'+(l.rend>0?_fmtNum(Math.round(l.rend*100)/100)+l.und:'—')+'</td>'
+      +'<td style="'+td+'text-align:center;font-weight:800;">'+(l.lote>0&&l.massa>0?_fmtNum(Math.round(l.lote*100)/100)+l.und:'—')+'</td>'
+      +'<td style="'+td+'color:'+l.stCor+';font-weight:700;">'+l.st+'</td></tr>';
+  });
+  return h+'</table></div>';
+}
+
+// versao: 'chao' (padrão) = folha da equipe — só o que executar (lotes, massa).
+//         'gerencia' = + coluna de venda, alertas e conferência das massas.
+async function imprimirPlanejamentoSemanal(versao){
   if(!PROD_SEM_ISO){toast('⚠️ Abra a projeção semanal primeiro','wa');return;}
+  var ehGer=(versao==='gerencia') && IS_ADMIN;   // gerência só para admin
   var dias=_diasSemana(PROD_SEM_ISO);
   var prods=_prodsOrdenados();
   var abrevDia=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
@@ -1514,13 +1668,20 @@ async function imprimirPlanejamentoSemanal(){
     }
   });
 
+  // Versão EQUIPE: página 1 = tamanho dos lotes; página 2 = calendário.
+  if(!ehGer){
+    abrirPrintModal(_htmlEquipe({dias:dias,linhas:linhas,aggMassaDia:aggMassaDia,cats:cats,C:C,
+      setorIco:setorIco,ini:ini,fim:fim,dataStr:dataStr,abrevDia:abrevDia}));
+    return;
+  }
+
   var h='<style>@media print{@page{size:A4 landscape;margin:8mm;} *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;} table{page-break-inside:auto;} tr{page-break-inside:avoid;} thead{display:table-header-group;} tfoot{display:table-row-group;}}</style>';
   h+='<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;color:'+C.brown+';">';
 
   // ── Cabeçalho no padrão do app ──
   h+='<div style="display:flex;align-items:center;gap:12px;padding-bottom:12px;margin-bottom:14px;border-bottom:3px solid '+C.grn2+';">'
     +'<div style="width:42px;height:42px;background:linear-gradient(135deg,'+C.grn2+','+C.grn+');border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:21px;font-weight:800;">G</div>'
-    +'<div style="flex:1;"><div style="font-size:17px;font-weight:800;color:'+C.grn2+';letter-spacing:-.2px;">Gest<span style="color:'+C.grn+';">Food</span> — Plano de Produção</div>'
+    +'<div style="flex:1;"><div style="font-size:17px;font-weight:800;color:'+C.grn2+';letter-spacing:-.2px;">Gest<span style="color:'+C.grn+';">Food</span> — Plano de Produção'+(ehGer?' <span style="font-size:11px;font-weight:700;background:#8A6D3B;color:#fff;padding:2px 7px;border-radius:5px;vertical-align:middle;">GERÊNCIA</span>':'')+'</div>'
     +'<div style="font-size:11.5px;color:'+C.gray+';margin-top:2px;">'+setorIco+' '+SETOR+' · Semana '+ini+' a '+fim+'</div></div>'
     +'<div style="text-align:right;font-size:10px;color:'+C.gray+';">impresso em<br><b style="color:'+C.brown+';">'+dataStr+'</b></div></div>';
 
@@ -1544,12 +1705,14 @@ async function imprimirPlanejamentoSemanal(){
   h+='<th style="padding:7px 4px;text-align:center;width:8%;background:'+C.grn+';">'
     +'<div style="font-size:8px;opacity:.9;letter-spacing:.3px;">META</div>'
     +'<div style="font-size:10px;font-weight:800;">SEMANA</div></th>';
-  h+='<th style="padding:7px 4px;text-align:center;width:8%;background:#8A6D3B;">'
-    +'<div style="font-size:8px;opacity:.9;letter-spacing:.3px;">VENDA</div>'
-    +'<div style="font-size:10px;font-weight:800;">SEMANA</div></th>';
+  if(ehGer){
+    h+='<th style="padding:7px 4px;text-align:center;width:8%;background:#8A6D3B;">'
+      +'<div style="font-size:8px;opacity:.9;letter-spacing:.3px;">VENDA</div>'
+      +'<div style="font-size:10px;font-weight:800;">SEMANA</div></th>';
+  }
   h+='</tr></thead><tbody>';
 
-  var NCOL=10;
+  var NCOL=ehGer?10:9;
   var catAnterior=null, massaMostrada=false;
   var totMassaSem=aggMassaDia.reduce(function(a,b){return a+b;},0);
   linhas.forEach(function(l,i){
@@ -1580,7 +1743,7 @@ async function imprimirPlanejamentoSemanal(){
             : '<span style="color:#D9DDD9;font-size:10px;">·</span>')+'</td>';
       }
       h+='<td style="padding:4px 3px;text-align:center;background:#FDE8CC;font-weight:800;color:'+C.amber+';">'+_fmtNum(Math.round(totMassaSem*10)/10)+'kg</td>';
-      h+='<td style="background:#FEF3EC;"></td></tr>';
+      h+=(ehGer?'<td style="background:#FEF3EC;"></td>':'')+'</tr>';
     }
 
     var temLote=l.loteSize>0;
@@ -1628,7 +1791,7 @@ async function imprimirPlanejamentoSemanal(){
       else if(r>1.3) alerta='<br><span style="font-size:8px;font-weight:800;color:'+C.amber+';">▲ pode sobrar</span>';
       vendaHtml='<span style="font-weight:800;color:#8A6D3B;font-size:11.5px;">'+_fmtMeta(Math.round(l.mediaSemana*10)/10)+'</span>'+alerta;
     }
-    h+='<td style="padding:3px 4px;text-align:center;line-height:1.1;background:#FEF3EC;">'+vendaHtml+'</td>';
+    if(ehGer) h+='<td style="padding:3px 4px;text-align:center;line-height:1.1;background:#FEF3EC;">'+vendaHtml+'</td>';
     h+='</tr>';
   });
   h+='</tbody>';
@@ -1643,7 +1806,7 @@ async function imprimirPlanejamentoSemanal(){
       +(totDiaKg[td]>0?_fmtMeta(Math.round(totDiaKg[td]*10)/10):'—')+'</td>';
   }
   h+='<td style="padding:6px 3px;text-align:center;font-weight:900;font-size:12px;background:'+C.grn+';">'+(totKg>0?_fmtMeta(Math.round(totKg*10)/10):'—')+'</td>'
-    +'<td style="background:#8A6D3B;"></td></tr>';
+    +(ehGer?'<td style="background:#8A6D3B;"></td>':'')+'</tr>';
   if(totUn>0){
     h+='<tr style="background:'+C.grn+';color:#fff;">'
       +'<td style="padding:6px 9px;font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:.4px;">Total und no dia</td>';
@@ -1653,7 +1816,7 @@ async function imprimirPlanejamentoSemanal(){
         +(totDiaUn[tu]>0?_fmtMeta(totDiaUn[tu]):'—')+'</td>';
     }
     h+='<td style="padding:6px 3px;text-align:center;font-weight:900;font-size:12px;background:'+C.grn2+';">'+_fmtMeta(totUn)+'</td>'
-      +'<td style="background:#8A6D3B;"></td></tr>';
+      +(ehGer?'<td style="background:#8A6D3B;"></td>':'')+'</tr>';
   }
   h+='</tfoot>';
   h+='</table></div>';
@@ -1666,12 +1829,15 @@ async function imprimirPlanejamentoSemanal(){
     +'<span style="margin-right:18px;">unidades (un)</span>'
     +'<span style="margin-right:18px;"><b style="color:'+C.grn2+';">L</b> = lotes (ficha técnica)</span>'
     +'<span style="margin-right:18px;">· = sem produção no dia</span>'
-    +'<span>▼ meta abaixo de 90% da venda · ▲ meta acima de 130%</span></div>';
+    +(ehGer?'<span>▼ meta abaixo de 90% da venda · ▲ meta acima de 130%</span>':'')+'</div>';
   var origemABC = (curva&&curva._ok)
     ? 'Classificação ABC calculada pelas vendas de '+(curva._mes||'')+' ('+curva._qtd+' produtos)'
     : 'Classificação ABC conforme cadastro do sistema';
+  if(ehGer) h+=_quadroConferenciaMassas(C);
   h+='<div style="margin-top:14px;padding-top:9px;border-top:1px solid '+C.border+';font-size:9.5px;color:#A0A5A0;display:flex;justify-content:space-between;">'
-    +'<span>GestFood · '+origemABC+'</span><span>Ajuste as metas na projeção semanal do sistema</span></div>';
+    +(ehGer
+      ? '<span>GestFood · '+origemABC+'</span><span>Ajuste as metas na projeção semanal do sistema</span>'
+      : '<span>GestFood · '+SETOR+'</span><span>Registre no sistema o que foi produzido de fato</span>')+'</div>';
   h+='</div>';
   abrirPrintModal(h);
 }
@@ -3748,7 +3914,8 @@ function _buildTabelaEsqueleto() {
     + '</div>';
   // Menu ⋮ (fica escondido até clicar)
   var menuProd = '<div id="menuProd" style="display:none;position:absolute;right:14px;top:52px;z-index:60;background:#fff;border:1px solid #DEDEDA;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.14);overflow:hidden;min-width:190px;">'
-    + '<button onclick="fecharMenuProd();imprimirPlanejamentoSemanal();" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#1B4332;font-family:inherit;border-bottom:1px solid #F0F0EE;">🖨️ Imprimir Semanal</button>'
+    + '<button onclick="fecharMenuProd();imprimirPlanejamentoSemanal(\'chao\');" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#1B4332;font-family:inherit;border-bottom:1px solid #F0F0EE;">🖨️ Semanal — Equipe</button>'
+    + (IS_ADMIN ? '<button onclick="fecharMenuProd();imprimirPlanejamentoSemanal(\'gerencia\');" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#8A6D3B;font-family:inherit;border-bottom:1px solid #F0F0EE;">🖨️ Semanal — Gerência</button>' : '')
     + '<button onclick="fecharMenuProd();imprimirPlanejamentoMensal();" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#1B4332;font-family:inherit;border-bottom:1px solid #F0F0EE;">🖨️ Imprimir Mensal</button>'
     + '<button onclick="fecharMenuProd();mostrarLegenda();" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#6B7280;font-family:inherit;">ℹ️ Legenda de cores</button>'
     + '</div>';
