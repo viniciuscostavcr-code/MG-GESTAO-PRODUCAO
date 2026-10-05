@@ -1486,44 +1486,53 @@ function _htmlEquipe(o){
   h+='</div>';
   h+='<div style="margin-top:8px;font-size:9px;color:#A0A5A0;">Valores das fichas técnicas. Produto sem ficha não aparece aqui — no calendário ele vem em kg/un.</div>';
 
-  // ───────── PÁGINA 2: CALENDÁRIO DA SEMANA ─────────
+  // ───────── PÁGINA 2: PROGRAMAÇÃO DA SEMANA ─────────
+  // No modelo da planilha que a equipe já usava: uma coluna por dia, um
+  // produto por linha com a CLASSE ao lado — agora separado por grupo e com
+  // a quantidade de lotes. Massa de trigo a bater no topo do dia.
   h+='<div style="page-break-before:always;break-before:page;"></div>';
-  h+=cab('Produção da Semana');
-  // só os dias que têm produção (confeitaria some o domingo)
+  h+=cab('Programação de Produção — '+(SETOR==='CONFEITARIA'?'Conf/Past':SETOR));
+  var nomeDia=['DOMINGO','SEGUNDA-FEIRA','TERÇA-FEIRA','QUARTA-FEIRA','QUINTA-FEIRA','SEXTA-FEIRA','SÁBADO'];
+  var corClasse={A:'#C0392B',B:'#D97706',C:'#9CA3AF'};
   var idxDias=[];
   dias.forEach(function(d,j){
-    var tem=o.linhas.some(function(l){ return l.metas[j]>0; });
-    if(tem) idxDias.push(j);
+    if(o.linhas.some(function(l){ return l.metas[j]>0; })) idxDias.push(j);
   });
-  h+='<div style="display:grid;grid-template-columns:repeat('+idxDias.length+',1fr);gap:6px;align-items:start;">';
+  h+='<div style="display:grid;grid-template-columns:repeat('+idxDias.length+',minmax(0,1fr));gap:5px;align-items:start;">';
   idxDias.forEach(function(j){
-    var d=dias[j];
-    h+='<div style="border:1px solid '+C.border+';border-radius:8px;overflow:hidden;">';
-    h+='<div style="background:'+C.grn2+';color:#fff;text-align:center;padding:5px 2px;">'
-      +'<div style="font-size:10px;font-weight:700;letter-spacing:.5px;">'+o.abrevDia[_diaSemNum(d)]+'</div>'
-      +'<div style="font-size:16px;font-weight:900;line-height:1;">'+d.split('-')[2]+'</div></div>';
-    h+='<div style="padding:5px;">';
+    var d=dias[j], dd=d.split('-');
+    h+='<div style="border:1px solid '+C.border+';border-radius:7px;overflow:hidden;">';
+    h+='<div style="background:'+C.grn2+';color:#fff;text-align:center;padding:4px 2px;">'
+      +'<div style="font-size:9.5px;font-weight:800;letter-spacing:.4px;">'+nomeDia[_diaSemNum(d)]+'</div>'
+      +'<div style="font-size:10px;opacity:.85;">'+dd[2]+'/'+dd[1]+'</div></div>';
     if(o.aggMassaDia[j]>0){
-      h+='<div style="background:#FDF0E0;border:1.5px solid '+C.amber+';border-radius:6px;padding:4px 5px;margin-bottom:5px;text-align:center;">'
-        +'<div style="font-size:8.5px;font-weight:800;color:'+C.amber+';">🧈 BATER MASSA</div>'
-        +'<div style="font-size:15px;font-weight:900;color:'+C.amber+';line-height:1.1;">'+_fmtNum(Math.round(o.aggMassaDia[j]*10)/10)+' kg</div></div>';
+      h+='<div style="background:#FDF0E0;border-bottom:1.5px solid '+C.amber+';padding:3px 5px;text-align:center;font-size:9.5px;font-weight:800;color:'+C.amber+';">'
+        +'🧈 BATER MASSA: '+_fmtNum(Math.round(o.aggMassaDia[j]*10)/10)+' kg</div>';
     }
+    // cabeçalho das colunas internas
+    h+='<div style="display:flex;font-size:7.5px;font-weight:800;color:'+C.gray+';padding:2px 4px;border-bottom:1px solid '+C.border+';">'
+      +'<span style="flex:1;">PRODUTO</span><span style="width:16px;text-align:center;">CL</span><span style="width:38px;text-align:right;">QTD</span></div>';
+    var catAnt=null, zebra=0;
     o.linhas.forEach(function(l){
       var q=l.metas[j];
       if(!(q>0)) return;
+      if(l.categoria!==catAnt){
+        h+='<div style="background:'+l.cor+';color:#fff;font-size:7.5px;font-weight:800;letter-spacing:.4px;padding:1.5px 4px;text-transform:uppercase;">'+l.categoria+'</div>';
+        catAnt=l.categoria; zebra=0;
+      }
       var temLote=l.loteSize>0;
       var nL=temLote?Math.max(0.5,Math.ceil((q/l.loteSize)*2-0.1)/2):null;
-      var qtd=temLote
-        ? fL(nL)+' lote'+(nL>1?'s':'')
-        : _fmtMeta(q)+' '+l.un;
-      h+='<div style="border:1px solid '+C.border+';border-left:4px solid '+l.cor+';border-radius:5px;padding:3px 5px;margin-bottom:4px;break-inside:avoid;page-break-inside:avoid;'+(l.ratioMassa>0?'background:#FFFAF3;':'')+'">'
-        +'<div style="font-size:9.5px;font-weight:700;line-height:1.15;">'
-        +'<span style="display:inline-block;width:9px;height:9px;border:1.3px solid '+C.gray+';border-radius:2px;margin-right:3px;vertical-align:-1px;"></span>'
-        +(l.foco?'⭐':'')+_nomeCurto(l.nome)+'</div>'
-        +'<div style="font-size:14px;font-weight:900;color:'+(temLote?C.grn2:(l.ehUnd?C.orange:C.red))+';line-height:1.15;">'+qtd+'</div>'
-        +'</div>';
+      var qtd=temLote ? (fL(nL)+' L') : (_fmtMeta(q)+l.un);
+      var cl=l.classeReal||'';
+      h+='<div style="display:flex;align-items:center;font-size:8.5px;line-height:1.25;padding:1.5px 4px;border-bottom:1px solid #F0F0EE;'+((zebra++%2)?'background:'+C.grayL+';':'')+'">'
+        +'<span style="display:inline-block;width:7px;height:7px;border:1px solid '+C.gray+';border-radius:1.5px;margin-right:3px;flex-shrink:0;"></span>'
+        +'<span style="flex:1;font-weight:'+(cl==='A'||l.foco?'800':'600')+';line-height:1.15;word-break:break-word;">'+(l.foco?'⭐':'')+_nomeCurto(l.nome)+'</span>'
+        +'<span style="width:16px;text-align:center;">'+(cl
+            ?'<span style="display:inline-block;min-width:11px;font-size:8px;font-weight:900;color:#fff;border-radius:3px;padding:0 2px;background:'+(corClasse[cl]||C.gray)+';">'+cl+'</span>'
+            :'')+'</span>'
+        +'<span style="width:38px;text-align:right;font-weight:900;color:'+(temLote?C.grn2:(l.ehUnd?C.orange:C.red))+';">'+qtd+'</span></div>';
     });
-    h+='</div></div>';
+    h+='</div>';
   });
   h+='</div>';
   // Legenda das cores de categoria (a borda de cada cartão)
@@ -1534,7 +1543,13 @@ function _htmlEquipe(o){
     h+='<span><span style="display:inline-block;width:9px;height:9px;background:'+catsCal[c]+';border-radius:2px;margin-right:4px;vertical-align:-1px;"></span>'+c+'</span>';
   });
   h+='</div>';
-  h+='<div style="margin-top:4px;font-size:9.5px;color:'+C.gray+';">☐ marque quando terminar · ⭐ foco do mês · produto sem ficha vem em kg/un · registre no sistema o que foi produzido de fato</div>';
+  var bdg=function(c,t){ return '<span style="display:inline-block;font-size:9px;font-weight:900;color:#fff;border-radius:3px;padding:0 4px;margin-right:4px;background:'+corClasse[c]+';">'+c+'</span>'+t; };
+  h+='<div style="margin-top:6px;font-size:10px;display:flex;flex-wrap:wrap;gap:14px;align-items:center;">'
+    +'<b>Prioridade:</b>'
+    +'<span>'+bdg('A','1º — mais vende, não pode faltar')+'</span>'
+    +'<span>'+bdg('B','2º — produzir em seguida')+'</span>'
+    +'<span>'+bdg('C','3º — por último')+'</span></div>';
+  h+='<div style="margin-top:4px;font-size:9.5px;color:'+C.gray+';">Dentro de cada grupo a lista já está na ordem de prioridade · ☐ marque quando terminar · <b>L</b> = lotes (ver página 1) · ⭐ foco do mês · sem ficha vem em kg/un</div>';
   h+='</div>';
   return h;
 }
@@ -1617,6 +1632,7 @@ async function imprimirPlanejamentoSemanal(versao){
     var total=metas.reduce(function(a,b){return a+b;},0);
     if(total>0){
       var cls=_classeProduto(p,curva);
+      var clsReal=cls;              // classe de venda (A/B/C), mesmo se for foco
       var foco=_ehFoco(p);
       if(foco)cls='FOCO';           // foco do mês tem prioridade sobre a curva
       if(cls==='A')nA++;
@@ -1637,7 +1653,7 @@ async function imprimirPlanejamentoSemanal(versao){
       var fic=fichaDoProduto({cod:p.cod,nome:p.nome});
       var loteSize=_loteDaFicha(fic, ehUnd?'UND':'KG');
       var ratioMassa=_massaPorUnid(fic, ehUnd?'UND':'KG');
-      linhas.push({nome:p.nome,ehUnd:ehUnd,un:(ehUnd?'un':'kg'),metas:metas,total:total,classe:cls,foco:foco,categoria:catNome,cor:catInfo.cor,ordemCat:catInfo.ordem,posVenda:posVenda,mediaSemana:mediaSemana,loteSize:loteSize,ratioMassa:ratioMassa});
+      linhas.push({nome:p.nome,ehUnd:ehUnd,un:(ehUnd?'un':'kg'),metas:metas,total:total,classe:cls,classeReal:clsReal,foco:foco,categoria:catNome,cor:catInfo.cor,ordemCat:catInfo.ordem,posVenda:posVenda,mediaSemana:mediaSemana,loteSize:loteSize,ratioMassa:ratioMassa});
       if(ehUnd)totUn+=total;else totKg+=total;
       // acumula por dia da semana (kg e und separados)
       metas.forEach(function(q,di){
@@ -1651,7 +1667,11 @@ async function imprimirPlanejamentoSemanal(versao){
   linhas.sort(function(a,b){
     if(a.ordemCat!==b.ordemCat)return a.ordemCat-b.ordemCat;
     if(a.foco!==b.foco)return a.foco?-1:1;
-    // Dentro da categoria: mais vendido primeiro (posição menor = vende mais)
+    // Dentro da categoria: prioridade pela classe (A → B → C), como na
+    // programação em planilha que a equipe já usava…
+    var pa=({A:1,B:2,C:3})[a.classeReal]||4, pb=({A:1,B:2,C:3})[b.classeReal]||4;
+    if(pa!==pb)return pa-pb;
+    // …e, dentro da mesma classe, o mais vendido primeiro
     if(a.posVenda!==b.posVenda)return a.posVenda-b.posVenda;
     return (a.nome||'')<(b.nome||'')?-1:1;
   });
