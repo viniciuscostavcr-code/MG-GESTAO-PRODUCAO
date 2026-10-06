@@ -1435,8 +1435,8 @@ async function imprimirFolhaComMedia(){
 }
 
 // Nome curto de insumo: tira marca/embalagem ("GOIABADA BALDE MARINGA" → "Goiabada Balde")
-function _nomeInsumoCurto(n){
-  var w=String(n||'').split(/\s+/).filter(function(x){ return x && !/\d/.test(x); }).slice(0,2);
+function _nomeInsumoCurto(n, nPal){
+  var w=String(n||'').split(/\s+/).filter(function(x){ return x && !/\d/.test(x); }).slice(0,nPal||2);
   return w.map(function(x){ return x.charAt(0)+x.slice(1).toLowerCase(); }).join(' ');
 }
 function _fmtPesoIng(kg){
@@ -1475,6 +1475,86 @@ function _quadroLotesMassa(derivs,C){
       +'<td style="'+td+'text-align:right;font-weight:900;color:'+C.grn2+';white-space:nowrap;">'+_fmtNum(Math.round(d.lote*100)/100)+' '+d.und+'</td></tr>';
   });
   return h+'</table></div>';
+}
+
+// ══ Impressão: LOTES POR CATEGORIA (com os ingredientes de 1 lote) ══
+// Folha de bancada, fixa: um cartão por produto com ficha, agrupado por
+// categoria. Bolos da massa de trigo: massa do lote + adicionais na proporção.
+// Demais produtos: o lote é a receita inteira — mostra os ingredientes da ficha.
+async function imprimirLotesMassa(){
+  if (typeof carregarFichas === 'function') await carregarFichas();
+  var cats = (typeof carregarCategorias === 'function') ? await carregarCategorias() : {};
+  var C={grn:'#2D6A4F',grn2:'#1B4332',border:'#E2EDE8',gray:'#6B7280',brown:'#1C1C1A',amber:'#D97706',red:'#C0392B'};
+  var porCat={}, semFicha={};
+  (TODOS_PRODS||[]).forEach(function(p){
+    var und=(p.unidade||'KG').toUpperCase();
+    var cat=p.categoria||'SEM CATEGORIA';
+    var fic=fichaDoProduto({cod:p.cod,nome:p.nome});
+    var lote=_loteDaFicha(fic,und);
+    if(!(lote>0)){ (semFicha[cat]=semFicha[cat]||[]).push(_nomeCurto(p.nome)); return; }
+    (porCat[cat]=porCat[cat]||[]).push({nome:_nomeCurto(p.nome),cod:String(p.cod||'').replace(/^0+/,''),und:und.toLowerCase(),lote:lote,fic:fic});
+  });
+  var todasCats={}; Object.keys(porCat).forEach(function(c){todasCats[c]=1;}); Object.keys(semFicha).forEach(function(c){todasCats[c]=1;});
+  var ordem=Object.keys(todasCats).sort(function(x,y){ return ((cats[x]||{}).ordem||98)-((cats[y]||{}).ordem||98) || (x<y?-1:1); });
+  if(!Object.keys(porCat).length){ toast('Nenhum produto com ficha técnica neste setor','wa'); return; }
+  var dataStr=new Date().toLocaleDateString('pt-BR');
+  var box='<span style="display:inline-block;width:10px;height:10px;border:1.4px solid '+C.gray+';border-radius:2px;margin-right:5px;vertical-align:-1px;"></span>';
+
+  var h='<style>@media print{@page{size:A4 landscape;margin:8mm;} *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}}</style>';
+  h+='<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;color:'+C.brown+';">';
+  h+='<div style="display:flex;align-items:center;gap:12px;padding-bottom:9px;margin-bottom:9px;border-bottom:3px solid '+C.grn2+';">'
+    +'<div style="width:38px;height:38px;background:linear-gradient(135deg,'+C.grn2+','+C.grn+');border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:19px;font-weight:800;">G</div>'
+    +'<div style="flex:1;"><div style="font-size:18px;font-weight:800;color:'+C.grn2+';">Lotes de Produção</div>'
+    +'<div style="font-size:11px;color:'+C.gray+';margin-top:1px;">'+SETOR+' · o que vai em 1 lote de cada produto — valores das fichas técnicas</div></div>'
+    +'<div style="text-align:right;font-size:9.5px;color:'+C.gray+';">impresso em<br><b style="color:'+C.brown+';">'+dataStr+'</b></div></div>';
+  h+='<div style="background:#F4F4F2;border-radius:7px;padding:5px 11px;margin-bottom:9px;font-size:10.5px;">'
+    +'<b>Como usar:</b> a programação diz quantos lotes fazer; aqui está o que vai em <b>1 lote</b>. 2 lotes = dobre tudo · ½ lote = metade. '
+    +'<b style="color:'+C.amber+';">🧈 Bolos da massa de trigo:</b> bata a massa do dia e separe para cada lote a massa do cartão + os adicionais.</div>';
+
+  ordem.forEach(function(cat){
+    var ci=cats[cat]||{cor:'#9CA3AF'};
+    var lst=(porCat[cat]||[]).sort(function(x,y){ return x.nome<y.nome?-1:1; });
+    h+='<div style="margin:10px 0 6px;padding:4px 10px;background:'+ci.cor+';color:#fff;border-radius:6px;font-size:11.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;break-after:avoid;page-break-after:avoid;">'+cat+'</div>';
+    if(lst.length){
+      h+='<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;">';
+      lst.forEach(function(d){
+        var deriv=_ehDerivadoMassa(d.fic);
+        var mL=deriv?_massaPorLote(d.fic):0;
+        var f=deriv?(mL/(d.fic.massaTrigoKg||1)):1;      // demais: lote = receita inteira
+        var ing=(d.fic.outrosIng||[]).slice().sort(function(x,y){ return y.q-x.q; });
+        var nota=NOTAS_LOTE[d.cod];
+        var cor=deriv?C.amber:ci.cor;
+        h+='<div style="border:1.3px solid '+cor+';border-radius:8px;overflow:hidden;break-inside:avoid;page-break-inside:avoid;">'
+          +'<div style="background:'+cor+';color:#fff;padding:4px 8px;display:flex;justify-content:space-between;align-items:baseline;gap:4px;">'
+          +'<span style="font-size:11.5px;font-weight:900;line-height:1.15;">'+d.nome+'</span><span style="font-size:8.5px;font-weight:700;opacity:.9;white-space:nowrap;">1 LOTE</span></div>'
+          +'<div style="padding:4px 8px 5px;">';
+        if(deriv){
+          h+='<div style="font-size:11px;font-weight:900;padding:2px 0 3px;border-bottom:1px dashed #F5D9BC;">'+box+'Massa de trigo<span style="float:right;color:'+(mL!==LOTE_MASSA_TRIGO_KG?C.red:C.amber)+';">'+_fmtPesoIng(mL)+'</span></div>'
+            +(nota?'<div style="font-size:9px;color:'+C.red+';font-weight:700;padding:2px 0 0 15px;">↳ '+nota+'</div>':'');
+        }
+        if(ing.length){
+          ing.forEach(function(x){
+            h+='<div style="font-size:10px;padding:2px 0;border-bottom:1px solid #F3F3F1;">'+box+_nomeInsumoCurto(x.nome,3)
+              +'<span style="float:right;font-weight:800;">'+_fmtPesoIng(x.q*f)+'</span></div>';
+          });
+        }else if(deriv){
+          h+='<div style="font-size:9.5px;color:'+C.gray+';padding:3px 0 1px 15px;">sem adicionais — só a massa</div>';
+        }else{
+          h+='<div style="font-size:9.5px;color:'+C.gray+';padding:3px 0 1px;">'+(d.fic.massaTrigoKg>0?'é a própria massa de trigo':'ingredientes não cadastrados na ficha')+'</div>';
+        }
+        h+='<div style="margin-top:4px;font-size:9.5px;color:'+C.gray+';display:flex;justify-content:space-between;">'
+          +'<span>Rende</span><b style="font-size:11.5px;color:'+C.grn2+';">'+_fmtNum(Math.round(d.lote*100)/100)+' '+d.und+'</b></div>'
+          +'</div></div>';
+      });
+      h+='</div>';
+    }
+    if(semFicha[cat] && semFicha[cat].length){
+      h+='<div style="font-size:9.5px;color:'+C.red+';margin-top:4px;">⚠️ Sem ficha técnica (não entram em lotes): '+semFicha[cat].sort().join(', ')+'</div>';
+    }
+  });
+  h+='<div style="margin-top:10px;font-size:9.5px;color:#A0A5A0;">GestFood · Se um peso estiver errado, corrija a ficha técnica — esta folha se atualiza sozinha.</div>';
+  h+='</div>';
+  abrirPrintModal(h);
 }
 
 // ══ Impressão da EQUIPE ══
@@ -1565,7 +1645,7 @@ function _htmlEquipe(o){
         catAnt=l.categoria; zebra=0;
       }
       var temLote=l.loteSize>0;
-      var nL=temLote?Math.max(0.5,Math.ceil((q/l.loteSize)*2-0.1)/2):null;
+      var nL=temLote?_lotesExibidos(q,l.loteSize):null;
       var qtd=temLote ? (fL(nL)+' L') : (_fmtMeta(q)+l.un);
       var cl=l.classeReal||'';
       h+='<div style="display:flex;align-items:center;font-size:8.5px;line-height:1.25;padding:1.5px 4px;border-bottom:1px solid #F0F0EE;'+((zebra++%2)?'background:'+C.grayL+';':'')+'">'
@@ -1723,13 +1803,13 @@ async function imprimirPlanejamentoSemanal(versao){
   var _catsUsadas={}; linhas.forEach(function(l){_catsUsadas[l.categoria]=1;});
   var _nCategorias=Object.keys(_catsUsadas).length;
 
-  // Total de massa de trigo crua a preparar em cada dia — soma de todos os
-  // derivados (formigueiro, inglês, mesclado, abacaxi, banana, cocada, xadrez...)
-  // convertidos pela proporção massa/rendimento de cada ficha.
+  // Massa de trigo a bater em cada dia = soma dos LOTES QUE APARECEM NA FOLHA
+  // × massa de cada lote (1 kg; xadrez 2,4 kg). Assim a caixa "BATER MASSA"
+  // é exatamente o que o confeiteiro vai usar fazendo os lotes da folha.
   var aggMassaDia=[0,0,0,0,0,0,0];
   linhas.forEach(function(l){
-    if(l.ratioMassa>0){
-      l.metas.forEach(function(q,di){ aggMassaDia[di]+=q*l.ratioMassa; });
+    if(l.massaLote>0 && l.loteSize>0){
+      l.metas.forEach(function(q,di){ aggMassaDia[di]+=_lotesExibidos(q,l.loteSize)*l.massaLote; });
     }
   });
 
@@ -1828,7 +1908,7 @@ async function imprimirPlanejamentoSemanal(versao){
       // Arredonda para cima em passos de 0,5 lote — referência, nunca a menos.
       // Tolerância de 0,05 lote: 2,4kg com lote de 1,19kg = 2,02 lotes → "2 L",
       // não "2,5 L" (a sobra é só arredondamento de peso, não meio lote a mais).
-      var nLotes=(q>0 && temLote)?Math.max(0.5,Math.ceil((q/l.loteSize)*2-0.1)/2):null;
+      var nLotes=(q>0 && temLote)?_lotesExibidos(q,l.loteSize):null;
       if(nLotes)totLotes+=nLotes;
       var inner;
       if(q<=0){
@@ -3980,8 +4060,10 @@ function _buildTabelaEsqueleto() {
   // Menu ⋮ (fica escondido até clicar)
   var menuProd = '<div id="menuProd" style="display:none;position:absolute;right:14px;top:52px;z-index:60;background:#fff;border:1px solid #DEDEDA;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.14);overflow:hidden;min-width:190px;">'
     + '<button onclick="fecharMenuProd();imprimirPlanejamentoSemanal(\'chao\');" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#1B4332;font-family:inherit;border-bottom:1px solid #F0F0EE;">🖨️ Semanal — Equipe</button>'
+    + '<button onclick="fecharMenuProd();imprimirLotesMassa();" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#D97706;font-family:inherit;border-bottom:1px solid #F0F0EE;">🧾 Imprimir Lotes (por categoria)</button>'
     + (IS_ADMIN ? '<button onclick="fecharMenuProd();imprimirPlanejamentoSemanal(\'gerencia\');" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#8A6D3B;font-family:inherit;border-bottom:1px solid #F0F0EE;">🖨️ Semanal — Gerência</button>' : '')
     + '<button onclick="fecharMenuProd();imprimirPlanejamentoMensal();" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#1B4332;font-family:inherit;border-bottom:1px solid #F0F0EE;">🖨️ Imprimir Mensal</button>'
+    + (IS_ADMIN ? '<button onclick="fecharMenuProd();ajustarMetasAosLotes();" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#B45309;font-family:inherit;border-bottom:1px solid #F0F0EE;">🔁 Ajustar metas aos lotes</button>' : '')
     + '<button onclick="fecharMenuProd();mostrarLegenda();" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#6B7280;font-family:inherit;">ℹ️ Legenda de cores</button>'
     + '</div>';
   var search = '<div id="prodSearchWrap" class="ck-search" style="margin:0 6px 6px;">'
@@ -4586,9 +4668,10 @@ function _mpRenderLotes(prod, und) {
       var op = (TODOS_PRODS||[]).find(function(x){ return x.id === pid; });
       if (!r || !op) return;
       var ofic = fichaDoProduto(op);
-      var mpu = _massaPorUnid(ofic, op.unidade || 'KG');
-      if (!(mpu > 0)) return;
-      _MP_DIAS.forEach(function(d){ _mpMassaOutros[d] += (Number(r[d]) || 0) * mpu; });
+      var oMl = _massaPorLote(ofic);
+      var oLs = _loteDaFicha(ofic, op.unidade || 'KG');
+      if (!(oMl > 0) || !(oLs > 0)) return;
+      _MP_DIAS.forEach(function(d){ _mpMassaOutros[d] += _lotesExibidos(r[d], oLs) * oMl; });
     });
   }
   if (ref) {
@@ -4648,6 +4731,64 @@ function _mpAtualizarLotes() {
   var tk = document.getElementById('mplTotKg');
   if (tl) tl.textContent = 'Meta: ' + _fmtLote(totL) + ' lote' + (totL!==1?'s':'') + '/semana';
   if (tk) tk.textContent = '= ' + _fmtNum(totL * _mpLoteSize) + u;
+}
+
+// ── Ajustar metas aos lotes ──
+// Metas antigas (cadastradas em peso) nem sempre são um nº exato de lotes:
+// a folha mostra "6 L" mas a meta é 5,6 kg. Aqui cada dia de cada produto
+// com ficha é arredondado para cima em meio lote — o mesmo número da folha —
+// e salvo. Depois disso planejado, folha e massa do dia batem.
+async function ajustarMetasAosLotes() {
+  if (!IS_ADMIN) return;
+  if (typeof carregarFichas === 'function') await carregarFichas();
+  var mud = [];
+  Object.keys(PROJ_BASE || {}).forEach(function(pid){
+    var r = PROJ_BASE[pid];
+    var p = (TODOS_PRODS||[]).find(function(x){ return x.id === pid; });
+    if (!r || !p) return;
+    var und = (p.unidade || 'KG').toUpperCase();
+    var ls = _loteDaFicha(fichaDoProduto(p), und);
+    if (!(ls > 0)) return;
+    var novo = {}, tot = 0, mudou = false;
+    _MP_DIAS.forEach(function(d){
+      var v = Number(r[d]) || 0;
+      var nv = v > 0 ? Math.round(_lotesExibidos(v, ls) * ls * 100) / 100 : 0;
+      novo[d] = nv; tot += nv;
+      if (Math.abs(nv - v) > 0.005) mudou = true;
+    });
+    if (mudou) mud.push({ pid: pid, r: r, novo: novo, tot: Math.round(tot * 100) / 100 });
+  });
+  if (!mud.length) { toast('✅ Todas as metas já batem com os lotes', 'ok'); return; }
+  var ok = await confirmar(mud.length + ' produto(s) têm meta que não é um número exato de lotes. '
+    + 'Arredondar cada dia para cima, em meio lote — o mesmo que aparece na folha impressa?',
+    'Ajustar metas aos lotes', '🔁', 'Ajustar');
+  if (!ok) return;
+  var feitos = 0, erros = 0;
+  for (var i = 0; i < mud.length; i++) {
+    var m = mud[i];
+    var payload = Object.assign({
+      produto_id: m.pid,
+      produto_nome: m.r.produto_nome,
+      setor: m.r.setor || SETOR,
+      meta_semanal: m.tot,
+      atualizado_em: new Date().toISOString()
+    }, m.novo);
+    try {
+      var resp = await fetch(SUPA_URL + '/rest/v1/projecao_base?on_conflict=produto_id,setor', {
+        method: 'POST',
+        headers: Object.assign({}, SH, { 'Prefer': 'resolution=merge-duplicates,return=representation' }),
+        body: JSON.stringify(payload)
+      });
+      if (resp.ok) {
+        var rows = await resp.json();
+        var saved = Array.isArray(rows) ? rows[0] : rows;
+        if (saved && saved.produto_id) PROJ_BASE[saved.produto_id] = saved;
+        feitos++;
+      } else { erros++; }
+    } catch (e) { erros++; }
+  }
+  toast(erros ? ('⚠️ ' + feitos + ' ajustadas, ' + erros + ' com erro') : ('🔁 ' + feitos + ' metas ajustadas aos lotes'), erros ? 'wa' : 'ok');
+  _popularBodyTabela(_diasSemana(PROD_SEM_ISO), _today());
 }
 
 function _mpToggleDia(d) {
@@ -7446,6 +7587,14 @@ var LOTE_MASSA_TRIGO_KG = 1;
 var LOTE_RECEITA_INTEIRA = {
   '1593': true   // BOLO XADREZ — 2,4 kg de massa: 1,2 kg branca + 1,2 kg com chocolate
 };
+// Nº de lotes que aparece na folha para uma meta (kg/un): para cima, em
+// passos de meio lote, com tolerância de 0,05 lote para sobra de arredondamento.
+// É a MESMA regra em todo lugar — folha, massa do dia, ajuste das metas.
+function _lotesExibidos(q, loteSize){
+  q=Number(q)||0;
+  if(!(q>0) || !(loteSize>0)) return 0;
+  return Math.max(0.5, Math.ceil((q/loteSize)*2-0.1)/2);
+}
 // kg de massa de trigo em 1 lote do bolo (0 se não é derivado)
 function _massaPorLote(fic){
   if(!(fic && fic.massaTrigoKg>0)) return 0;
