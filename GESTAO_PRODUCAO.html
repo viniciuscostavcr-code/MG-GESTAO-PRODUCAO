@@ -1520,13 +1520,14 @@ async function imprimirLotesMassa(){
       lst.forEach(function(d){
         var deriv=_ehDerivadoMassa(d.fic);
         var mL=deriv?_massaPorLote(d.fic):0;
-        var f=deriv?(mL/(d.fic.massaTrigoKg||1)):1;      // demais: lote = receita inteira
+        var fr=deriv?1:_fracaoLote(d.fic);
+        var f=deriv?(mL/(d.fic.massaTrigoKg||1)):fr;     // demais: lote = receita (ou a fração configurada)
         var ing=(d.fic.outrosIng||[]).slice().sort(function(x,y){ return y.q-x.q; });
         var nota=NOTAS_LOTE[d.cod];
         var cor=deriv?C.amber:ci.cor;
         h+='<div style="border:1.3px solid '+cor+';border-radius:8px;overflow:hidden;break-inside:avoid;page-break-inside:avoid;">'
           +'<div style="background:'+cor+';color:#fff;padding:4px 8px;display:flex;justify-content:space-between;align-items:baseline;gap:4px;">'
-          +'<span style="font-size:11.5px;font-weight:900;line-height:1.15;">'+d.nome+'</span><span style="font-size:8.5px;font-weight:700;opacity:.9;white-space:nowrap;">1 LOTE</span></div>'
+          +'<span style="font-size:11.5px;font-weight:900;line-height:1.15;">'+d.nome+'</span><span style="font-size:8.5px;font-weight:700;opacity:.9;white-space:nowrap;">1 LOTE'+(fr!==1?' = '+_txtFracao(fr).toUpperCase():'')+'</span></div>'
           +'<div style="padding:4px 8px 5px;">';
         if(deriv){
           h+='<div style="font-size:11px;font-weight:900;padding:2px 0 3px;border-bottom:1px dashed #F5D9BC;">'+box+'Massa de trigo<span style="float:right;color:'+(mL!==LOTE_MASSA_TRIGO_KG?C.red:C.amber)+';">'+_fmtPesoIng(mL)+'</span></div>'
@@ -1576,6 +1577,14 @@ function _htmlEquipe(o){
   var h='<style>@media print{@page{size:A4 landscape;margin:8mm;} *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}}</style>';
   h+='<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;color:'+C.brown+';">';
 
+  // Modo da folha da equipe (implantação em fases):
+  //   'kg'    fase 1 — só o calendário, quantidades em kg/un (sem lotes)
+  //   'kgl'   fase 2 — kg em destaque e o lote pequeno ao lado
+  //   'lotes' fase 3 — lote em destaque + página dos lotes + massa do dia
+  var modo=o.modo||'lotes';
+  var largQtd=(modo==='kgl')?58:(modo==='kg'?46:38);
+
+  if(modo==='lotes'){
   // ───────── PÁGINA 1: TAMANHO DOS LOTES ─────────
   var porCat={}, ordemCat={}, derivs=[];
   (TODOS_PRODS||[]).forEach(function(p){
@@ -1587,7 +1596,7 @@ function _htmlEquipe(o){
     var cat=p.categoria||'SEM CATEGORIA';
     var ci=o.cats[cat]||{cor:'#9CA3AF',ordem:98};
     ordemCat[cat]=ci;
-    (porCat[cat]=porCat[cat]||[]).push({nome:_nomeCurto(p.nome),und:und.toLowerCase(),lote:lote,deriv:_ehDerivadoMassa(fic)});
+    (porCat[cat]=porCat[cat]||[]).push({nome:_nomeCurto(p.nome),und:und.toLowerCase(),lote:lote,deriv:_ehDerivadoMassa(fic),fr:_fracaoLote(fic)});
   });
   var catsOrd=Object.keys(porCat).sort(function(a,b){ return ordemCat[a].ordem-ordemCat[b].ordem; });
   h+=cab('Tamanho dos Lotes');
@@ -1603,18 +1612,20 @@ function _htmlEquipe(o){
       h+='<div style="display:flex;justify-content:space-between;gap:6px;padding:3px 9px;font-size:11.5px;break-inside:avoid;'+(i%2?'background:'+C.grayL+';':'')+'">'
         +'<span style="font-weight:600;">'+it.nome+'</span>'
         +'<span style="white-space:nowrap;font-weight:800;color:'+C.grn2+';">'+_fmtNum(Math.round(it.lote*100)/100)+it.und
-        +(it.deriv?' <span style="font-weight:600;color:'+C.amber+';font-size:9px;">(1kg massa)</span>':'')+'</span></div>';
+        +(it.deriv?' <span style="font-weight:600;color:'+C.amber+';font-size:9px;">(1kg massa)</span>':'')
+        +(!it.deriv && it.fr!==1?' <span style="font-weight:600;color:'+C.red+';font-size:9px;">('+_txtFracao(it.fr)+')</span>':'')+'</span></div>';
     });
     h+='</div>';
   });
   h+='</div>';
   h+='<div style="margin-top:8px;font-size:9px;color:#A0A5A0;">Valores das fichas técnicas. Produto sem ficha não aparece aqui — no calendário ele vem em kg/un.</div>';
+  h+='<div style="page-break-before:always;break-before:page;"></div>';
+  } // fim da página 1 (só no modo lotes)
 
   // ───────── PÁGINA 2: PROGRAMAÇÃO DA SEMANA ─────────
   // No modelo da planilha que a equipe já usava: uma coluna por dia, um
   // produto por linha com a CLASSE ao lado — agora separado por grupo e com
   // a quantidade de lotes. Massa de trigo a bater no topo do dia.
-  h+='<div style="page-break-before:always;break-before:page;"></div>';
   h+=cab('Programação de Produção — '+(SETOR==='CONFEITARIA'?'Conf/Past':SETOR));
   var nomeDia=['DOMINGO','SEGUNDA-FEIRA','TERÇA-FEIRA','QUARTA-FEIRA','QUINTA-FEIRA','SEXTA-FEIRA','SÁBADO'];
   var corClasse={A:'#C0392B',B:'#D97706',C:'#9CA3AF'};
@@ -1629,13 +1640,13 @@ function _htmlEquipe(o){
     h+='<div style="background:'+C.grn2+';color:#fff;text-align:center;padding:4px 2px;">'
       +'<div style="font-size:9.5px;font-weight:800;letter-spacing:.4px;">'+nomeDia[_diaSemNum(d)]+'</div>'
       +'<div style="font-size:10px;opacity:.85;">'+dd[2]+'/'+dd[1]+'</div></div>';
-    if(o.aggMassaDia[j]>0){
+    if(modo==='lotes' && o.aggMassaDia[j]>0){
       h+='<div style="background:#FDF0E0;border-bottom:1.5px solid '+C.amber+';padding:3px 5px;text-align:center;font-size:9.5px;font-weight:800;color:'+C.amber+';">'
         +'🧈 BATER MASSA: '+_fmtNum(Math.round(o.aggMassaDia[j]*10)/10)+' kg</div>';
     }
     // cabeçalho das colunas internas
     h+='<div style="display:flex;font-size:7.5px;font-weight:800;color:'+C.gray+';padding:2px 4px;border-bottom:1px solid '+C.border+';">'
-      +'<span style="flex:1;">PRODUTO</span><span style="width:16px;text-align:center;">CL</span><span style="width:38px;text-align:right;">QTD</span></div>';
+      +'<span style="flex:1;">PRODUTO</span><span style="width:16px;text-align:center;">CL</span><span style="width:'+largQtd+'px;text-align:right;">QTD</span></div>';
     var catAnt=null, zebra=0;
     o.linhas.forEach(function(l){
       var q=l.metas[j];
@@ -1646,15 +1657,21 @@ function _htmlEquipe(o){
       }
       var temLote=l.loteSize>0;
       var nL=temLote?_lotesExibidos(q,l.loteSize):null;
-      var qtd=temLote ? (fL(nL)+' L') : (_fmtMeta(q)+l.un);
+      var corKg=(l.ehUnd?C.orange:C.red);
+      var kgTxt=_fmtMeta(Math.round(q*100)/100)+l.un;
+      var qtd, corQtd;
+      if(modo==='kg'){ qtd=kgTxt; corQtd=corKg; }
+      // kg em destaque e o lote pequeno ao lado
+      else if(modo==='kgl'){ qtd=kgTxt+(temLote?' <span style="font-size:7px;font-weight:700;color:'+C.grn2+';">'+fL(nL)+'L</span>':''); corQtd=corKg; }
+      else { qtd=temLote ? (fL(nL)+' L') : kgTxt; corQtd=temLote?C.grn2:corKg; }
       var cl=l.classeReal||'';
-      h+='<div style="display:flex;align-items:center;font-size:8.5px;line-height:1.25;padding:1.5px 4px;border-bottom:1px solid #F0F0EE;'+((zebra++%2)?'background:'+C.grayL+';':'')+'">'
+      h+='<div style="display:flex;align-items:center;font-size:8.5px;line-height:'+(modo==='kgl'?'1.1':'1.25')+';padding:'+(modo==='kgl'?'0.5px':'1.5px')+' 4px;border-bottom:1px solid #F0F0EE;'+((zebra++%2)?'background:'+C.grayL+';':'')+'">'
         +'<span style="display:inline-block;width:7px;height:7px;border:1px solid '+C.gray+';border-radius:1.5px;margin-right:3px;flex-shrink:0;"></span>'
         +'<span style="flex:1;font-weight:'+(cl==='A'||l.foco?'800':'600')+';line-height:1.15;word-break:break-word;">'+(l.foco?'⭐':'')+_nomeCurto(l.nome)+'</span>'
         +'<span style="width:16px;text-align:center;">'+(cl
             ?'<span style="display:inline-block;min-width:11px;font-size:8px;font-weight:900;color:#fff;border-radius:3px;padding:0 2px;background:'+(corClasse[cl]||C.gray)+';">'+cl+'</span>'
             :'')+'</span>'
-        +'<span style="width:38px;text-align:right;font-weight:900;color:'+(temLote?C.grn2:(l.ehUnd?C.orange:C.red))+';">'+qtd+'</span></div>';
+        +'<span style="width:'+largQtd+'px;text-align:right;font-weight:900;white-space:nowrap;color:'+corQtd+';">'+qtd+'</span></div>';
     });
     h+='</div>';
   });
@@ -1673,7 +1690,10 @@ function _htmlEquipe(o){
     +'<span>'+bdg('A','1º — mais vende, não pode faltar')+'</span>'
     +'<span>'+bdg('B','2º — produzir em seguida')+'</span>'
     +'<span>'+bdg('C','3º — por último')+'</span></div>';
-  h+='<div style="margin-top:4px;font-size:9.5px;color:'+C.gray+';">Dentro de cada grupo a lista já está na ordem de prioridade · ☐ marque quando terminar · <b>L</b> = lotes (ver página 1) · ⭐ foco do mês · sem ficha vem em kg/un</div>';
+  var legQtd = modo==='kg' ? 'quantidade em kg (ou un)'
+            : modo==='kgl' ? 'quantidade em kg · o número pequeno com <b>L</b> é quantos lotes isso dá'
+            : '<b>L</b> = lotes (ver página 1) · sem ficha vem em kg/un';
+  h+='<div style="margin-top:4px;font-size:9.5px;color:'+C.gray+';">Dentro de cada grupo a lista já está na ordem de prioridade · ☐ marque quando terminar · ⭐ foco do mês · '+legQtd+'</div>';
   h+='</div>';
   return h;
 }
@@ -1815,7 +1835,7 @@ async function imprimirPlanejamentoSemanal(versao){
 
   // Versão EQUIPE: página 1 = tamanho dos lotes; página 2 = calendário.
   if(!ehGer){
-    abrirPrintModal(_htmlEquipe({dias:dias,linhas:linhas,aggMassaDia:aggMassaDia,cats:cats,C:C,
+    abrirPrintModal(_htmlEquipe({modo:(versao==='kg'||versao==='kgl')?versao:'lotes',dias:dias,linhas:linhas,aggMassaDia:aggMassaDia,cats:cats,C:C,
       setorIco:setorIco,ini:ini,fim:fim,dataStr:dataStr,abrevDia:abrevDia}));
     return;
   }
@@ -3527,6 +3547,10 @@ let PROD_SEM_ID   = null;        // uuid de producao_semanas
 let PROD_SEM_ISO  = null;        // ISO Monday atual exibida
 let PROD_HOJE_VALS= {};          // prodId → { val, und, done } — rascunho ConfirmarHoje
 let PROD_HOJE_MODE= {};          // prodId → 'lote' | 'peso' — modo de registro escolhido na tela Hoje
+// Como a tela Hoje abre para produtos com ficha (implantação em fases):
+//   'peso' → fases 1 e 2: a equipe digita o peso que saiu (link "registrar em lotes" disponível)
+//   'lote' → fase 3: abre no contador de lotes (link "registrar peso exato" disponível)
+const REGISTRO_HOJE_PADRAO = 'peso';
 let PROD_GRP_COL  = {};          // grupoNome → true se colapsado
 let _planProdId   = null;        // prodId sendo planejado no modal
 let _planDateISO  = null;        // data sendo planejada
@@ -4059,7 +4083,9 @@ function _buildTabelaEsqueleto() {
     + '</div>';
   // Menu ⋮ (fica escondido até clicar)
   var menuProd = '<div id="menuProd" style="display:none;position:absolute;right:14px;top:52px;z-index:60;background:#fff;border:1px solid #DEDEDA;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.14);overflow:hidden;min-width:190px;">'
-    + '<button onclick="fecharMenuProd();imprimirPlanejamentoSemanal(\'chao\');" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#1B4332;font-family:inherit;border-bottom:1px solid #F0F0EE;">🖨️ Semanal — Equipe</button>'
+    + '<button onclick="fecharMenuProd();imprimirPlanejamentoSemanal(\'kg\');" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#1B4332;font-family:inherit;border-bottom:1px solid #F0F0EE;">🖨️ Equipe — em kg <span style="color:#6B7280;font-size:.7rem;">(fase 1)</span></button>'
+    + '<button onclick="fecharMenuProd();imprimirPlanejamentoSemanal(\'kgl\');" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#1B4332;font-family:inherit;border-bottom:1px solid #F0F0EE;">🖨️ Equipe — kg + lote <span style="color:#6B7280;font-size:.7rem;">(fase 2)</span></button>'
+    + '<button onclick="fecharMenuProd();imprimirPlanejamentoSemanal(\'chao\');" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#1B4332;font-family:inherit;border-bottom:1px solid #F0F0EE;">🖨️ Equipe — em lotes <span style="color:#6B7280;font-size:.7rem;">(fase 3)</span></button>'
     + '<button onclick="fecharMenuProd();imprimirLotesMassa();" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#D97706;font-family:inherit;border-bottom:1px solid #F0F0EE;">🧾 Imprimir Lotes (por categoria)</button>'
     + (IS_ADMIN ? '<button onclick="fecharMenuProd();imprimirPlanejamentoSemanal(\'gerencia\');" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#8A6D3B;font-family:inherit;border-bottom:1px solid #F0F0EE;">🖨️ Semanal — Gerência</button>' : '')
     + '<button onclick="fecharMenuProd();imprimirPlanejamentoMensal();" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#1B4332;font-family:inherit;border-bottom:1px solid #F0F0EE;">🖨️ Imprimir Mensal</button>'
@@ -5142,7 +5168,7 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
   const _fic = (typeof fichaDoProduto==='function') ? fichaDoProduto(p) : null;
   const loteSize = _loteDaFicha(_fic, und);
   const temLote = loteSize > 0;
-  const modoAtual = PROD_HOJE_MODE[p.id] || (temLote ? 'lote' : 'peso');
+  const modoAtual = PROD_HOJE_MODE[p.id] || ((temLote && REGISTRO_HOJE_PADRAO === 'lote') ? 'lote' : 'peso');
   const pesoBase = (valAtual !== '' && valAtual !== null && valAtual !== undefined) ? (parseFloat(valAtual)||0) : (lote.qtd||0);
   const lotesAtual = temLote ? Math.max(0, Math.round((pesoBase / loteSize) * 2) / 2) : 0;
 
@@ -5214,7 +5240,7 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
       onkeydown="onPhojeKey(event,'${p.id}')">
     <span class="phoje-inp-und">${und.toLowerCase()}</span>
   </div>
-  ${temLote ? '<span class="phoje-lote-alt" id="phoje-lote-back-'+p.id+'"'+(modoAtual==='lote'?' style="display:none;"':'')+' onclick="_toggleLoteModo(\''+p.id+'\')">🔢 voltar para lotes</span>' : ''}
+  ${temLote ? '<span class="phoje-lote-alt" id="phoje-lote-back-'+p.id+'"'+(modoAtual==='lote'?' style="display:none;"':'')+' onclick="_toggleLoteModo(\''+p.id+'\')">🔢 registrar em lotes</span>' : ''}
   <button class="phoje-conf-btn${isDone?' done':''}" id="phoje-btn-${p.id}"
     onclick="confirmarItemHoje('${p.id}',${lote.qtd})">
     ${isDone ? '✅ Confirmado' : '✅ Confirmar '+lote.qtd+und.toLowerCase()}
@@ -7595,6 +7621,21 @@ function _lotesExibidos(q, loteSize){
   if(!(q>0) || !(loteSize>0)) return 0;
   return Math.max(0.5, Math.ceil((q/loteSize)*2-0.1)/2);
 }
+// Lote = FRAÇÃO da receita (a receita da ficha não muda, só o tamanho do
+// lote). Para produtos de receita grande, que sobrariam com o lote inteiro.
+// Chave = código da ficha/produto (sem zeros à esquerda) OU nome da ficha.
+var LOTE_FRACAO_RECEITA = {
+  '2657': 0.5, 'bolo de macaxeira': 0.5,   // BOLO DE MACAXEIRA — 9,32 kg → lote 4,66 kg
+  '5221': 0.5, 'bolo de pamonha':   0.5    // BOLO PAMONHA      — 8,89 kg → lote 4,45 kg
+};
+function _fracaoLote(fic){
+  if(!fic) return 1;
+  var c=String(fic.cod||'').trim().replace(/^0+/,'');
+  if(c && LOTE_FRACAO_RECEITA[c]) return LOTE_FRACAO_RECEITA[c];
+  var n=_normProdNome(fic.nome||'');
+  return LOTE_FRACAO_RECEITA[n] || 1;
+}
+function _txtFracao(fr){ return fr===0.5?'½ receita':(fr===0.25?'¼ receita':(_fmtNum(fr)+' receita')); }
 // kg de massa de trigo em 1 lote do bolo (0 se não é derivado)
 function _massaPorLote(fic){
   if(!(fic && fic.massaTrigoKg>0)) return 0;
@@ -7607,7 +7648,7 @@ function _loteDaFicha(fic, und){
   var rend = ehUnd ? (fic.rendimentoUn||0) : (fic.rendimentoKg||0);
   if(!(rend>0)) return 0;
   if(fic.massaTrigoKg>0) return rend * (_massaPorLote(fic) / fic.massaTrigoKg);
-  return rend;
+  return rend * _fracaoLote(fic);
 }
 function _ehDerivadoMassa(fic){ return !!(fic && fic.massaTrigoKg>0); }
 // kg de massa por unidade do produto (kg ou und) — 0 se não é derivado
