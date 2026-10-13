@@ -337,11 +337,18 @@ input:focus,select:focus{border-color:var(--grn);background:#fff;}
           <option value="und">📦 UND</option>
         </select>
       </div>
-      <div class="fg"><label>Mínimo</label><input type="text" inputmode="decimal" id="mpMin" min="0" step="any" placeholder="0"></div>
-      <div class="fg"><label>Máximo</label><input type="text" inputmode="decimal" id="mpMax" min="0" step="any" placeholder="0"></div>
+      <div class="fg"><label>Mínimo</label><input type="number" id="mpMin" min="0" step="any" placeholder="0"></div>
+      <div class="fg"><label>Máximo</label><input type="number" id="mpMax" min="0" step="any" placeholder="0"></div>
     </div>
-    <div style="margin-top:8px;">
-      <div class="fg"><label>Validade (dias)</label><input type="text" inputmode="decimal" id="mpVal" min="1" step="1" placeholder="1"></div>
+    <div class="r2" style="margin-top:8px;">
+      <div class="fg"><label>Validade (dias)</label><input type="number" id="mpVal" min="1" step="1" placeholder="1"></div>
+      <div class="fg"><label>ABC</label>
+        <select id="mpAbc">
+          <option value="A">🔴 A</option>
+          <option value="B">🟡 B</option>
+          <option value="C" selected>🟢 C</option>
+        </select>
+      </div>
     </div>
     <div class="modal-btns">
       <button class="btn btn-gray" style="flex:1" onclick="fecharModalProd()">Cancelar</button>
@@ -367,7 +374,7 @@ input:focus,select:focus{border-color:var(--grn);background:#fff;}
       <!-- Mínimo gôndola -->
       <div class="fg" style="margin-top:10px;">
         <label>Mínimo gôndola (kg/un)</label>
-        <input type="text" inputmode="decimal" id="ckMinGon" min="0" step="0.1" placeholder="0"
+        <input type="number" id="ckMinGon" min="0" step="0.1" placeholder="0"
           style="background:#fff;">
         <div style="font-size:.62rem;color:var(--gray);margin-top:3px;">Peso/quantidade mínima total em gôndola</div>
       </div>
@@ -384,7 +391,7 @@ input:focus,select:focus{border-color:var(--grn);background:#fff;}
       <!-- Mínimo freezer — condicional -->
       <div id="ckFrzRow" style="display:none;" class="fg">
         <label style="margin-top:10px;display:block;">Mínimo freezer (kg/un)</label>
-        <input type="text" inputmode="decimal" id="ckMinFrz" min="0" step="0.1" placeholder="5"
+        <input type="number" id="ckMinFrz" min="0" step="0.1" placeholder="5"
           style="background:#fff;">
       </div>
 
@@ -405,13 +412,13 @@ input:focus,select:focus{border-color:var(--grn);background:#fff;}
       <div class="ck-sec-ttl">📊 Meta de Produção</div>
       <p style="font-size:.72rem;color:var(--gray);margin-bottom:2px;">Quantidade sugerida por dia da semana</p>
       <div class="meta-dias-grid">
-        <div class="meta-dia-item"><span class="meta-dia-lbl">Seg</span><input class="meta-dia-input" type="text" id="mpMetaSeg" min="0" inputmode="numeric" placeholder="0" oninput="_calcMetaSem()"></div>
-        <div class="meta-dia-item"><span class="meta-dia-lbl">Ter</span><input class="meta-dia-input" type="text" id="mpMetaTer" min="0" inputmode="numeric" placeholder="0" oninput="_calcMetaSem()"></div>
-        <div class="meta-dia-item"><span class="meta-dia-lbl">Qua</span><input class="meta-dia-input" type="text" id="mpMetaQua" min="0" inputmode="numeric" placeholder="0" oninput="_calcMetaSem()"></div>
-        <div class="meta-dia-item"><span class="meta-dia-lbl">Qui</span><input class="meta-dia-input" type="text" id="mpMetaQui" min="0" inputmode="numeric" placeholder="0" oninput="_calcMetaSem()"></div>
-        <div class="meta-dia-item"><span class="meta-dia-lbl">Sex</span><input class="meta-dia-input" type="text" id="mpMetaSex" min="0" inputmode="numeric" placeholder="0" oninput="_calcMetaSem()"></div>
-        <div class="meta-dia-item"><span class="meta-dia-lbl">Sáb</span><input class="meta-dia-input" type="text" id="mpMetaSab" min="0" inputmode="numeric" placeholder="0" oninput="_calcMetaSem()"></div>
-        <div class="meta-dia-item"><span class="meta-dia-lbl">Dom</span><input class="meta-dia-input" type="text" id="mpMetaDom" min="0" inputmode="numeric" placeholder="0" oninput="_calcMetaSem()"></div>
+        <div class="meta-dia-item"><span class="meta-dia-lbl">Seg</span><input class="meta-dia-input" type="number" id="mpMetaSeg" min="0" inputmode="numeric" placeholder="0" oninput="_calcMetaSem()"></div>
+        <div class="meta-dia-item"><span class="meta-dia-lbl">Ter</span><input class="meta-dia-input" type="number" id="mpMetaTer" min="0" inputmode="numeric" placeholder="0" oninput="_calcMetaSem()"></div>
+        <div class="meta-dia-item"><span class="meta-dia-lbl">Qua</span><input class="meta-dia-input" type="number" id="mpMetaQua" min="0" inputmode="numeric" placeholder="0" oninput="_calcMetaSem()"></div>
+        <div class="meta-dia-item"><span class="meta-dia-lbl">Qui</span><input class="meta-dia-input" type="number" id="mpMetaQui" min="0" inputmode="numeric" placeholder="0" oninput="_calcMetaSem()"></div>
+        <div class="meta-dia-item"><span class="meta-dia-lbl">Sex</span><input class="meta-dia-input" type="number" id="mpMetaSex" min="0" inputmode="numeric" placeholder="0" oninput="_calcMetaSem()"></div>
+        <div class="meta-dia-item"><span class="meta-dia-lbl">Sáb</span><input class="meta-dia-input" type="number" id="mpMetaSab" min="0" inputmode="numeric" placeholder="0" oninput="_calcMetaSem()"></div>
+        <div class="meta-dia-item"><span class="meta-dia-lbl">Dom</span><input class="meta-dia-input" type="number" id="mpMetaDom" min="0" inputmode="numeric" placeholder="0" oninput="_calcMetaSem()"></div>
       </div>
       <div class="meta-sem-row">
         <span class="meta-sem-lbl">📅 Meta semanal</span>
@@ -430,7 +437,7 @@ input:focus,select:focus{border-color:var(--grn);background:#fff;}
       <input type="text" id="embNome" placeholder="Ex: D10, B1, Pacote 4un" style="text-transform:uppercase;">
     </div>
     <div class="fg" style="margin-top:8px;"><label>Gramatura média (g) *</label>
-      <input type="text" id="embGram" inputmode="numeric" min="1" step="1" placeholder="Ex: 500">
+      <input type="number" id="embGram" inputmode="numeric" min="1" step="1" placeholder="Ex: 500">
     </div>
     <div class="modal-btns">
       <button class="btn btn-gray" style="flex:1" onclick="fecharModalEmb()">Cancelar</button>
@@ -455,15 +462,6 @@ input:focus,select:focus{border-color:var(--grn);background:#fff;}
         <option value="admin">Admin — acesso total</option>
       </select>
     </div>
-    <div class="fg" style="margin-top:8px;"><label>Setor *</label>
-      <select id="muSetor">
-        <option value="">— Selecione o setor —</option>
-        <option value="PADARIA">Padaria</option>
-        <option value="CONFEITARIA">Confeitaria</option>
-        <option value="LANCHONETE">Lanchonete</option>
-        <option value="PASTELARIA">Pastelaria</option>
-      </select>
-    </div>
     <div class="modal-btns">
       <button class="btn btn-gray" style="flex:1" onclick="fecharModalUsuario()">Cancelar</button>
       <button class="btn btn-grn" style="flex:2" onclick="salvarUsuario()">✅ Salvar</button>
@@ -485,9 +483,6 @@ input:focus,select:focus{border-color:var(--grn);background:#fff;}
 </div>
 
 <script>
-// Normaliza vírgula decimal (BR) para ponto antes de parseFloat
-function parseDecBR(v){return parseFloat(String(v==null?'':v).replace(',','.'));}
-
 // ── SESSÃO — somente admin ──
 (function(){
   const k='gf_session',max=8*60*60*1000;
@@ -643,7 +638,6 @@ function abrirModalUsuario(id=null){
   document.getElementById('muNome').value='';
   document.getElementById('muPin').value='';
   document.getElementById('muRole').value='operador';
-  document.getElementById('muSetor').value='';
   document.getElementById('modalUsuarioTitulo').textContent='Novo usuário';
   if(id){
     const u=USUARIOS.find(x=>x.id===id);
@@ -652,7 +646,6 @@ function abrirModalUsuario(id=null){
     document.getElementById('muNome').value=u.nome;
     document.getElementById('muPin').placeholder='deixe vazio para manter';
     document.getElementById('muRole').value=u.role||'operador';
-    document.getElementById('muSetor').value=u.setor||'';
     document.getElementById('modalUsuarioTitulo').textContent='Editar usuário';
   }
   document.getElementById('modalUsuario').classList.add('on');
@@ -668,15 +661,13 @@ async function salvarUsuario(){
   const nome=document.getElementById('muNome').value.trim().toUpperCase();
   const pin=document.getElementById('muPin').value.trim();
   const role=document.getElementById('muRole').value;
-  const setor=document.getElementById('muSetor').value;
   if(!nome){toast('⚠️ Nome obrigatório','er');return;}
-  if(!setor){toast('⚠️ Setor obrigatório','er');return;}
   if(!id&&pin.length!==4){toast('⚠️ PIN deve ter 4 dígitos','er');return;}
   if(pin&&pin.length!==4){toast('⚠️ PIN deve ter 4 dígitos','er');return;}
   if(pin&&!/^\d{4}$/.test(pin)){toast('⚠️ PIN deve ser numérico','er');return;}
   try{
     if(id){
-      const data={nome,role,setor};
+      const data={nome,role};
       if(pin)data.pin=pin;
       await sbUpdate('usuarios',id,data);
       const idx=USUARIOS.findIndex(u=>u.id===id);
@@ -686,7 +677,7 @@ async function salvarUsuario(){
       const r=await fetch(`${SUPA_URL}/rest/v1/usuarios`,{
         method:'POST',
         headers:{...H,'Prefer':'return=representation'},
-        body:JSON.stringify({nome,pin,role,setor,ativo:true})
+        body:JSON.stringify({nome,pin,role,ativo:true})
       });
       if(!r.ok)throw new Error(await r.text());
       const [novo]=await r.json();
@@ -811,7 +802,7 @@ function renderProds(){
 }
 
 // ── EDITAR / NOVO PRODUTO ──
-async function abrirNovoProd(){
+function abrirNovoProd(){
   _editId=null;
   document.getElementById('modalProdTitulo').textContent='➕ Novo produto';
   document.getElementById('mpId').value='';
@@ -820,21 +811,20 @@ async function abrirNovoProd(){
   document.getElementById('mpMin').value='';
   document.getElementById('mpMax').value='';
   document.getElementById('mpVal').value='1';
-  // (campo mpAbc removido — não existe no HTML do modal, causava TypeError silencioso)
+  document.getElementById('mpAbc').value='C';
   _preencherSetorSelect('mpSetor','PADARIA');
   document.getElementById('mpUnd').value='kg';
   document.getElementById('embSection').style.display='none';
   // Sempre mostrar seção checklist com valores padrão
   document.getElementById('ckSection').style.display='block';
   _preencherCkSection(null);
-  // Seção meta (só admin) — _preencherMetaSection é async; tratamos erro pra
-  // não bloquear a abertura do modal em caso de falha de rede no celular
+  // Seção meta (só admin)
   if(IS_ADMIN){
     document.getElementById('metaSection').style.display='block';
-    try{ await _preencherMetaSection(null); }catch(e){ console.warn('_preencherMetaSection falhou:', e); }
+    _preencherMetaSection(null);
   }
   document.getElementById('modalProd').classList.add('on');
-  setTimeout(function(){ document.getElementById('mpNome').focus(); },80);
+  setTimeout(()=>document.getElementById('mpNome').focus(),80);
 }
 function editarProd(id){
   const p=PRODS.find(x=>x.id===id);if(!p)return;
@@ -846,6 +836,7 @@ function editarProd(id){
   document.getElementById('mpMin').value=p.min_estoque||0;
   document.getElementById('mpMax').value=p.max_estoque||0;
   document.getElementById('mpVal').value=p.validade||1;
+  document.getElementById('mpAbc').value=p.abc||'C';
   document.getElementById('mpUnd').value=(p.unidade||'kg').toLowerCase();
   _preencherSetorSelect('mpSetor',p.setor);
   document.getElementById('modalProd').classList.add('on');
@@ -876,11 +867,16 @@ async function salvarProd(){
   const cod=document.getElementById('mpCod').value.trim();
   const setor=document.getElementById('mpSetor').value;
   const und=document.getElementById('mpUnd').value;
-  const min=parseDecBR(document.getElementById('mpMin').value)||0;
-  const max=parseDecBR(document.getElementById('mpMax').value)||0;
-  const val=parseInt(parseDecBR(document.getElementById('mpVal').value))||1;
+  const min=parseFloat(document.getElementById('mpMin').value)||0;
+  const max=parseFloat(document.getElementById('mpMax').value)||0;
+  const val=parseInt(document.getElementById('mpVal').value)||1;
+  const abc=document.getElementById('mpAbc').value;
   const id=_editId||(cod||Date.now().toString());
-  const dados={id,nome,cod,setor,unidade:und,min_estoque:min,max_estoque:max,validade:val,ativo:true,categoria:''};
+  const dados={id,nome,cod,setor,unidade:und,min_estoque:min,max_estoque:max,validade:val,abc,ativo:true};
+  // Categoria (grupo de produção) é definida na organização dos grupos, não
+  // aqui. Produto NOVO começa sem grupo; produto EDITADO mantém o que tinha —
+  // antes este campo ia sempre vazio e apagava o grupo a cada edição.
+  if(!_editId) dados.categoria='';
   try{
     await sbUpsert('produtos',dados);
     if(_editId){
@@ -900,9 +896,9 @@ async function salvarProd(){
       setor: setor,
       classe: ckClasse,
       prioritario: ckClasse === 'A',   // sincroniza legado
-      qtd_minima_gondola: parseDecBR(document.getElementById('ckMinGon').value) || 0,
+      qtd_minima_gondola: parseFloat(document.getElementById('ckMinGon').value) || 0,
       tem_freezer: document.getElementById('ckFreezer').checked,
-      qtd_minima_freezer: parseDecBR(document.getElementById('ckMinFrz').value) || 0,
+      qtd_minima_freezer: parseFloat(document.getElementById('ckMinFrz').value) || 0,
       unidade_checklist: und === 'kg' ? 'kg' : 'un',
       ativo: true
     };
@@ -929,7 +925,7 @@ async function salvarProd(){
 
     // Upsert projecao_base — só admin
     if(IS_ADMIN){
-      await _salvarMetaProd(id, nome, setor, und);
+      await _salvarMetaProd(id, nome, setor, und, abc);
     }
 
     fecharModalProd();renderProds();
@@ -1013,10 +1009,11 @@ function fecharModalEmb() {
 
 async function salvarEmbalagem() {
   const nome = (document.getElementById('embNome').value||'').trim().toUpperCase();
-  const gram = parseInt(parseDecBR(document.getElementById('embGram').value))||0;
+  const gram = parseInt(document.getElementById('embGram').value)||0;
   if (!nome) { toast('⚠️ Nome obrigatório','er'); return; }
   if (gram <= 0) { toast('⚠️ Gramatura deve ser maior que 0','er'); return; }
   if (!_embProdId) return;
+  if (_EMBS.length >= 2) { toast('⚠️ Máximo 2 embalagens por produto','wa'); return; }
   const prod = PRODS.find(p => p.id === _embProdId);
   try {
     // Descobrir próxima ordem (ignora erro se tabela não existe ainda — vai cair no catch abaixo)
@@ -1183,20 +1180,18 @@ async function _preencherMetaSection(prodId) {
 function _calcMetaSem() {
   const total = _META_IDS.reduce((acc, id) => {
     const el = document.getElementById(id);
-    return acc + (el ? (parseDecBR(el.value) || 0) : 0);
+    return acc + (el ? (parseFloat(el.value) || 0) : 0);
   }, 0);
   const el = document.getElementById('mpMetaSem');
   if (el) el.textContent = total || '0';
 }
 
 // Upsert projecao_base (chamado pelo salvarProd)
-async function _salvarMetaProd(prodId, prodNome, setor, unidade) {
-  // categoria não é mais derivada do ABC legado — usa 'OUTROS' como default
-  var categoria = 'OUTROS';
+async function _salvarMetaProd(prodId, prodNome, setor, unidade, categoria) {
   const vals = {};
   _META_DIAS.forEach((d, i) => {
     const el = document.getElementById(_META_IDS[i]);
-    vals[d] = parseDecBR((el && el.value) || '') || 0;
+    vals[d] = parseFloat((el && el.value) || '') || 0;
   });
   const metaSemanal = Object.values(vals).reduce((a, v) => a + v, 0);
   const payload = {
@@ -1306,7 +1301,7 @@ async function renderMetasTabela() {
 
         const cells = _DIAS_KEYS.map((d, i) => {
           const v = dVals[i];
-          return `<td><input class="mi" type="text" min="0" inputmode="numeric"
+          return `<td><input class="mi" type="number" min="0" inputmode="numeric"
             id="mti_${p.id}_${d}" value="${v > 0 ? v : ''}" placeholder=""
             oninput="_mtCalcSem('${p.id}')"
             onblur="_mtSalvar('${p.id}','${escHtml(p.nome)}','${p.unidade||'kg'}')"></td>`;
@@ -1314,7 +1309,7 @@ async function renderMetasTabela() {
 
         tbody += `<tr>
           <td class="col-nm" title="${escHtml(p.nome)}">${star}${escHtml(p.nome)}</td>
-          <td><input class="mi mi-sem" type="text" min="0" inputmode="numeric"
+          <td><input class="mi mi-sem" type="number" min="0" inputmode="numeric"
             id="mti_${p.id}_sem" value="${sem > 0 ? sem : ''}" placeholder=""
             onkeydown="if(event.key==='Enter'){event.preventDefault();_mtDistribuir('${p.id}')}"
             onblur="_mtSalvar('${p.id}','${escHtml(p.nome)}','${p.unidade||'kg'}')"></td>
@@ -1345,7 +1340,7 @@ async function renderMetasTabela() {
 function _mtCalcSem(prodId) {
   const total = _DIAS_KEYS.reduce((acc, d) => {
     const el = document.getElementById('mti_' + prodId + '_' + d);
-    return acc + (el ? (parseDecBR(el.value) || 0) : 0);
+    return acc + (el ? (parseFloat(el.value) || 0) : 0);
   }, 0);
   const sem = document.getElementById('mti_' + prodId + '_sem');
   if (sem) sem.value = total > 0 ? total : '';
@@ -1354,14 +1349,14 @@ function _mtCalcSem(prodId) {
 // Distribui meta/sem pelos dias ativos ao pressionar Enter no campo total
 function _mtDistribuir(prodId) {
   const semEl = document.getElementById('mti_' + prodId + '_sem');
-  const novaMeta = parseDecBR(semEl ? semEl.value : '') || 0;
+  const novaMeta = parseFloat(semEl ? semEl.value : '') || 0;
   if (novaMeta <= 0) return;
 
   // Captura valores atuais de cada dia ANTES de qualquer alteração
   const currentVals = {};
   _DIAS_KEYS.forEach(d => {
     const el = document.getElementById('mti_' + prodId + '_' + d);
-    currentVals[d] = el ? (parseDecBR(el.value) || 0) : 0;
+    currentVals[d] = el ? (parseFloat(el.value) || 0) : 0;
   });
 
   // Dias com valor > 0 = "dias ativos"; se nenhum, usa Seg-Sáb (dias úteis)
@@ -1405,7 +1400,7 @@ async function _mtSalvar(prodId, prodNome, unidade) {
   let meta = 0;
   _DIAS_KEYS.forEach(d => {
     const el = document.getElementById('mti_' + prodId + '_' + d);
-    const v  = parseDecBR((el && el.value) || '') || 0;
+    const v  = parseFloat((el && el.value) || '') || 0;
     diasVals[d] = v;
     meta += v;
   });
