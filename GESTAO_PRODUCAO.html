@@ -1574,6 +1574,10 @@ async function imprimirLotesMassa(){
 //            produtos do setor com ficha técnica, agrupados por categoria.
 // Página 2 — Calendário da semana: uma coluna por dia, com o que produzir e
 //            quantos lotes, em letra grande. Massa de trigo no topo do dia.
+// Bolo que sai da massa de trigo (pela ficha ou pela categoria)
+function _ehBoloMassa(l){
+  return (l.massaLote>0) || String(l.categoria||'').toUpperCase()==='BOLOS MASSA DE TRIGO';
+}
 function _nomeCurto(n){ return String(n||'').replace(/\s+(KG|UND|UN)\s*$/i,'').trim(); }
 function _htmlEquipe(o){
   var C=o.C, dias=o.dias;
@@ -1654,6 +1658,10 @@ function _htmlEquipe(o){
     if(modo==='lotes' && o.aggMassaDia[j]>0){
       h+='<div style="background:#FDF0E0;border-bottom:1.5px solid '+C.amber+';padding:3px 5px;text-align:center;font-size:9.5px;font-weight:800;color:'+C.amber+';">'
         +'🧈 BATER MASSA: '+_fmtNum(Math.round(o.aggMassaDia[j]*10)/10)+' kg</div>';
+    } else if(o.aggMassaDia[j]<=0 && o.linhas.some(_ehBoloMassa)){
+      // Dia sem bolo da massa planejado: a massa sai mesmo assim, só para repor.
+      h+='<div style="background:#F4F4F2;border-bottom:1.5px dashed '+C.amber+';padding:3px 5px;text-align:center;font-size:9px;font-weight:800;color:#8A6D3B;">'
+        +'🧈 MASSA DE TRIGO: só complemento</div>';
     }
     // cabeçalho das colunas internas
     h+='<div style="display:flex;font-size:7.5px;font-weight:800;color:'+C.gray+';padding:2px 4px;border-bottom:1px solid '+C.border+';">'
@@ -1661,7 +1669,10 @@ function _htmlEquipe(o){
     var catAnt=null, zebra=0;
     o.linhas.forEach(function(l){
       var q=l.metas[j];
-      if(!(q>0)) return;
+      // Bolos da massa de trigo aparecem TODOS os dias: sem meta no dia,
+      // entram como "só complemento" (repor a gôndola, sem lote cheio).
+      var compl = !(q>0) && _ehBoloMassa(l);
+      if(!(q>0) && !compl) return;
       if(l.categoria!==catAnt){
         h+='<div style="background:'+l.cor+';color:#fff;font-size:7.5px;font-weight:800;letter-spacing:.4px;padding:1.5px 4px;text-transform:uppercase;">'+l.categoria+'</div>';
         catAnt=l.categoria; zebra=0;
@@ -1675,6 +1686,7 @@ function _htmlEquipe(o){
       // kg em destaque e o lote pequeno ao lado
       else if(modo==='kgl'){ qtd=kgTxt+(temLote?' <span style="font-size:7px;font-weight:700;color:'+C.grn2+';">'+fL(nL)+'L</span>':''); corQtd=corKg; }
       else { qtd=temLote ? (fL(nL)+' L') : kgTxt; corQtd=temLote?C.grn2:corKg; }
+      if(compl){ qtd='<span style="font-size:7px;font-weight:700;font-style:italic;">só compl.</span>'; corQtd='#8A6D3B'; }
       var cl=l.classeReal||'';
       h+='<div style="display:flex;align-items:center;font-size:8.5px;line-height:'+(modo==='kgl'?'1.1':'1.25')+';padding:'+(modo==='kgl'?'0.5px':'1.5px')+' 4px;border-bottom:1px solid #F0F0EE;'+((zebra++%2)?'background:'+C.grayL+';':'')+'">'
         +'<span style="display:inline-block;width:7px;height:7px;border:1px solid '+C.gray+';border-radius:1.5px;margin-right:3px;flex-shrink:0;"></span>'
@@ -1705,6 +1717,9 @@ function _htmlEquipe(o){
             : modo==='kgl' ? 'quantidade em kg · o número pequeno com <b>L</b> é quantos lotes isso dá'
             : '<b>L</b> = lotes (ver página 1) · sem ficha vem em kg/un';
   h+='<div style="margin-top:4px;font-size:9.5px;color:'+C.gray+';">Dentro de cada grupo a lista já está na ordem de prioridade · ☐ marque quando terminar · ⭐ foco do mês · '+legQtd+'</div>';
+  if(o.linhas.some(_ehBoloMassa)){
+    h+='<div style="margin-top:3px;font-size:9.5px;color:#8A6D3B;"><b>só compl.</b> = bolo da massa de trigo sem meta no dia: faça só o necessário para repor a gôndola, sem lote cheio.</div>';
+  }
   h+='</div>';
   return h;
 }
@@ -1943,7 +1958,9 @@ async function imprimirPlanejamentoSemanal(versao){
       var nLotes=(q>0 && temLote)?_lotesExibidos(q,l.loteSize):null;
       if(nLotes)totLotes+=nLotes;
       var inner;
-      if(q<=0){
+      if(q<=0 && _ehBoloMassa(l)){
+        inner='<span style="color:#8A6D3B;font-size:8px;font-style:italic;font-weight:700;">compl.</span>';
+      }else if(q<=0){
         inner='<span style="color:#D9DDD9;font-size:10px;">·</span>';
       }else if(nLotes!==null){
         inner='<span style="font-weight:900;color:'+C.grn2+';font-size:13px;">'+_fL(nLotes)+' L</span>'
@@ -4713,7 +4730,7 @@ function _mpRenderLotes(prod, und) {
     });
   }
   if (ref) {
-    var semKg = ref.valor * diasAbertos;
+    var semKg = ref.valorDia * diasAbertos;
     var semLotes = Math.ceil((semKg / _mpLoteSize) * 2) / 2;
     html += '<br>📊 Venda da semana: ~' + _fmtNum(Math.round(semKg*10)/10) + u
       + ' ≈ <strong>' + _fmtLote(semLotes) + ' lote' + (semLotes!==1?'s':'') + '</strong>';
@@ -5149,7 +5166,11 @@ function _vendaNaUnidade(p, qtdVenda){
   return qtdVenda;
 }
 // Independente da meta cadastrada manualmente — é o que os dados dizem hoje.
-function _sugestaoDados(p) {
+// dsem (0=dom … 6=sáb), opcional: o dia para o qual a sugestão é feita.
+// Se o produto NÃO é feito todo dia, a produção de hoje tem que cobrir a
+// venda até a próxima produção (pelos dias com meta em projecao_base):
+// feito seg/qua/sex → a de segunda cobre seg + ter = 2 dias de venda.
+function _sugestaoDados(p, dsem) {
   var cn = String(p.cod||'').trim().replace(/^0+/,'');
   var medias = (typeof MEDIA_VENDAS!=='undefined' && MEDIA_VENDAS[SETOR]) ? MEDIA_VENDAS[SETOR] : null;
   var mediaDia = (medias && medias._ok && cn && medias[cn]!==undefined) ? medias[cn] : null;
@@ -5157,7 +5178,23 @@ function _sugestaoDados(p) {
   mediaDia = _vendaNaUnidade(p, mediaDia);
 
   var ehUnd = (p.unidade||'KG').toUpperCase()==='UND';
-  var sugerido = mediaDia * 1.10;  // +10% de folga para não faltar
+  var sugeridoDia = mediaDia * 1.10;  // +10% de folga para não faltar
+
+  // Dias que esta produção precisa cobrir
+  var cobertura = 1, proxDia = null;
+  var _dk = ['dom','seg','ter','qua','qui','sex','sab'];
+  var pb = (typeof PROJ_BASE!=='undefined' && PROJ_BASE) ? PROJ_BASE[p.id] : null;
+  if (pb && dsem !== undefined && dsem !== null) {
+    var temAlgum = _dk.some(function(k){ return (Number(pb[k])||0) > 0; });
+    if (temAlgum) {
+      cobertura = 7;   // só produz 1 dia na semana → cobre a semana
+      for (var k = 1; k <= 7; k++) {
+        var nx = (dsem + k) % 7;
+        if ((Number(pb[_dk[nx]])||0) > 0) { cobertura = k; proxDia = nx; break; }
+      }
+    }
+  }
+  var sugerido = sugeridoDia * cobertura;
 
   var fic = (typeof fichaDoProduto==='function') ? fichaDoProduto({cod:p.cod, nome:p.nome}) : null;
   var loteSize = _loteDaFicha(fic, ehUnd?'UND':'KG');
@@ -5165,7 +5202,10 @@ function _sugestaoDados(p) {
   var lotes = (loteSize>0) ? (Math.ceil((sugerido/loteSize)*2)/2) : null;
 
   return {
-    valor: Math.round(sugerido*10)/10,
+    valor: Math.round(sugerido*10)/10,          // para cobrir até a próxima produção
+    valorDia: Math.round(sugeridoDia*10)/10,    // venda de 1 dia (+10%)
+    cobertura: cobertura,
+    proxDia: proxDia,
     lotes: lotes!==null ? (Math.round(lotes*10)/10) : null,
     loteSize: loteSize
   };
@@ -5230,7 +5270,7 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
 
   // Sugestão baseada em venda real + lote da ficha — independente do que
   // está cadastrado manualmente na projeção. Só aparece quando há dado.
-  var _sd = _sugestaoDados(p);
+  var _sd = _sugestaoDados(p, dsem);
   var sugDadosHtml = '';
   // Só o admin vê: é referência de planejamento. O operador segue a meta
   // cadastrada, sem a tentação de "usar" a venda no lugar do plano.
@@ -5238,7 +5278,11 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
     var _lTxt = (_sd.lotes===0.5) ? '½' : _fmtLote(_sd.lotes);
     var _lotesTxt = (_sd.lotes!==null) ? (' <span style="color:#8A9590;">(~'+_lTxt+' lote'+(_sd.lotes>1?'s':'')+')</span>') : '';
     sugDadosHtml = '<div class="phoje-sug" style="background:#FEF3EC;border-radius:7px;padding:4px 8px;margin-top:3px;">'
-      +'📊 Baseado na venda: <strong style="color:#B45309;">'+_fmtNum(_sd.valor)+und.toLowerCase()+'</strong>'+_lotesTxt
+      +'📊 Baseado na venda: <strong style="color:#B45309;">'+_fmtNum(_sd.valor)+und.toLowerCase()+'</strong>'
+      +(_sd.cobertura>1
+        ? ' <span style="color:#8A9590;">para '+_sd.cobertura+' dias'+(_sd.proxDia!==null?' (até a próxima produção, '+['dom','seg','ter','qua','qui','sex','sáb'][_sd.proxDia]+')':'')+'</span>'
+        : '')
+      +_lotesTxt
       +' <span onclick="_usarSugestaoDados(\''+p.id+'\','+_sd.valor+')" '
       +'style="margin-left:6px;color:#2D6A4F;font-weight:700;text-decoration:underline;cursor:pointer;">usar</span>'
       +'</div>';
