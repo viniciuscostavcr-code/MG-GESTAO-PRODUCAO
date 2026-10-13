@@ -1368,6 +1368,7 @@ async function imprimirFolhaComMedia(){
     var catInfo=cats[catNome]||{cor:'#9CA3AF',ordem:98};
     var cn=String(p.cod||'').trim().replace(/^0+/,'');
     var media=(medias&&medias._ok&&cn&&medias[cn]!==undefined)?medias[cn]:null;
+    media=_vendaNaUnidade(p, media);   // kg do caixa → unidades, quando aplicável
     var ehUnd=/UND|UN\b/i.test(p.unidade||'');
     linhas.push({nome:p.nome,categoria:catNome,cor:catInfo.cor,ordemCat:catInfo.ordem,
                  media:media,ehUnd:ehUnd,posVenda:(p.ordem_grupo!==null&&p.ordem_grupo!==undefined)?p.ordem_grupo:99999});
@@ -1485,16 +1486,23 @@ async function imprimirLotesMassa(){
   if (typeof carregarFichas === 'function') await carregarFichas();
   var cats = (typeof carregarCategorias === 'function') ? await carregarCategorias() : {};
   var C={grn:'#2D6A4F',grn2:'#1B4332',border:'#E2EDE8',gray:'#6B7280',brown:'#1C1C1A',amber:'#D97706',red:'#C0392B'};
-  var porCat={}, semFicha={};
+  var porCat={}, semFicha={}, semRend={};
   (TODOS_PRODS||[]).forEach(function(p){
     var und=(p.unidade||'KG').toUpperCase();
     var cat=p.categoria||'SEM CATEGORIA';
     var fic=fichaDoProduto({cod:p.cod,nome:p.nome});
     var lote=_loteDaFicha(fic,und);
-    if(!(lote>0)){ (semFicha[cat]=semFicha[cat]||[]).push(_nomeCurto(p.nome)); return; }
+    if(!(lote>0)){
+      if(!fic){ (semFicha[cat]=semFicha[cat]||[]).push(_nomeCurto(p.nome)); return; }
+      // Tem ficha, mas sem rendimento na unidade em que o produto é vendido
+      // (ex.: produto em KG e ficha só com rendimento em unidades).
+      var falta = und==='UND' ? 'ficha sem rendimento em unidades' : 'ficha sem rendimento em kg';
+      (semRend[cat]=semRend[cat]||[]).push(_nomeCurto(p.nome)+' ('+falta+'; produto cadastrado em '+und+')');
+      return;
+    }
     (porCat[cat]=porCat[cat]||[]).push({nome:_nomeCurto(p.nome),cod:String(p.cod||'').replace(/^0+/,''),und:und.toLowerCase(),lote:lote,fic:fic});
   });
-  var todasCats={}; Object.keys(porCat).forEach(function(c){todasCats[c]=1;}); Object.keys(semFicha).forEach(function(c){todasCats[c]=1;});
+  var todasCats={}; Object.keys(porCat).forEach(function(c){todasCats[c]=1;}); Object.keys(semFicha).forEach(function(c){todasCats[c]=1;}); Object.keys(semRend).forEach(function(c){todasCats[c]=1;});
   var ordem=Object.keys(todasCats).sort(function(x,y){ return ((cats[x]||{}).ordem||98)-((cats[y]||{}).ordem||98) || (x<y?-1:1); });
   if(!Object.keys(porCat).length){ toast('Nenhum produto com ficha técnica neste setor','wa'); return; }
   var dataStr=new Date().toLocaleDateString('pt-BR');
@@ -1551,6 +1559,9 @@ async function imprimirLotesMassa(){
     }
     if(semFicha[cat] && semFicha[cat].length){
       h+='<div style="font-size:9.5px;color:'+C.red+';margin-top:4px;">⚠️ Sem ficha técnica (não entram em lotes): '+semFicha[cat].sort().join(', ')+'</div>';
+    }
+    if(semRend[cat] && semRend[cat].length){
+      h+='<div style="font-size:9.5px;color:'+C.amber+';margin-top:3px;">⚠️ Tem ficha, mas falta o rendimento na unidade do produto: '+semRend[cat].sort().join(', ')+'</div>';
     }
   });
   h+='<div style="margin-top:10px;font-size:9.5px;color:#A0A5A0;">GestFood · Se um peso estiver errado, corrija a ficha técnica — esta folha se atualiza sozinha.</div>';
@@ -1792,6 +1803,7 @@ async function imprimirPlanejamentoSemanal(versao){
       // produz (padaria 7, confeitaria 6 — fecha no domingo).
       var cnProd=String(p.cod||'').trim().replace(/^0+/,'');
       var mediaDia=(medias&&medias._ok&&cnProd&&medias[cnProd]!==undefined)?medias[cnProd]:null;
+      mediaDia=_vendaNaUnidade(p, mediaDia);   // kg do caixa → unidades, quando aplicável
       var mediaSemana=(mediaDia!==null)?(mediaDia*(SETOR==='PADARIA'?7:6)):null;
       // Tamanho do lote (rendimento da ficha técnica) — usado para mostrar
       // quantos lotes cada meta diária representa, em vez de só o peso solto.
@@ -5127,12 +5139,22 @@ function _renderConfirmarHoje(vw) {
 
 // Sugestão do dia baseada em dados reais: média de venda (nos dias que
 // vendeu) × folga de 10%, convertida em número de lotes pela ficha técnica.
+// Produto PRODUZIDO em unidades mas VENDIDO no caixa por kg (ex.: sonho):
+// a venda importada vem em kg; convertemos para unidades pelo peso médio de
+// 1 unidade (produtos.peso_unidade_kg). Sem esse peso, não converte.
+function _vendaNaUnidade(p, qtdVenda){
+  if(qtdVenda===null || qtdVenda===undefined) return qtdVenda;
+  var pu=parseFloat(p && p.peso_unidade_kg)||0;
+  if(String(p.unidade||'').toUpperCase()==='UND' && pu>0) return qtdVenda / pu;
+  return qtdVenda;
+}
 // Independente da meta cadastrada manualmente — é o que os dados dizem hoje.
 function _sugestaoDados(p) {
   var cn = String(p.cod||'').trim().replace(/^0+/,'');
   var medias = (typeof MEDIA_VENDAS!=='undefined' && MEDIA_VENDAS[SETOR]) ? MEDIA_VENDAS[SETOR] : null;
   var mediaDia = (medias && medias._ok && cn && medias[cn]!==undefined) ? medias[cn] : null;
   if (mediaDia === null) return null;
+  mediaDia = _vendaNaUnidade(p, mediaDia);
 
   var ehUnd = (p.unidade||'KG').toUpperCase()==='UND';
   var sugerido = mediaDia * 1.10;  // +10% de folga para não faltar
