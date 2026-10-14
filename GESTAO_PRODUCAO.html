@@ -1663,6 +1663,10 @@ function _htmlEquipe(o){
       h+='<div style="background:#F4F4F2;border-bottom:1.5px dashed '+C.amber+';padding:3px 5px;text-align:center;font-size:9px;font-weight:800;color:#8A6D3B;">'
         +'🧈 MASSA DE TRIGO: só complemento</div>';
     }
+    if(o.aggMassaDoceDia && o.aggMassaDoceDia[j]>0){
+      h+='<div style="background:#EEF2FF;border-bottom:1.5px solid #2563EB;padding:3px 5px;text-align:center;font-size:9.5px;font-weight:800;color:#1D4ED8;">'
+        +'🥖 BATER MASSA DOCE: '+_fmtNum(Math.round(o.aggMassaDoceDia[j]*10)/10)+' kg</div>';
+    }
     // cabeçalho das colunas internas
     h+='<div style="display:flex;font-size:7.5px;font-weight:800;color:'+C.gray+';padding:2px 4px;border-bottom:1px solid '+C.border+';">'
       +'<span style="flex:1;">PRODUTO</span><span style="width:16px;text-align:center;">CL</span><span style="width:'+largQtd+'px;text-align:right;">QTD</span></div>';
@@ -1825,7 +1829,7 @@ async function imprimirPlanejamentoSemanal(versao){
       var fic=fichaDoProduto({cod:p.cod,nome:p.nome});
       var loteSize=_loteDaFicha(fic, ehUnd?'UND':'KG');
       var ratioMassa=_massaPorUnid(fic, ehUnd?'UND':'KG');
-      linhas.push({nome:p.nome,ehUnd:ehUnd,un:(ehUnd?'un':'kg'),metas:metas,total:total,classe:cls,classeReal:clsReal,foco:foco,categoria:catNome,cor:catInfo.cor,ordemCat:catInfo.ordem,posVenda:posVenda,mediaSemana:mediaSemana,loteSize:loteSize,ratioMassa:ratioMassa,massaLote:_massaPorLote(fic)});
+      linhas.push({nome:p.nome,ehUnd:ehUnd,un:(ehUnd?'un':'kg'),metas:metas,total:total,classe:cls,classeReal:clsReal,foco:foco,categoria:catNome,cor:catInfo.cor,ordemCat:catInfo.ordem,posVenda:posVenda,mediaSemana:mediaSemana,loteSize:loteSize,ratioMassa:ratioMassa,massaLote:_massaPorLote(fic),pesoUn:(parseFloat(p.peso_unidade_kg)||0)});
       if(ehUnd)totUn+=total;else totKg+=total;
       // acumula por dia da semana (kg e und separados)
       metas.forEach(function(q,di){
@@ -1859,10 +1863,16 @@ async function imprimirPlanejamentoSemanal(versao){
       l.metas.forEach(function(q,di){ aggMassaDia[di]+=_lotesExibidos(q,l.loteSize)*l.massaLote; });
     }
   });
+  // Massa doce a bater em cada dia (soma dos pães do grupo MASSA DOCE)
+  var aggMassaDoceDia=[0,0,0,0,0,0,0];
+  linhas.forEach(function(l){
+    l.metas.forEach(function(q,di){ aggMassaDoceDia[di]+=_massaDoceKg(l,q); });
+  });
+  var totMassaDoceSem=aggMassaDoceDia.reduce(function(a,b){return a+b;},0);
 
   // Versão EQUIPE: página 1 = tamanho dos lotes; página 2 = calendário.
   if(!ehGer){
-    abrirPrintModal(_htmlEquipe({modo:(versao==='kg'||versao==='kgl')?versao:'lotes',dias:dias,linhas:linhas,aggMassaDia:aggMassaDia,cats:cats,C:C,
+    abrirPrintModal(_htmlEquipe({modo:(versao==='kg'||versao==='kgl')?versao:'lotes',dias:dias,linhas:linhas,aggMassaDia:aggMassaDia,aggMassaDoceDia:aggMassaDoceDia,cats:cats,C:C,
       setorIco:setorIco,ini:ini,fim:fim,dataStr:dataStr,abrevDia:abrevDia}));
     return;
   }
@@ -1905,7 +1915,7 @@ async function imprimirPlanejamentoSemanal(versao){
   h+='</tr></thead><tbody>';
 
   var NCOL=ehGer?10:9;
-  var catAnterior=null, massaMostrada=false;
+  var catAnterior=null, massaMostrada=false, massaDoceMostrada=false;
   var totMassaSem=aggMassaDia.reduce(function(a,b){return a+b;},0);
   linhas.forEach(function(l,i){
     var cor=l.ehUnd?C.orange:C.red;
@@ -1935,6 +1945,23 @@ async function imprimirPlanejamentoSemanal(versao){
             : '<span style="color:#D9DDD9;font-size:10px;">·</span>')+'</td>';
       }
       h+='<td style="padding:4px 3px;text-align:center;background:#FDE8CC;font-weight:800;color:'+C.amber+';">'+_fmtNum(Math.round(totMassaSem*10)/10)+'kg</td>';
+      h+=(ehGer?'<td style="background:#FEF3EC;"></td>':'')+'</tr>';
+    }
+
+    // Linha da MASSA DOCE: uma vez, antes do primeiro pão do grupo.
+    if(!massaDoceMostrada && String(l.categoria).toUpperCase()===MASSA_DOCE_GRUPO && totMassaDoceSem>0){
+      massaDoceMostrada=true;
+      h+='<tr style="background:#EEF2FF;border-bottom:2px solid #2563EB;">';
+      h+='<td style="padding:4px 9px;font-weight:800;color:#1D4ED8;border-left:4px solid #2563EB;">'
+        +'🥖 MASSA DOCE <span style="font-weight:600;font-size:8.5px;color:'+C.gray+';">(total a bater no dia)</span></td>';
+      for(var md=0;md<7;md++){
+        var ehDomD=(_diaSemNum(dias[md])===0);
+        h+='<td style="padding:4px 3px;text-align:center;'+(ehDomD?'background:rgba(217,119,6,.05);':'')+'">'
+          +(aggMassaDoceDia[md]>0
+            ? '<span style="font-weight:800;color:#1D4ED8;font-size:12.5px;">'+_fmtNum(Math.round(aggMassaDoceDia[md]*10)/10)+'kg</span>'
+            : '<span style="color:#D9DDD9;font-size:10px;">·</span>')+'</td>';
+      }
+      h+='<td style="padding:4px 3px;text-align:center;background:#E0E7FF;font-weight:800;color:#1D4ED8;">'+_fmtNum(Math.round(totMassaDoceSem*10)/10)+'kg</td>';
       h+=(ehGer?'<td style="background:#FEF3EC;"></td>':'')+'</tr>';
     }
 
@@ -7730,9 +7757,31 @@ function _lotePesoTxt(peso, loteSize, und, fic){
   return t + ')';
 }
 
+// ── MASSA DOCE (mesmo princípio da massa de trigo) ──
+// Uma batida de massa doce é dividida entre os pães do grupo MASSA DOCE
+// (pão doce, mini doce, carteira, bolachão, crioulo, mini dog, recife, sonho).
+// Versão rápida: massa do dia = soma dos kg desses pães × FATOR (kg de massa
+// crua por kg de pão pronto). 1 = sem perda no forno; ajuste quando souber o
+// rendimento real de uma batida. Pão em unidades entra pelo peso de 1 unidade
+// (produtos.peso_unidade_kg); sem esse peso, ele fica fora da soma.
+var MASSA_DOCE_GRUPO = 'MASSA DOCE';
+var MASSA_DOCE_FATOR = 1;
+function _massaDoceKg(l, q){
+  if(String(l.categoria||'').toUpperCase()!==MASSA_DOCE_GRUPO) return 0;
+  q=Number(q)||0; if(!(q>0)) return 0;
+  var kg = l.ehUnd ? (l.pesoUn>0 ? q*l.pesoUn : 0) : q;
+  return kg * MASSA_DOCE_FATOR;
+}
+// Produtos que usam a MESMA receita de outro (sem ficha própria).
+// Chave e valor = nome do produto/ficha (sem acento, minúsculo — como _normProdNome).
+var FICHA_COMPARTILHADA = {
+  'mini hamburguer kg': 'pao de hamburguer kg'   // mini hambúrguer = receita do pão de hambúrguer
+};
 // Ficha de um produto: tenta pelo código, cai no nome
 function fichaDoProduto(prod){
   if(!FICHAS_MAP)return null;
+  var alvo=FICHA_COMPARTILHADA[_normProdNome(prod.nome||'')];
+  if(alvo && FICHAS_NOME && FICHAS_NOME[alvo]) return FICHAS_NOME[alvo];
   var cn=String(prod.cod||'').trim().replace(/^0+/,'');
   if(cn&&FICHAS_MAP[cn])return FICHAS_MAP[cn];
   var nn=_normProdNome(prod.nome||'');
