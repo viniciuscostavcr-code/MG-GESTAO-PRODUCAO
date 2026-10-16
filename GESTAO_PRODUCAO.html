@@ -1608,27 +1608,33 @@ function _htmlEquipe(o){
   // Farinha do dia j, por massa. Massa de trigo e massa doce usam o MESMO
   // número das caixas BATER MASSA; os demais, a quantidade da folha.
   function _farinhaDoDia(j, mdDia){
-    var g={}, ord=[];
-    function add(ch, rot, nome, kg){
+    // categoria → [{nome:'farinha'|pré-mistura, kg}]
+    var porCat={};
+    function add(cat, nome, kg){
       if(!(kg>0)) return;
-      if(!g[ch]){ g[ch]={rot:rot, nome:nome, kg:0}; ord.push(ch); }
-      g[ch].kg+=kg;
+      var l=porCat[cat]=porCat[cat]||[];
+      var x=l.find(function(y){ return y.nome===nome; });
+      if(!x){ x={nome:nome, kg:0}; if(nome==='farinha') l.unshift(x); else l.push(x); }
+      x.kg+=kg;
     }
-    var mTrigo = (modo==='lotes') ? (o.aggMassaDia[j]||0) : 0;
+    // massa doce: mesmo número da caixa BATER MASSA DOCE
+    var catMD=null;
     o.linhas.forEach(function(l){
       var q=l.metas[j]; if(!(q>0)) return;
-      if(l.md) return;                                   // entra pela massa doce
-      if(l.ratioMassa>0){ if(modo!=='lotes') mTrigo+=q*l.ratioMassa; return; }
+      if(l.md){ catMD=l.categoria; return; }
+      if(l.ratioMassa>0){
+        // bolo da massa de trigo: no modo lotes, a massa dos lotes da folha
+        var mk = (modo==='lotes' && l.loteSize>0 && l.massaLote>0)
+          ? _lotesExibidos(q,l.loteSize)*l.massaLote : q*l.ratioMassa;
+        if(_rTrigo>0) add(l.categoria, 'farinha', mk*_rTrigo);
+        return;
+      }
       if(!(l.basePU>0)){ _semBase[_nomeCurto(l.nome)]=l.temFicha?'ficha sem farinha':'sem ficha'; return; }
       var qq = (modo==='lotes' && l.loteSize>0) ? _lotesDaLinha(q,l.loteSize,l.lu)*l.loteSize : q;
-      var cat=String(l.categoria||'');
-      add(cat+'|'+l.baseNome, cat.charAt(0)+cat.slice(1).toLowerCase(), l.baseNome, qq*l.basePU);
+      add(l.categoria, l.baseNome, qq*l.basePU);
     });
-    var out=[];
-    if(mTrigo>0 && _rTrigo>0) out.push({rot:'Massa de trigo', nome:'farinha', kg:mTrigo*_rTrigo});
-    if(mdDia>0 && _rDoce>0)   out.push({rot:'Massa doce',     nome:'farinha', kg:mdDia*_rDoce});
-    ord.forEach(function(ch){ out.push(g[ch]); });
-    return out;
+    if(catMD && mdDia>0 && _rDoce>0) add(catMD, 'farinha', mdDia*_rDoce);
+    return porCat;
   }
 
   if(modo==='lotes'){
@@ -1705,17 +1711,8 @@ function _htmlEquipe(o){
       h+='<div style="background:#EEF2FF;border-bottom:1.5px solid #2563EB;padding:3px 5px;text-align:center;font-size:9.5px;font-weight:800;color:#1D4ED8;">'
         +'🥖 BATER MASSA DOCE: '+_fmtNum(Math.round(_mdDia*10)/10)+' kg <span style="font-weight:600;font-size:8px;">(crua)</span></div>';
     }
-    // 🌾 Farinha a bater no dia, por massa (o padeiro divide nas batidas)
-    var _far=_farinhaDoDia(j, _mdDia);
-    if(_far.length){
-      h+='<div style="background:#FBF5E6;border-bottom:1.5px solid #A16207;padding:3px 5px 4px;color:#713F12;">'
-        +'<div style="text-align:center;font-size:9px;font-weight:900;letter-spacing:.3px;">🌾 FARINHA A BATER</div>';
-      _far.forEach(function(x){
-        h+='<div style="display:flex;justify-content:space-between;gap:4px;font-size:8.5px;line-height:1.25;">'
-          +'<span style="font-weight:700;">'+x.rot+'</span><b style="white-space:nowrap;">'+_fmtFarinha(x.kg)+(x.nome!=='farinha'?' <span style="font-weight:600;font-size:7.5px;">'+x.nome+'</span>':'')+'</b></div>';
-      });
-      h+='</div>';
-    }
+    // 🌾 Farinha a bater de cada grupo — vai ao lado do nome do grupo
+    var _farCat=_farinhaDoDia(j, _mdDia);
     // cabeçalho das colunas internas
     h+='<div style="display:flex;font-size:7.5px;font-weight:800;color:'+C.gray+';padding:2px 4px;border-bottom:1px solid '+C.border+';">'
       +'<span style="flex:1;">PRODUTO</span><span style="width:16px;text-align:center;">CL</span><span style="width:'+largQtd+'px;text-align:right;">QTD</span></div>';
@@ -1727,7 +1724,16 @@ function _htmlEquipe(o){
       var compl = !(q>0) && _ehBoloMassa(l);
       if(!(q>0) && !compl) return;
       if(l.categoria!==catAnt){
-        h+='<div style="background:'+l.cor+';color:#fff;font-size:7.5px;font-weight:800;letter-spacing:.4px;padding:1.5px 4px;text-transform:uppercase;">'+l.categoria+'</div>';
+        var _fc=_farCat[l.categoria]||[];
+        var _mc=0;
+        if(modo!=='lotes') o.linhas.forEach(function(x){ if(x.categoria===l.categoria && x.massaPU>0 && x.metas[j]>0) _mc+=x.metas[j]*x.massaPU; });
+        var _ft=_fc.map(function(x){
+          return _fmtFarinha(x.kg)+(x.nome!=='farinha'?' <span style="font-weight:600;text-transform:none;">'+x.nome+'</span>':'');
+        }).join(' + ');
+        if(_mc>0) _ft=(_ft?_ft+' · ':'')+_fmtNum(Math.round(_mc*10)/10)+' kg massa';
+        h+='<div style="background:'+l.cor+';color:#fff;font-size:7.5px;font-weight:800;letter-spacing:.4px;padding:1.5px 4px;text-transform:uppercase;display:flex;flex-wrap:wrap;justify-content:space-between;column-gap:4px;row-gap:1px;align-items:baseline;">'
+          +'<span>'+l.categoria+'</span>'
+          +(_ft?'<span style="white-space:normal;text-align:right;margin-left:auto;text-transform:none;background:rgba(255,255,255,.22);border-radius:3px;padding:0 3px;font-size:8px;letter-spacing:0;">🌾 '+_ft+'</span>':'')+'</div>';
         catAnt=l.categoria; zebra=0;
       }
       var temLote=l.loteSize>0;
@@ -1746,6 +1752,13 @@ function _htmlEquipe(o){
       var mdCrua=_massaDoceKg(l,q);
       if(!compl && mdCrua>0 && modo!=='lotes'){ qtd=_fmtNum(Math.round(mdCrua*10)/10)+'kg'; corQtd='#1D4ED8'; }
       if(!compl && l.md && modo==='lotes' && nL){ qtd=_fmtNum(nL)+' L'; corQtd='#1D4ED8'; }
+      // Produto de massa compartilhada (massa francês, folhada…): nos modos kg
+      // a folha mostra a MASSA crua a separar para ele — é o rateio da batida.
+      if(!compl && l.massaPU>0 && modo!=='lotes'){
+        qtd=_fmtNum(Math.round(q*l.massaPU*10)/10)+'kg'
+          +(l.ehUnd?'<br><span style="font-size:7px;font-weight:700;color:'+C.orange+';">'+_fmtMeta(q)+'un</span>':'');
+        corQtd='#1D4ED8';
+      }
       var cl=l.classeReal||'';
       h+='<div style="display:flex;align-items:center;font-size:8.5px;line-height:'+(modo==='kgl'?'1.1':'1.25')+';padding:'+(modo==='kgl'?'0.5px':'1.5px')+' 4px;border-bottom:1px solid #F0F0EE;'+((zebra++%2)?'background:'+C.grayL+';':'')+'">'
         +'<span style="display:inline-block;width:7px;height:7px;border:1px solid '+C.gray+';border-radius:1.5px;margin-right:3px;flex-shrink:0;"></span>'
@@ -1777,10 +1790,10 @@ function _htmlEquipe(o){
             : modo==='kgl' ? 'quantidade em kg · o número pequeno com <b>L</b> é quantos lotes isso dá'
             : '<b>L</b> = lotes (ver página 1) · sem ficha vem em kg/un';
   h+='<div style="margin-top:4px;font-size:9.5px;color:'+C.gray+';">Dentro de cada grupo a lista já está na ordem de prioridade · ☐ marque quando terminar · ⭐ foco do mês · '+legQtd+'</div>';
-  if(o.aggMassaDoceDia && o.aggMassaDoceDia.some(function(x){return x>0;})){
-    h+='<div style="margin-top:3px;font-size:9.5px;color:#1D4ED8;"><b>Massa doce</b> (números em azul): é tudo <b>massa crua</b>. Bata o total do dia e separe na balança a massa de cada pão.</div>';
+  if((o.aggMassaDoceDia && o.aggMassaDoceDia.some(function(x){return x>0;})) || (modo!=='lotes' && o.linhas.some(function(x){ return x.massaPU>0; }))){
+    h+='<div style="margin-top:3px;font-size:9.5px;color:#1D4ED8;"><b>Números em azul</b>: kg de <b>massa crua</b> a separar na balança para cada produto. Bata a massa do grupo e divida pela lista.</div>';
   }
-  h+='<div style="margin-top:3px;font-size:9.5px;color:#713F12;"><b>🌾 Farinha a bater</b>: total de farinha (ou da pré-mistura indicada) de cada massa no dia, pela ficha técnica. Pese, divida nas batidas da masseira e depois separe a massa pelos produtos da lista.</div>';
+  h+='<div style="margin-top:3px;font-size:9.5px;color:#713F12;"><b>🌾 ao lado do grupo</b> = farinha de trigo a bater para o grupo no dia (ou a pré-mistura indicada), pela ficha técnica. Pese, divida nas batidas da masseira e depois separe a massa pelos produtos do grupo.</div>';
   var _sb=Object.keys(_semBase);
   if(_sb.length){
     h+='<div style="margin-top:2px;font-size:8.5px;color:#A0A5A0;">Fora da conta da farinha: '+_sb.map(function(n){ return n+' ('+_semBase[n]+')'; }).join(' · ')+'</div>';
@@ -1894,7 +1907,8 @@ async function imprimirPlanejamentoSemanal(versao){
       var loteSize=_loteDaFicha(fic, ehUnd?'UND':'KG');
       var ratioMassa=_massaPorUnid(fic, ehUnd?'UND':'KG');
       linhas.push({nome:p.nome,ehUnd:ehUnd,un:(ehUnd?'un':'kg'),metas:metas,total:total,classe:cls,classeReal:clsReal,foco:foco,categoria:catNome,cor:catInfo.cor,ordemCat:catInfo.ordem,posVenda:posVenda,mediaSemana:mediaSemana,loteSize:loteSize,ratioMassa:ratioMassa,massaLote:_massaPorLote(fic),pesoUn:(parseFloat(p.peso_unidade_kg)||0),md:!!(fic&&fic.sintetico==='massa_doce'),lu:_ehLoteUnidade(fic),
-        basePU:_basePorUnid(fic, ehUnd), baseNome:(fic&&fic.baseNome)||'', temFicha:!!fic});
+        basePU:_basePorUnid(fic, ehUnd), baseNome:(fic&&fic.baseNome)||'', temFicha:!!fic,
+        massaPU:_massaBasePorUnid(fic, ehUnd), massaNome:(fic&&fic.massaBaseNome)||''});
       if(ehUnd)totUn+=total;else totKg+=total;
       // acumula por dia da semana (kg e und separados)
       metas.forEach(function(q,di){
@@ -7725,6 +7739,8 @@ async function carregarFichas(){
     var insumos=await sbSelect('insumos','select=id,nome,custo_kg_l&limit=2000');
 
     var custoIns={},nomeIns={};
+    var _nomesFicha={};
+    (fichas||[]).forEach(function(fc){ _nomesFicha[_normProdNome(fc.produto_nome||'')]=1; });
     (insumos||[]).forEach(function(i){custoIns[i.id]=parseFloat(i.custo_kg_l)||0; nomeIns[i.id]=i.nome||'';});
     var custoReceita={},nItens={},massaQtd={},outrosIng={},farQtd={},premix={},subIt={};
     (itens||[]).forEach(function(it){
@@ -7738,7 +7754,8 @@ async function carregarFichas(){
       // sem farinha, a pré-mistura principal (adimix, massa pronta ADM…).
       if(q>0 && _nU!=='MASSA BOLO DE TRIGO'){
         if(/TRIGO/.test(_nU) && !/ROSCA/.test(_nU)) farQtd[it.ficha_id]=(farQtd[it.ficha_id]||0)+q;
-        else if(/ADIMIX|^ADM |^MASSA |MISTURA/.test(_nU) && !/RECHEIO|COBERTURA|BRILHO|GANACHE|CREME|CALDA/.test(_nU)){
+        else if(/ADIMIX|^ADM |^MASSA |MISTURA/.test(_nU) && !/RECHEIO|COBERTURA|BRILHO|GANACHE|CREME|CALDA/.test(_nU)
+                && !_nomesFicha[_normProdNome(_nU)]){
           if(!premix[it.ficha_id] || q>premix[it.ficha_id].q) premix[it.ficha_id]={nome:nomeIns[it.insumo_id],q:q};
         }
         (subIt[it.ficha_id]=subIt[it.ficha_id]||[]).push({nome:nomeIns[it.insumo_id]||'',q:q});
@@ -7782,22 +7799,40 @@ async function carregarFichas(){
         outrosIng: ehBaseMassa ? [] : (outrosIng[fc.id]||[]),
         // base seca da receita inteira (kg) e o nome dela ('farinha' ou a pré-mistura)
         baseKg: (farQtd[fc.id]>0) ? farQtd[fc.id] : (premix[fc.id] ? premix[fc.id].q : 0),
-        baseNome: (farQtd[fc.id]>0) ? 'farinha' : (premix[fc.id] ? _nomeInsumoCurto(premix[fc.id].nome,1).toLowerCase() : ''),
+        baseNome: (farQtd[fc.id]>0) ? 'farinha' : (premix[fc.id] ? _nomeInsumoCurto(String(premix[fc.id].nome).replace(/^ADM\s+/i,''),4).toLowerCase() : ''),
         _subIt: subIt[fc.id]||[]
       };
       var cn=(dados.cod||'').replace(/^0+/,'');
       if(cn)porCod[cn]=dados;
       porNome[_normProdNome(fc.produto_nome||'')]=dados;
     });
-    // Ficha sem farinha que usa OUTRA ficha como ingrediente (ex.: sanduíche
-    // croissant leva o insumo CROISSANT, que tem ficha própria): herda a base.
+    // MASSA COMPARTILHADA: ingrediente "MASSA X" com ficha própria (MASSA
+    // FRANCÊS, MASSA FOLHADA, MASSA DOCE…). O produto guarda quanto dessa
+    // massa a receita usa e herda a farinha dela.
     Object.keys(porNome).forEach(function(k){
       var d=porNome[k];
-      if(d.baseKg>0) return;
       (d._subIt||[]).forEach(function(x){
-        var sub=porNome[_normProdNome(x.nome)];
-        if(sub && sub!==d && sub.baseKg>0 && sub.rendimentoKg>0){
-          d.baseKg+=x.q*sub.baseKg/sub.rendimentoKg; d.baseNome=sub.baseNome;
+        var nk=_normProdNome(x.nome);
+        var sub=porNome[nk];
+        if(!sub || sub===d || nk.indexOf('massa ')!==0 || nk==='massa bolo de trigo' || !(sub.rendimentoKg>0)) return;
+        d.massaBaseNome=sub.nome; d.massaBaseKg=(d.massaBaseKg||0)+x.q;
+        if(sub.baseKg>0){ d.baseKg+=x.q*sub.baseKg/sub.rendimentoKg; d.baseNome=sub.baseNome; }
+      });
+    });
+    // Ficha sem farinha que usa OUTRA ficha como ingrediente (ex.: sanduíche
+    // croissant leva o insumo CROISSANT, que tem ficha própria): herda a base
+    // e a massa compartilhada dela.
+    Object.keys(porNome).forEach(function(k){
+      var d=porNome[k];
+      (d._subIt||[]).forEach(function(x){
+        var nk=_normProdNome(x.nome);
+        var sub=porNome[nk];
+        if(!sub || sub===d || nk.indexOf('massa ')===0 || !(sub.rendimentoKg>0)) return;
+        if(!(d.baseKg>0) || d._herdou){
+          if(sub.baseKg>0){ d.baseKg+=x.q*sub.baseKg/sub.rendimentoKg; d.baseNome=sub.baseNome; d._herdou=true; }
+        }
+        if(sub.massaBaseKg>0 && !d.massaBaseNome){
+          d.massaBaseNome=sub.massaBaseNome; d.massaBaseKg=x.q*sub.massaBaseKg/sub.rendimentoKg;
         }
       });
     });
@@ -7924,6 +7959,8 @@ function _farinhaPorKgMassaTrigo(){
 // Massa doce: kg de farinha por kg de massa, pela ficha real do pão doce
 // (ou, sem ela, a primeira ficha real de um pão do grupo MASSA DOCE).
 function _farinhaPorKgMassaDoce(){
+  var m=FICHAS_NOME&&FICHAS_NOME['massa doce'];
+  if(m && m.baseKg>0 && m.rendimentoKg>0) return m.baseKg/m.rendimentoKg;
   var f=FICHAS_NOME&&FICHAS_NOME['pao doce'];
   if(!(f && f.baseKg>0 && f.rendimentoKg>0)){
     f=null;
@@ -7941,6 +7978,12 @@ function _basePorUnid(fic, ehUnd){
   if(!fic || fic.sintetico || _ehDerivadoMassa(fic) || !(fic.baseKg>0)) return 0;
   var rend = ehUnd ? (fic.rendimentoUn||0) : (fic.rendimentoKg||0);
   return rend>0 ? fic.baseKg/rend : 0;
+}
+// kg de MASSA COMPARTILHADA por unidade do produto (0 se não usa)
+function _massaBasePorUnid(fic, ehUnd){
+  if(!fic || fic.sintetico || !(fic.massaBaseKg>0)) return 0;
+  var rend = ehUnd ? (fic.rendimentoUn||0) : (fic.rendimentoKg||0);
+  return rend>0 ? fic.massaBaseKg/rend : 0;
 }
 // Arredonda a farinha para cima em 0,5 kg (sobra de farinha é melhor que faltar massa)
 function _fmtFarinha(kg){ return _fmtNum(Math.ceil(kg*2-0.05)/2)+' kg'; }
