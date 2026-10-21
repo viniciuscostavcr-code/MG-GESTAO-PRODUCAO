@@ -1212,7 +1212,7 @@ function _fmtMeta(v){
 }
 
 
-// ── CURVA ABC REAL, a partir do faturamento do mês mais recente ──
+// ── CURVA ABC REAL, a partir do faturamento dos últimos 30 dias importados ──
 // Critério de Pareto: A = até 80% do faturamento acumulado,
 // B = de 80% a 95%, C = os 5% restantes.
 var ABC_VENDAS={};   // cache por setor — mesmo cuidado que na média de vendas
@@ -1220,25 +1220,24 @@ async function carregarCurvaABC(){
   if(ABC_VENDAS[SETOR])return ABC_VENDAS[SETOR];
   var mapa={_mes:null,_ok:false};
   try{
-    // Usa o mês mais recente que já tem volume de venda suficiente — evita pegar
-    // um mês corrente que mal começou e tem poucos dias de dado (ex.: dia 5 do mês).
-    var doisMeses=await sbSelect('vendas_abc','select=mes_ref&order=mes_ref.desc&limit=2000');
-    if(!doisMeses||!doisMeses.length)return (ABC_VENDAS[SETOR]=mapa);
-    var contagem={};
-    doisMeses.forEach(function(r){ contagem[r.mes_ref]=(contagem[r.mes_ref]||0)+1; });
-    var mesesUnicos=Object.keys(contagem).sort().reverse();
-    var mes=mesesUnicos[0];
-    // Se o mês mais recente tiver poucos registros (mês em andamento), usa o anterior
-    if(contagem[mes]<50 && mesesUnicos.length>1){ mes=mesesUnicos[1]; }
-    mapa._mes=mes;
+    // Período: os ÚLTIMOS 30 DIAS DE VENDA IMPORTADA (mesma regra da média de
+    // venda), contados a partir da última data subida — não o mês do
+    // calendário. Assim as letras não mudam por causa da virada do mês.
+    var filtroSetor = SETOR ? ('&setor=ilike.'+encodeURIComponent(SETOR)) : '';
+    var ult=await sbSelect('vendas_abc','select=data'+filtroSetor+'&data=not.is.null&order=data.desc&limit=1');
+    if(!ult||!ult.length||!ult[0].data)return (ABC_VENDAS[SETOR]=mapa);
+    var fim=String(ult[0].data).slice(0,10);
+    var ini=_isoMenosDias(fim, MEDIA_VENDAS_DIAS-1);
+    mapa._mes=_ddmm(ini)+' a '+_ddmm(fim);
 
     var linhas=[],off=0;
     while(true){
-      var parte=await sbSelect('vendas_abc','select=cod,produto,faturamento,setor&mes_ref=eq.'+mes+'&limit=1000&offset='+off);
+      var parte=await sbSelect('vendas_abc','select=cod,produto,faturamento,setor'+filtroSetor
+        +'&data=gte.'+ini+'&data=lte.'+fim+'&order=data.asc&limit=1000&offset='+off);
       if(!parte||!parte.length)break;
       linhas=linhas.concat(parte);
       if(parte.length<1000)break;
-      off+=1000; if(off>50000)break;
+      off+=1000; if(off>60000)break;
     }
     // Agrega por código, dentro do setor atual
     var agg={};
@@ -1311,27 +1310,38 @@ async function carregarCategorias(){
 // critério certo para planejar produção: mostra a demanda real quando o
 // produto está disponível, sem ser distorcido por dias de ruptura.
 var MEDIA_VENDAS = {};   // cache por setor — evita "vazar" dado de um setor para outro
+// Período: os ÚLTIMOS 30 DIAS DE VENDA IMPORTADA, contados a partir da última
+// data que foi subida (não a partir de hoje, nem pelo mês do calendário).
+// Assim a média sempre tem até 30 dias de venda, em qualquer dia do mês, e
+// não muda enquanto não entrar venda nova.
+var MEDIA_VENDAS_DIAS = 30;
+function _isoMenosDias(iso, n){
+  var d=new Date(iso+'T12:00:00'); d.setDate(d.getDate()-n);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function _ddmm(iso){ var x=String(iso||'').split('-'); return x.length===3 ? (x[2]+'/'+x[1]) : ''; }
 async function carregarMediaVendas(){
   if(MEDIA_VENDAS[SETOR])return MEDIA_VENDAS[SETOR];
-  var mapa={};
+  var mapa={_dias:{}};
   try{
-    var doisMeses=await sbSelect('vendas_abc','select=mes_ref&order=mes_ref.desc&limit=2000');
-    if(!doisMeses||!doisMeses.length){MEDIA_VENDAS[SETOR]=mapa;return mapa;}
-    var contagem={};
-    doisMeses.forEach(function(r){ contagem[r.mes_ref]=(contagem[r.mes_ref]||0)+1; });
-    var mesesUnicos=Object.keys(contagem).sort().reverse();
-    var mes=mesesUnicos[0];
-    if(contagem[mes]<50 && mesesUnicos.length>1){ mes=mesesUnicos[1]; }
+    var filtroSetor = SETOR ? ('&setor=ilike.'+encodeURIComponent(SETOR)) : '';
+    var ult=await sbSelect('vendas_abc','select=data'+filtroSetor+'&data=not.is.null&order=data.desc&limit=1');
+    if(!ult||!ult.length||!ult[0].data){MEDIA_VENDAS[SETOR]=mapa;return mapa;}
+    var fim=String(ult[0].data).slice(0,10);
+    var ini=_isoMenosDias(fim, MEDIA_VENDAS_DIAS-1);
 
     var linhas=[],off=0;
     while(true){
-      var parte=await sbSelect('vendas_abc','select=cod,quantidade,data,setor&mes_ref=eq.'+mes+'&limit=1000&offset='+off);
+      var parte=await sbSelect('vendas_abc','select=cod,quantidade,data,setor'+filtroSetor
+        +'&data=gte.'+ini+'&data=lte.'+fim+'&order=data.asc&limit=1000&offset='+off);
       if(!parte||!parte.length)break;
       linhas=linhas.concat(parte);
       if(parte.length<1000)break;
-      off+=1000; if(off>50000)break;
+      off+=1000; if(off>60000)break;
     }
-    // Agrega por código: soma de quantidade e conjunto de dias distintos com venda
+    // Agrega por código: soma de quantidade e dias distintos com venda.
+    // Média = total ÷ dias em que VENDEU (dia sem venda costuma ser falta de
+    // produto, não falta de cliente — não pode puxar a média para baixo).
     var agg={};
     linhas.forEach(function(v){
       if(v.setor&&SETOR&&String(v.setor).toUpperCase()!==String(SETOR).toUpperCase())return;
@@ -1339,13 +1349,16 @@ async function carregarMediaVendas(){
       if(!cn)return;
       if(!agg[cn])agg[cn]={qtd:0,dias:{}};
       agg[cn].qtd+=Number(v.quantidade)||0;
-      if(v.data)agg[cn].dias[v.data]=1;
+      if(v.data)agg[cn].dias[String(v.data).slice(0,10)]=1;
     });
     Object.keys(agg).forEach(function(cn){
       var nDias=Object.keys(agg[cn].dias).length;
       mapa[cn]=nDias>0?(agg[cn].qtd/nDias):0;
+      mapa._dias[cn]=nDias;
     });
-    mapa._mes=mes;
+    mapa._ini=ini; mapa._fim=fim;
+    mapa._fimTxt=_ddmm(fim);
+    mapa._mes=_ddmm(ini)+' a '+_ddmm(fim);   // texto do período (usado nas impressões)
     mapa._ok=true;
   }catch(e){console.log('Média de vendas indisponível:',e.message);}
   MEDIA_VENDAS[SETOR]=mapa;
@@ -1388,7 +1401,7 @@ async function imprimirFolhaComMedia(){
     +'<div style="font-size:16px;font-weight:800;color:'+C.grn+';">Folha de Planejamento — '+(SETOR||'')+'</div>'
     +'<div style="font-size:10px;color:'+C.gray+';">Preencher a meta de cada dia usando a média de venda como referência</div></div>';
   if(medias&&medias._mes){
-    h+='<div style="font-size:9.5px;color:'+C.gray+';margin-bottom:8px;">Média de venda calculada sobre '+medias._mes+' (dias em que cada produto efetivamente vendeu)</div>';
+    h+='<div style="font-size:9.5px;color:'+C.gray+';margin-bottom:8px;">Média de venda dos últimos 30 dias importados ('+medias._mes+'), sobre os dias em que cada produto efetivamente vendeu</div>';
   }
 
   h+='<table style="width:100%;border-collapse:collapse;font-size:11px;">';
@@ -1707,10 +1720,7 @@ function _htmlEquipe(o){
     // nos modos kg, a massa crua exata.
     var _mdDia = (modo==='lotes' && o.aggMassaDoceLotes && o.aggMassaDoceLotes[j]>0)
       ? o.aggMassaDoceLotes[j] : (o.aggMassaDoceDia ? o.aggMassaDoceDia[j] : 0);
-    if(_mdDia>0){
-      h+='<div style="background:#EEF2FF;border-bottom:1.5px solid #2563EB;padding:3px 5px;text-align:center;font-size:9.5px;font-weight:800;color:#1D4ED8;">'
-        +'🥖 BATER MASSA DOCE: '+_fmtNum(Math.round(_mdDia*10)/10)+' kg <span style="font-weight:600;font-size:8px;">(crua)</span></div>';
-    }
+    // (a massa doce do dia vai no cabeçalho do grupo, junto da farinha)
     // 🌾 Farinha a bater de cada grupo — vai ao lado do nome do grupo
     var _farCat=_farinhaDoDia(j, _mdDia);
     // cabeçalho das colunas internas
@@ -1726,7 +1736,12 @@ function _htmlEquipe(o){
       if(l.categoria!==catAnt){
         var _fc=_farCat[l.categoria]||[];
         var _mc=0;
-        if(modo!=='lotes') o.linhas.forEach(function(x){ if(x.categoria===l.categoria && x.massaPU>0 && x.metas[j]>0) _mc+=x.metas[j]*x.massaPU; });
+        o.linhas.forEach(function(x){
+          var qx=x.metas[j];
+          if(x.categoria!==l.categoria || !(qx>0)) return;
+          if(x.md) _mc += (modo==='lotes' && x.loteSize>0) ? _lotesMD(qx,x.loteSize)*MASSA_DOCE_LOTE_KG : _massaDoceKg(x,qx);
+          else if(x.massaPU>0 && modo!=='lotes') _mc += qx*x.massaPU;
+        });
         var _ft=_fc.map(function(x){
           return _fmtFarinha(x.kg)+(x.nome!=='farinha'?' <span style="font-weight:600;text-transform:none;">'+x.nome+'</span>':'');
         }).join(' + ');
@@ -1995,7 +2010,8 @@ async function imprimirPlanejamentoSemanal(versao){
   if(ehGer){
     h+='<th style="padding:7px 4px;text-align:center;width:8%;background:#8A6D3B;">'
       +'<div style="font-size:8px;opacity:.9;letter-spacing:.3px;">VENDA</div>'
-      +'<div style="font-size:10px;font-weight:800;">SEMANA</div></th>';
+      +'<div style="font-size:10px;font-weight:800;">SEMANA</div>'
+      +((medias&&medias._fimTxt)?'<div style="font-size:7px;opacity:.85;">até '+medias._fimTxt+'</div>':'')+'</th>';
   }
   h+='</tr></thead><tbody>';
 
@@ -4851,7 +4867,7 @@ function _mpRenderLotes(prod, und) {
   if (ref) {
     var semKg = ref.valorDia * diasAbertos;
     var semLotes = ehLu ? Math.ceil(semKg / _mpLoteSize) : Math.ceil((semKg / _mpLoteSize) * 2) / 2;
-    html += '<br>📊 Venda da semana: ~' + _fmtNum(Math.round(semKg*10)/10) + u
+    html += '<br>📊 Venda da semana' + (ref.ate ? ' (até ' + ref.ate + ')' : '') + ': ~' + _fmtNum(Math.round(semKg*10)/10) + u
       + ' ≈ <strong>' + _txtLotes(semLotes, _mpFic) + '</strong>';
   }
   html += '</div>';
@@ -5330,7 +5346,9 @@ function _sugestaoDados(p, dsem) {
     proxDia: proxDia,
     lotes: lotes!==null ? (Math.round(lotes*10)/10) : null,
     loteSize: loteSize,
-    lu: lu
+    lu: lu,
+    diasVenda: (medias._dias && medias._dias[cn]) || 0,
+    ate: medias._fimTxt || ''
   };
 }
 
@@ -5407,6 +5425,7 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
         ? ' <span style="color:#8A9590;">para '+_sd.cobertura+' dias'+(_sd.proxDia!==null?' (até a próxima produção, '+['dom','seg','ter','qua','qui','sex','sáb'][_sd.proxDia]+')':'')+'</span>'
         : '')
       +_lotesTxt
+      +(_sd.ate ? ' <span style="color:#8A9590;font-size:.92em;">· venda até '+_sd.ate+' · vendeu em '+_sd.diasVenda+' de 30 dias</span>' : '')
       +' <span onclick="_usarSugestaoDados(\''+p.id+'\','+_sd.valor+')" '
       +'style="margin-left:6px;color:#2D6A4F;font-weight:700;text-decoration:underline;cursor:pointer;">usar</span>'
       +'</div>';
