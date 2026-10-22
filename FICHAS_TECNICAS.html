@@ -358,6 +358,12 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
         <select id="fichaProdutoSel" onchange="aoSelecionarProduto()">
           <option value="">Selecione o produto...</option>
         </select>
+        <input type="text" id="fichaNomeLivre" placeholder="Ex.: MASSA MACIA" autocomplete="off"
+          style="display:none;margin-top:6px;text-transform:uppercase;"
+          oninput="document.getElementById('fichaNome').value=this.value.trim().toUpperCase()">
+        <div id="fichaNomeLivreDica" style="display:none;font-size:.72rem;color:#6B7280;margin-top:4px;">
+          Massa ou preparo que não é vendido sozinho. Comece o nome com <b>MASSA</b> (ex.: MASSA MACIA) para o GestFood somar a farinha e ratear a massa entre os produtos. Rendimento = kg de massa crua da batida.
+        </div>
         <input type="hidden" id="fichaNome">
         <input type="hidden" id="fichaCod">
       </div>
@@ -1416,6 +1422,9 @@ function abrirModalFicha(id){
   document.getElementById('fichaId').value='';
   document.getElementById('fichaProdutoSel').value='';
   document.getElementById('fichaNome').value='';
+  document.getElementById('fichaNomeLivre').value='';
+  document.getElementById('fichaNomeLivre').style.display='none';
+  document.getElementById('fichaNomeLivreDica').style.display='none';
   document.getElementById('fichaSetor').value='CONFEITARIA';
   document.getElementById('fichaGrupo').value='';
   document.getElementById('fichaIndicacao').value='';
@@ -1734,7 +1743,8 @@ function popularDropdownProdutos(){
   // Produtos que JÁ têm ficha (pra não duplicar ficha do mesmo produto)
   var comFicha={};
   FICHAS.forEach(function(f){comFicha[(f.produto_nome||'').toUpperCase()]=true;});
-  var h='<option value="">Selecione o produto...</option>';
+  var h='<option value="">Selecione o produto...</option>'
+    +'<option value="__MASSA__">➕ Massa base / preparo (sem produto)</option>';
   PRODUTOS_CAT.forEach(function(p){
     var nome=p.nome||'';
     var jaTem=comFicha[nome.toUpperCase()]?' ✓ (já tem ficha)':'';
@@ -1747,6 +1757,19 @@ function popularDropdownProdutos(){
 function aoSelecionarProduto(){
   var sel=document.getElementById('fichaProdutoSel');
   var nome=sel.value;
+  var livre=document.getElementById('fichaNomeLivre');
+  var dica=document.getElementById('fichaNomeLivreDica');
+  // Ficha SEM produto (massa base, recheio, preparo): nome digitado, sem código
+  if(nome==='__MASSA__'){
+    livre.style.display='block'; dica.style.display='block';
+    document.getElementById('fichaNome').value=livre.value.trim().toUpperCase();
+    document.getElementById('fichaCod').value='';
+    var gr=document.getElementById('fichaGrupo');
+    if(!gr.value) gr.value='MASSAS BASE';
+    livre.focus();
+    return;
+  }
+  livre.style.display='none'; dica.style.display='none';
   document.getElementById('fichaNome').value=nome;
   if(!nome){document.getElementById('fichaCod').value='';return;}
   // Acha o produto no catálogo e puxa o código + setor automaticamente
