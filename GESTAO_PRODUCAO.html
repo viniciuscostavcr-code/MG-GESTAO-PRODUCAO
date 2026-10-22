@@ -5201,6 +5201,10 @@ function abrirConfirmarHoje() {
   PROD_VIEW = 'hoje';
   // Não limpa PROD_HOJE_VALS — preserva rascunho
   const vw = document.getElementById('v-producao');
+  if (!FICHAS_MAP && typeof carregarFichas === 'function') {
+    carregarFichas().then(function(){ _renderConfirmarHoje(vw); }).catch(function(){ _renderConfirmarHoje(vw); });
+    return;
+  }
   _renderConfirmarHoje(vw);
 }
 
@@ -5252,6 +5256,7 @@ function _renderConfirmarHoje(vw) {
     html += `<div class="phoje-aviso fech">🔒 Domingo — setor fechado.<br>Sem produção hoje.</div>`;
   } else {
     if (isDom) html += `<div class="phoje-aviso dom">⚠️ Domingo — equipe reduzida.<br>Somente pães básicos.</div>`;
+    html += _rateioMassasHoje(prodsHoje, hoje, dsem);
 
     // Separar em dois grupos: com sugestão e sem sugestão
     let _secaoComSug = false, _secaoSemSug = false;
@@ -5370,7 +5375,10 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
   // ou se o operador clicar em "peso exato", cai no campo de peso livre.
   const _fic = (typeof fichaDoProduto==='function') ? fichaDoProduto(p) : null;
   const loteSize = _loteDaFicha(_fic, und);
-  const temLote = loteSize > 0;
+  // Produto de massa (doce, francês, folhada, trigo…): registra a MASSA CRUA
+  // separada — o número que o padeiro pesou. Grava convertido para o produto.
+  const _mpu = _massaPorUnidProd(p);
+  const temLote = loteSize > 0 && !(_mpu > 0);
   const modoAtual = PROD_HOJE_MODE[p.id] || ((temLote && REGISTRO_HOJE_PADRAO === 'lote') ? 'lote' : 'peso');
   const pesoBase = (valAtual !== '' && valAtual !== null && valAtual !== undefined) ? (parseFloat(valAtual)||0) : (lote.qtd||0);
   const lotesAtual = temLote ? Math.max(0, _ehLoteUnidade(_fic) ? Math.round(pesoBase / loteSize)
@@ -5433,26 +5441,29 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
 
   return `<div class="phoje-card ${cardCls}" id="phoje-card-${p.id}" data-nome="${escHtml(p.nome)}">
   <div class="phoje-card-nm"><span class="prod-num">${idx + 1}</span>${urgE} ${abcBadge} ${escHtml(p.nome)}</div>
-  <div class="phoje-sug">Sugestão: <strong>${lote.qtd}${und.toLowerCase()}</strong>${lote.sazonalidade!==1?' · sazon. ×'+lote.sazonalidade:''}</div>
+  ${_mpu>0
+    ? '<div class="phoje-sug" style="color:#1D4ED8;">Massa crua a separar: <strong>'+_fmtNum(Math.round((lote.qtd||0)*_mpu*10)/10)+' kg</strong> <span style="color:#8A9590;">(≈ '+_fmtNum(lote.qtd||0)+und.toLowerCase()+' de produto)</span></div>'
+    : '<div class="phoje-sug">Sugestão: <strong>'+lote.qtd+und.toLowerCase()+'</strong>'+(lote.sazonalidade!==1?' · sazon. ×'+lote.sazonalidade:'')+'</div>'}
   ${sugDadosHtml}
   ${alertHtml}
   ${loteHtml}
   <div class="phoje-inp-row" id="phoje-inp-row-${p.id}"${(temLote && modoAtual==='lote')?' style="display:none;"':''}>
     <input class="phoje-inp" type="number" inputmode="decimal" min="0" step="0.5"
       id="phoje-inp-${p.id}"
-      value="${valAtual}"
-      placeholder="${lote.qtd||0}"
+      value="${_mpu>0 ? (valAtual===''?'':Math.round((parseFloat(valAtual)||0)*_mpu*10)/10) : valAtual}"
+      placeholder="${_mpu>0 ? Math.round((lote.qtd||0)*_mpu*10)/10 : (lote.qtd||0)}"
       data-prodid="${p.id}"
       data-idx="${idx}"
       data-und="${und}"
+      data-mpu="${_mpu>0?_mpu:''}"
       onchange="onPhojeChange('${p.id}',this.value)"
       onkeydown="onPhojeKey(event,'${p.id}')">
-    <span class="phoje-inp-und">${und.toLowerCase()}</span>
+    <span class="phoje-inp-und">${_mpu>0 ? 'kg de massa' : und.toLowerCase()}</span>
   </div>
   ${temLote ? '<span class="phoje-lote-alt" id="phoje-lote-back-'+p.id+'"'+(modoAtual==='lote'?' style="display:none;"':'')+' onclick="_toggleLoteModo(\''+p.id+'\')">🔢 registrar em lotes</span>' : ''}
   <button class="phoje-conf-btn${isDone?' done':''}" id="phoje-btn-${p.id}"
     onclick="confirmarItemHoje('${p.id}',${lote.qtd})">
-    ${isDone ? '✅ Confirmado' : '✅ Confirmar '+lote.qtd+und.toLowerCase()}
+    ${isDone ? '✅ Confirmado' : (_mpu>0 ? '✅ Confirmar '+_fmtNum(Math.round((lote.qtd||0)*_mpu*10)/10)+' kg de massa' : '✅ Confirmar '+lote.qtd+und.toLowerCase())}
   </button>
 </div>`;
 }
@@ -5565,6 +5576,8 @@ function _toggleLoteModo(prodId) {
 function _usarSugestaoDados(prodId, valor) {
   var inp = document.getElementById('phoje-inp-'+prodId);
   if (inp) {
+    var _mp = parseFloat(inp.dataset && inp.dataset.mpu)||0;
+    if (_mp > 0) valor = Math.round(valor*_mp*10)/10;   // campo em kg de massa
     inp.value = valor;
     onPhojeChange(prodId, valor);
     var loteRow = document.getElementById('phoje-lote-row-'+prodId);
@@ -5576,16 +5589,24 @@ function _usarSugestaoDados(prodId, valor) {
   }
 }
 
+// Campo do cartão → quantidade do PRODUTO (o que é gravado). Nos produtos de
+// massa o campo é kg de massa crua: produto = massa ÷ massa por unidade.
+function _qtdProdutoDoCampo(inp, raw){
+  var v = parseFloat(raw)||0;
+  var mpu = inp && inp.dataset ? parseFloat(inp.dataset.mpu)||0 : 0;
+  return mpu>0 ? Math.round(v/mpu*100)/100 : v;
+}
 function onPhojeChange(prodId, val) {
   if (!PROD_HOJE_VALS[prodId]) PROD_HOJE_VALS[prodId] = {};
-  PROD_HOJE_VALS[prodId].val = parseFloat(val)||0;
+  const inpEl = document.getElementById('phoje-inp-'+prodId);
+  PROD_HOJE_VALS[prodId].val = _qtdProdutoDoCampo(inpEl, val);
   PROD_HOJE_VALS[prodId].done = false;
   const btn = document.getElementById('phoje-btn-'+prodId);
-  const und = document.querySelector(`#phoje-inp-${prodId}`)?.dataset?.und||'kg';
+  const und = inpEl?.dataset?.und||'kg';
   if (btn) {
     const v = parseFloat(val)||0;
     btn.className='phoje-conf-btn';
-    btn.textContent = '✅ Confirmar '+v+und.toLowerCase();
+    btn.textContent = '✅ Confirmar '+_fmtNum(v)+(inpEl?.dataset?.mpu ? ' kg de massa' : und.toLowerCase());
   }
 }
 
@@ -5594,7 +5615,7 @@ function onPhojeKey(e, prodId) {
     e.preventDefault();
     // Confirma automaticamente e pula para o próximo
     const inp = document.getElementById('phoje-inp-'+prodId);
-    const val = parseFloat(inp?.value)||0;
+    const val = _qtdProdutoDoCampo(inp, inp?.value);
     confirmarItemHoje(prodId, val);
     _pularProximoPhojeInp(prodId);
   }
@@ -5618,7 +5639,7 @@ function _setupHojeKeyNav() {
 async function confirmarItemHoje(prodId, qtdSug) {
   const inp = document.getElementById('phoje-inp-'+prodId);
   const und = inp?.dataset?.und||'KG';
-  const val = inp ? (parseFloat(inp.value)||0) : (parseFloat(qtdSug)||0);
+  const val = inp ? _qtdProdutoDoCampo(inp, inp.value) : (parseFloat(qtdSug)||0);
   if (!PROD_HOJE_VALS[prodId]) PROD_HOJE_VALS[prodId] = {};
   PROD_HOJE_VALS[prodId].val  = val;
   PROD_HOJE_VALS[prodId].done = true;
@@ -8004,6 +8025,72 @@ function _massaBasePorUnid(fic, ehUnd){
   var rend = ehUnd ? (fic.rendimentoUn||0) : (fic.rendimentoKg||0);
   return rend>0 ? fic.massaBaseKg/rend : 0;
 }
+// ── REGISTRO PELA MASSA (tela Hoje) ──
+// kg de massa crua por unidade do produto (kg ou un). 0 = produto de massa
+// própria, registrado como antes (kg/un do produto).
+function _massaPorUnidProd(p){
+  if(!p || typeof fichaDoProduto!=='function' || !FICHAS_MAP) return 0;
+  var fic=fichaDoProduto(p); if(!fic) return 0;
+  var ehUnd=String(p.unidade||'KG').toUpperCase()==='UND';
+  if(fic.sintetico==='massa_doce'){
+    if(!ehUnd) return MASSA_DOCE_FATOR;
+    var pu=parseFloat(p.peso_unidade_kg)||0;
+    return pu>0 ? pu*MASSA_DOCE_FATOR : 0;
+  }
+  var m=_massaBasePorUnid(fic, ehUnd);
+  if(m>0) return m;
+  return _massaPorUnid(fic, ehUnd?'UND':'KG');   // bolos da massa de trigo
+}
+function _nomeMassaProd(p){
+  var fic=fichaDoProduto(p); if(!fic) return '';
+  if(fic.sintetico==='massa_doce') return 'MASSA DOCE';
+  if(fic.massaBaseNome) return String(fic.massaBaseNome).toUpperCase();
+  if(_ehDerivadoMassa(fic)) return 'MASSA DE TRIGO';
+  return '';
+}
+function _farinhaPorKgMassaNome(nome){
+  if(nome==='MASSA DOCE') return _farinhaPorKgMassaDoce();
+  if(nome==='MASSA DE TRIGO') return _farinhaPorKgMassaTrigo();
+  var f=FICHAS_NOME && FICHAS_NOME[_normProdNome(nome)];
+  return (f && f.baseKg>0 && f.rendimentoKg>0) ? f.baseKg/f.rendimentoKg : 0;
+}
+function _baseNomeMassa(nome){
+  if(nome==='MASSA DOCE' || nome==='MASSA DE TRIGO') return 'farinha';
+  var f=FICHAS_NOME && FICHAS_NOME[_normProdNome(nome)];
+  return (f && f.baseNome) || 'farinha';
+}
+// Quadro do topo da tela Hoje: para cada massa do dia, quanto bater e quanto
+// de massa crua separar para cada produto (o rateio da batida).
+function _rateioMassasHoje(prods, hoje, dsem){
+  var g={}, ord=[];
+  prods.forEach(function(p){
+    var q=Number(getLoteProduto(p.nome, SETOR, dsem, hoje).qtd)||0;
+    if(!(q>0)) return;
+    var mpu=_massaPorUnidProd(p); if(!(mpu>0)) return;
+    var nm=_nomeMassaProd(p); if(!nm) return;
+    if(!g[nm]){ g[nm]={itens:[], kg:0}; ord.push(nm); }
+    var kg=Math.round(q*mpu*10)/10;
+    g[nm].itens.push({nome:_nomeCurto(p.nome), kg:kg, un:(String(p.unidade||'').toUpperCase()==='UND'?q:0)});
+    g[nm].kg+=kg;
+  });
+  if(!ord.length) return '';
+  var h='<div style="margin:4px 12px 10px;">';
+  ord.forEach(function(nm){
+    var x=g[nm], r=_farinhaPorKgMassaNome(nm), bn=_baseNomeMassa(nm);
+    var far = r>0 ? (_fmtFarinha(x.kg*r)+' de '+bn) : '';
+    h+='<div style="background:#EEF2FF;border:1.5px solid #2563EB;border-radius:10px;padding:8px 10px;margin-bottom:8px;">'
+      +'<div style="font-weight:800;color:#1D4ED8;font-size:.86rem;">🥖 '+escHtml(nm)+'</div>'
+      +'<div style="font-size:.8rem;margin:2px 0 6px;color:#1C1C1A;">'+(far?'Bater <b>'+far+'</b> · ':'')+'<b>'+_fmtNum(Math.round(x.kg*10)/10)+' kg de massa</b></div>'
+      +'<div style="font-size:.72rem;color:#6B7280;margin-bottom:2px;">Separar na balança:</div>';
+    x.itens.forEach(function(it){
+      h+='<div style="display:flex;justify-content:space-between;font-size:.82rem;padding:2px 0;border-top:1px dashed #C7D2FE;">'
+        +'<span>'+escHtml(it.nome)+'</span><b style="color:#1D4ED8;">'+_fmtNum(it.kg)+' kg'+(it.un?' <span style="font-weight:600;color:#6B7280;">('+_fmtNum(it.un)+' un)</span>':'')+'</b></div>';
+    });
+    h+='</div>';
+  });
+  return h+'</div>';
+}
+
 // Arredonda a farinha para cima em 0,5 kg (sobra de farinha é melhor que faltar massa)
 function _fmtFarinha(kg){ return _fmtNum(Math.ceil(kg*2-0.05)/2)+' kg'; }
 
