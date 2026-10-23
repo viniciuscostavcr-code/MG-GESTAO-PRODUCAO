@@ -1081,7 +1081,9 @@ let BUSCA = '';
 let BUSCA_PROD = '';
 let BUSCA_HOJE = '';
 let BUSCA_HIST = '';
-let TAB = 'checklist';
+// Checklist de gôndola: escondido enquanto não é usado. Para voltar, troque para true.
+const MOSTRAR_CHECKLIST = false;
+let TAB = MOSTRAR_CHECKLIST ? 'checklist' : 'producao';
 let CK_VIEW = 'home';   // 'home' | 'active' | 'resumo'
 let _saveTimers = {};
 let _confResolve = null;
@@ -1178,7 +1180,13 @@ async function init() {
 
   _hideSplash();
   await _carregarDados();
-  renderCkHome();
+  if (MOSTRAR_CHECKLIST) {
+    renderCkHome();
+  } else {
+    var _tck = document.getElementById('tab-checklist');
+    if (_tck) _tck.style.display = 'none';
+    goTab('producao');
+  }
 }
 
 function _hideSplash() {
@@ -1453,6 +1461,12 @@ function _nomeInsumoCurto(n, nPal){
   var w=String(n||'').split(/\s+/).filter(function(x){ return x && !/\d/.test(x); }).slice(0,nPal||2);
   return w.map(function(x){ return x.charAt(0)+x.slice(1).toLowerCase(); }).join(' ');
 }
+function _fmtQtdIng(x, f){
+  var q=(Number(x.q)||0)*(f||1);
+  if(/^(un|und|unid)/i.test(String(x.un||''))) return Math.round(q)+' un';
+  if(/^l/i.test(String(x.un||''))) return (q<1 ? Math.round(q*1000)+' ml' : _fmtNum(Math.round(q*100)/100)+' L');
+  return _fmtPesoIng(q);
+}
 function _fmtPesoIng(kg){
   return kg<1 ? (Math.round(kg*1000)+' g') : (_fmtNum(Math.round(kg*100)/100)+' kg');
 }
@@ -1479,7 +1493,7 @@ function _quadroLotesMassa(derivs,C){
     var mL=_massaPorLote(d.fic);
     var f=mL/(d.fic.massaTrigoKg||1);
     var ing=(d.fic.outrosIng||[]).slice().sort(function(a,b){ return b.q-a.q; })
-      .map(function(x){ return _nomeInsumoCurto(x.nome)+' <b>'+_fmtPesoIng(x.q*f)+'</b>'; });
+      .map(function(x){ return _nomeInsumoCurto(x.nome)+' <b>'+_fmtQtdIng(x,f)+'</b>'; });
     var nota=NOTAS_LOTE[d.cod];
     h+='<tr style="'+(i%2?'background:#FFFAF3;':'')+'">'
       +'<td style="'+td+'font-weight:800;white-space:nowrap;">'+d.nome+'</td>'
@@ -1534,6 +1548,37 @@ async function imprimirLotesMassa(){
       ? '<b style="color:'+C.amber+';">🧈 Bolos da massa de trigo:</b> bata a massa do dia e separe para cada lote a massa do cartão + os adicionais.'
       : '')+'</div>';
 
+  // MASSAS BASE: a receita de 1 batida de cada massa compartilhada
+  var _massas=[], _visto={};
+  Object.keys(FICHAS_NOME||{}).forEach(function(k){
+    var m=FICHAS_NOME[k];
+    if(k.indexOf('massa ')!==0 || k==='massa bolo de trigo' || _visto[m.id]) return;
+    if(m.setor && SETOR && String(m.setor).toUpperCase()!==String(SETOR).toUpperCase()) return;
+    _visto[m.id]=1; _massas.push(m);
+  });
+  if(_massas.length){
+    _massas.sort(function(a,b){ return a.nome<b.nome?-1:1; });
+    h+='<div style="margin:10px 0 6px;padding:4px 10px;background:#1D4ED8;color:#fff;border-radius:6px;font-size:11.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;break-after:avoid;page-break-after:avoid;">Massas base — 1 batida</div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;">';
+    _massas.forEach(function(m){
+      // maior quantidade primeiro (item em unidades, como ovos, conta ~50 g cada)
+      var _pk=function(x){ return /^(un|und|unid)/i.test(String(x.un||'')) ? x.q*0.05 : x.q; };
+      var ing=(m.outrosIng||[]).slice().sort(function(x,y){ return _pk(y)-_pk(x); });
+      h+='<div style="border:1.3px solid #1D4ED8;border-radius:8px;overflow:hidden;break-inside:avoid;page-break-inside:avoid;">'
+        +'<div style="background:#1D4ED8;color:#fff;padding:4px 8px;display:flex;justify-content:space-between;align-items:baseline;gap:4px;">'
+        +'<span style="font-size:11.5px;font-weight:900;line-height:1.15;">'+m.nome+'</span><span style="font-size:8.5px;font-weight:700;opacity:.9;white-space:nowrap;">1 BATIDA</span></div>'
+        +'<div style="padding:4px 8px 5px;">';
+      ing.forEach(function(x){
+        h+='<div style="font-size:10px;padding:2px 0;border-bottom:1px solid #F3F3F1;">'+box+_nomeInsumoCurto(x.nome,3)
+          +'<span style="float:right;font-weight:800;">'+_fmtQtdIng(x,1)+'</span></div>';
+      });
+      h+='<div style="margin-top:4px;font-size:9.5px;color:'+C.gray+';display:flex;justify-content:space-between;">'
+        +'<span>Rende (massa crua)</span><b style="font-size:11.5px;color:#1D4ED8;">'+_fmtNum(Math.round((m.rendimentoKg||0)*100)/100)+' kg</b></div>'
+        +'</div></div>';
+    });
+    h+='</div>';
+  }
+
   ordem.forEach(function(cat){
     var ci=cats[cat]||{cor:'#9CA3AF'};
     var lst=(porCat[cat]||[]).sort(function(x,y){ return x.nome<y.nome?-1:1; });
@@ -1559,7 +1604,7 @@ async function imprimirLotesMassa(){
         if(ing.length){
           ing.forEach(function(x){
             h+='<div style="font-size:10px;padding:2px 0;border-bottom:1px solid #F3F3F1;">'+box+_nomeInsumoCurto(x.nome,3)
-              +'<span style="float:right;font-weight:800;">'+_fmtPesoIng(x.q*f)+'</span></div>';
+              +'<span style="float:right;font-weight:800;">'+_fmtQtdIng(x,f)+'</span></div>';
           });
         }else if(d.fic.sintetico==='massa_doce'){
           h+='<div style="font-size:11px;font-weight:900;padding:2px 0 3px;color:#1D4ED8;">'+box+'Massa doce<span style="float:right;">'+_fmtPesoIng(MASSA_DOCE_LOTE_KG)+'</span></div>'
@@ -7775,7 +7820,7 @@ async function carregarFichas(){
   var porCod={},porNome={};
   try{
     var fichas=await sbSelect('fichas_tecnicas','select=id,cod,produto_nome,setor,rendimento_kg,rendimento_unid,preco_venda_kg,preco_venda_und&ativo=eq.true&limit=1000');
-    var itens =await sbSelect('ficha_itens','select=ficha_id,insumo_id,qtd_bruta,qtd_liquida&limit=6000');
+    var itens =await sbSelect('ficha_itens','select=ficha_id,insumo_id,qtd_bruta,qtd_liquida,unidade&limit=6000');
     var insumos=await sbSelect('insumos','select=id,nome,custo_kg_l&limit=2000');
 
     var custoIns={},nomeIns={};
@@ -7804,7 +7849,7 @@ async function carregarFichas(){
         massaQtd[it.ficha_id]=(massaQtd[it.ficha_id]||0)+q;
       }else if(q>0){
         // demais ingredientes — usados para mostrar o que vai em cada lote
-        (outrosIng[it.ficha_id]=outrosIng[it.ficha_id]||[]).push({nome:nomeIns[it.insumo_id]||'',q:q});
+        (outrosIng[it.ficha_id]=outrosIng[it.ficha_id]||[]).push({nome:nomeIns[it.insumo_id]||'',q:q,un:String(it.unidade||'')});
       }
     });
 
@@ -7821,7 +7866,7 @@ async function carregarFichas(){
         mQtd=rendKg; ehBaseMassa=true;
       }
       var dados={
-        id:fc.id, nome:fc.produto_nome, cod:(fc.cod||'').toString().trim(),
+        id:fc.id, nome:fc.produto_nome, cod:(fc.cod||'').toString().trim(), setor:fc.setor||'',
         rendimentoKg:rendKg, rendimentoUn:rendUn,
         custoReceita:receita,
         custoKg: rendKg>0 ? receita/rendKg : 0,

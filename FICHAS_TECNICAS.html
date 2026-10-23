@@ -933,12 +933,14 @@ function ajustarPorcao(fichaId, valor, ehMultiplo){
   var custoBase= parseFloat(tbl.dataset.custo)|| 0;
   var pesoBase = parseFloat(tbl.dataset.peso) || 0;
   var baseRef  = rendBase > 0 ? rendBase : undBase;
+  var baseIng  = _baseCalcEscolhida(fichaId);   // ingrediente escolhido em "calcular por"
+  if (baseIng && baseIng.qtd > 0) baseRef = baseIng.qtd;
 
   var fator;
   if (ehMultiplo) {
     fator = parseFloat(valor) || 1;
     var inp = document.getElementById('porcao-' + fichaId);
-    if (inp && baseRef > 0) inp.value = (baseRef * fator).toFixed(rendBase > 0 ? 2 : 0);
+    if (inp && baseRef > 0) inp.value = (Math.abs(fator-1)<0.001 && !baseIng) ? '' : (baseRef * fator).toFixed((rendBase > 0 || baseIng) ? 2 : 0);
   } else {
     var desejado = parseFloat(String(valor).replace(',', '.')) || 0;
     if (desejado <= 0 || baseRef <= 0) { resetarPorcao(fichaId); return; }
@@ -975,7 +977,8 @@ function ajustarPorcao(fichaId, valor, ehMultiplo){
     } else {
       var rendNovo = rendBase * fator;
       var undNovo  = undBase * fator;
-      info.innerHTML = '<b style="color:#C0392B;">' + fmtBR(fator, 2).replace(',00','') + '× a receita</b> · rende '
+      info.innerHTML = (baseIng ? 'Base: <b>' + fmtBR(baseRef*fator,2) + ' ' + baseIng.und + ' de ' + baseIng.nome + '</b> · ' : '')
+        + '<b style="color:#C0392B;">' + fmtBR(fator, 2).replace(',00','') + '× a receita</b> · rende '
         + (rendBase > 0 ? fmtBR(rendNovo,2)+' kg' : '')
         + (undBase > 0 ? (rendBase > 0 ? ' (' + Math.round(undNovo) + ' und)' : Math.round(undNovo)+' und') : '')
         + ' <button type="button" onclick="resetarPorcao(\'' + fichaId + '\')" '
@@ -986,6 +989,36 @@ function ajustarPorcao(fichaId, valor, ehMultiplo){
   }
 }
 
+// "Calcular por": a quantidade digitada pode ser do rendimento (padrão) ou de
+// um ingrediente da receita — ex.: tenho 5 kg de farinha, quanto vai do resto?
+function _calcBaseSelect(fid, itens, rendLbl){
+  var h='<select id="calcBase-'+fid+'" onchange="_trocarBaseCalc(\''+fid+'\')" '
+    +'style="padding:6px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;font-family:inherit;color:var(--brown);max-width:190px;">'
+    +'<option value="">'+rendLbl+'</option>';
+  (itens||[]).forEach(function(it,i){
+    h+='<option value="'+i+'">'+String(it.insumo_nome||'').replace(/</g,'&lt;')+' ('+(it.unidade||'kg')+')</option>';
+  });
+  return h+'</select>';
+}
+function _baseCalcEscolhida(fichaId){
+  var sel=document.getElementById('calcBase-'+fichaId);
+  if(!sel || sel.value==='') return null;
+  var tbl=document.getElementById('tbl-'+fichaId);
+  var td=tbl ? tbl.querySelector('.qtd-base[data-idx="'+sel.value+'"]') : null;
+  if(!td) return null;
+  return {qtd:parseFloat(td.dataset.base)||0, und:td.dataset.und||'kg', nome:sel.options[sel.selectedIndex].text.replace(/\s*\([^)]*\)\s*$/,'')};
+}
+function _trocarBaseCalc(fichaId){
+  var b=_baseCalcEscolhida(fichaId);
+  var tbl=document.getElementById('tbl-'+fichaId);
+  var lbl=document.getElementById('calcUnd-'+fichaId);
+  var inp=document.getElementById('porcao-'+fichaId);
+  var rend=tbl?parseFloat(tbl.dataset.rend)||0:0;
+  if(lbl) lbl.textContent = b ? b.und : (rend>0?'kg':'und');
+  if(inp){ inp.value=''; inp.placeholder = b ? fmtBR(b.qtd,2) : (rend>0?fmtBR(rend,1):''); inp.focus(); }
+  ajustarPorcao(fichaId, 1, true);
+}
+
 function resetarPorcao(fichaId){
   var inp = document.getElementById('porcao-' + fichaId);
   if (inp) inp.value = '';
@@ -993,17 +1026,17 @@ function resetarPorcao(fichaId){
 }
 
 function renderFichaBody(f,c,itens){
-  const rows=itens.map(function(it){
+  const rows=itens.map(function(it,ix){
     const ins=INSUMOS.find(function(i){return i.id===it.insumo_id;});
     const custoKg=ins?parseFloat(ins.custo_kg_l)||0:0;
-    const qtdBruta=parseFloat(it.qtd_bruta)||0;
+    const qtdBruta=parseFloat(it.qtd_bruta)||((parseFloat(it.qtd_liquida)||0)*(parseFloat(it.fator_correcao)||1));
     const custoItem=qtdBruta*custoKg;
     const ehUnd = /und|un\b|unid/i.test(it.unidade || '');
     return '<tr>'
       +'<td>'+it.insumo_nome+'</td>'
       +'<td class="r">'+fmtBR(parseFloat(it.qtd_liquida)||0, 2)+' '+it.unidade+'</td>'
       +'<td class="r">'+fmtBR(parseFloat(it.fator_correcao)||1, 2)+'</td>'
-      +'<td class="r qtd-base" data-base="'+qtdBruta+'" data-und="'+(it.unidade||'')+'" data-ehund="'+(ehUnd?1:0)+'">'
+      +'<td class="r qtd-base" data-idx="'+ix+'" data-base="'+qtdBruta+'" data-und="'+(it.unidade||'')+'" data-ehund="'+(ehUnd?1:0)+'">'
         +fmtBR(qtdBruta, 2)+' '+it.unidade+'</td>'
       +'<td class="r custo-base" data-custo="'+custoItem+'">R$ '+fmtBR(custoItem, 2)+'</td>'
       +'</tr>';
@@ -1050,11 +1083,12 @@ function renderFichaBody(f,c,itens){
        }).join('')
     +'</div>'
     +'<div style="display:flex;align-items:center;gap:5px;margin-left:auto;">'
+    +_calcBaseSelect(f.id, itens, rendBase>0?'kg de produto pronto':'unidades prontas')
     +'<input type="number" step="0.1" id="porcao-'+f.id+'" placeholder="'+(rendBase>0?fmtBR(rendBase,1):'')+'" '
     +'oninput="ajustarPorcao(\''+f.id+'\',this.value,false)" '
     +'style="width:88px;padding:7px 9px;border:1.5px solid var(--border);border-radius:8px;'
     +'font-size:16px;font-family:inherit;text-align:right;color:var(--brown);">'
-    +'<span style="font-size:.75rem;font-weight:700;color:var(--gray);">'+(rendBase>0?'kg':'und')+'</span>'
+    +'<span id="calcUnd-'+f.id+'" style="font-size:.75rem;font-weight:700;color:var(--gray);">'+(rendBase>0?'kg':'und')+'</span>'
     +'</div></div>'
     +'<div id="calcInfo-'+f.id+'" style="font-size:.68rem;color:var(--gray);margin-top:6px;">'
     +'Receita cheia rende '+baseTxt+'. Digite outra quantidade para recalcular os ingredientes.</div>'
@@ -1164,14 +1198,14 @@ function renderProducao() {
   }
   el.innerHTML = lista.map(function(f) {
     var itens = FICHA_ITENS[f.id] || [];
-    var rows = itens.map(function(it) {
-      var qtdBruta = parseFloat(it.qtd_bruta) || 0;
+    var rows = itens.map(function(it, ix) {
+      var qtdBruta = parseFloat(it.qtd_bruta) || ((parseFloat(it.qtd_liquida)||0) * (parseFloat(it.fator_correcao)||1));
       var ehUnd = /und|un\b|unid/i.test(it.unidade || '');
       return '<tr>'
         + '<td>' + (it.insumo_nome || '') + '</td>'
         + '<td style="text-align:center">' + fmtBR(parseFloat(it.qtd_liquida)||0, 2) + ' ' + (it.unidade||'') + '</td>'
         + '<td style="text-align:center">' + fmtBR(parseFloat(it.fator_correcao)||1, 2) + '</td>'
-        + '<td style="text-align:center" class="qtd-base" data-base="' + qtdBruta + '" data-und="' + (it.unidade||'') + '" data-ehund="' + (ehUnd?1:0) + '">'
+        + '<td style="text-align:center" class="qtd-base" data-idx="' + ix + '" data-base="' + qtdBruta + '" data-und="' + (it.unidade||'') + '" data-ehund="' + (ehUnd?1:0) + '">'
         + fmtBR(qtdBruta, 2) + ' ' + (it.unidade||'') + '</td>'
         + '</tr>';
     }).join('');
@@ -1194,11 +1228,12 @@ function renderProducao() {
           }).join('')
         + '</div>'
         + '<div style="display:flex;align-items:center;gap:5px;margin-left:auto;">'
+        + _calcBaseSelect('fp-' + f.id, itens, rendFP>0?'kg de produto pronto':'unidades prontas')
         + '<input type="number" step="0.1" id="porcao-fp-' + f.id + '" placeholder="' + fmtBR(baseFP, rendFP>0?1:0) + '" '
         + 'oninput="ajustarPorcao(\'fp-' + f.id + '\',this.value,false)" '
         + 'style="width:88px;padding:7px 9px;border:1.5px solid var(--border);border-radius:8px;'
         + 'font-size:16px;font-family:inherit;text-align:right;color:var(--brown);">'
-        + '<span style="font-size:.75rem;font-weight:700;color:var(--gray);">' + (rendFP>0?'kg':'und') + '</span>'
+        + '<span id="calcUnd-fp-' + f.id + '" style="font-size:.75rem;font-weight:700;color:var(--gray);">' + (rendFP>0?'kg':'und') + '</span>'
         + '</div></div>'
         + '<div id="calcInfo-fp-' + f.id + '" style="font-size:.68rem;color:var(--gray);margin-top:6px;">'
         + 'Receita cheia rende ' + (rendFP>0 ? fmtBR(rendFP,2)+' kg' : fmtBR(undFP,0)+' und')
