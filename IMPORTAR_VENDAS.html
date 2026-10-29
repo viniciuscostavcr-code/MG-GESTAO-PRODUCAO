@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Importar Vendas — GestFood</title>
+<script>
+// ── SESSÃO — somente admin (importar apaga e regrava vendas) ──
+(function(){
+  const k='gf_session',max=8*60*60*1000;
+  const s=JSON.parse(localStorage.getItem(k)||'null');
+  if(!s||Date.now()-s.loggedAt>max){localStorage.removeItem(k);window.location.replace('LOGIN.html');return;}
+  if(s.role!=='admin'){window.location.replace('GESTFOOD_INDEX.html');}
+})();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
   --grn:#2D6A4F;--grn2:#1B4332;--grn-l:#EAF4EF;
@@ -60,12 +70,12 @@ td{padding:6px;border-bottom:1px solid #eee;}
 
   <!-- PASSO 1: arquivo -->
   <div class="card">
-    <div class="card-title"><span class="step-num">1</span> Selecione o arquivo CSV</div>
-    <input type="file" id="fileInput" accept=".csv,.txt">
-    <div class="hint">O arquivo deve ser o relatório ABC detalhado exportado do PDV (formato com ; separando colunas).</div>
+    <div class="card-title"><span class="step-num">1</span> Selecione o arquivo</div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.txt">
+    <div class="hint"><b>Sistema novo:</b> "Relatório Dinâmico ABC de Venda" em Excel (.xlsx), agrupado por data. <b>Sistema antigo:</b> ABC detalhado em CSV (;). O app reconhece sozinho.</div>
   </div>
 
-  <!-- PASSO 2: setor e mês -->
+  <!-- PASSO 2: setor e período -->
   <div class="card">
     <div class="card-title"><span class="step-num">2</span> Identifique os dados</div>
     <div class="row">
@@ -78,12 +88,12 @@ td{padding:6px;border-bottom:1px solid #eee;}
         </select>
       </div>
       <div>
-        <label>Meses no arquivo (detecção automática)</label>
-        <div id="mesesDetectados" style="padding:12px;font-size:14px;border:2px solid var(--border);border-radius:10px;background:#F7F7F5;color:#1B4332;font-weight:600;min-height:20px;">—</div>
-        <input type="month" id="mesRef" style="display:none;">
+        <label>Importar a partir de</label>
+        <input type="date" id="dataIni" style="width:100%;padding:12px;font-size:16px;border:2px solid var(--border);border-radius:10px;font-family:inherit;margin-bottom:14px;">
       </div>
     </div>
-    <div class="hint">Cada linha é atribuída ao mês da sua data — pode importar 1 mês, um trimestre ou o período que quiser num arquivo só. Dados antigos de cada mês/setor são substituídos automaticamente.</div>
+    <div id="mesesDetectados" style="padding:10px 12px;font-size:13px;border:2px solid var(--border);border-radius:10px;background:#F7F7F5;color:#1B4332;font-weight:600;min-height:20px;margin-bottom:10px;">—</div>
+    <div class="hint">Só os <b>dias que estão no arquivo</b> (a partir da data acima) são substituídos. Os outros dias do mês ficam como estão. Use a data para pular um dia incompleto, como o primeiro dia do sistema novo.</div>
   </div>
 
   <!-- PASSO 3: prévia -->
@@ -96,7 +106,7 @@ td{padding:6px;border-bottom:1px solid #eee;}
   <!-- PASSO 4: importar -->
   <div class="card" id="importCard" style="display:none;">
     <div class="card-title"><span class="step-num">4</span> Importar para o sistema</div>
-    <div class="warn-box">⚠️ Se já existir dados desse mês e setor, eles serão <b>substituídos</b> (apagados e reinseridos) para evitar duplicação.</div>
+    <div class="warn-box">⚠️ Para cada <b>dia</b> do arquivo, as vendas desse dia e setor que já estiverem no sistema são <b>substituídas</b>. Dias fora do arquivo não são tocados.</div>
     <button class="btn btn-primary" id="btnImportar" onclick="importar()">📥 Importar vendas</button>
   </div>
 </div>
@@ -133,171 +143,225 @@ function dataBR(s){
 document.getElementById('fileInput').addEventListener('change',function(e){
   var file=e.target.files[0];
   if(!file)return;
+  var ehExcel=/\.xlsx?$/i.test(file.name);
   var reader=new FileReader();
   reader.onload=function(ev){
     try{
-      // Detecta encoding: tenta UTF-8; se achar caractere de erro (), relê como latin-1
+      if(ehExcel){
+        if(typeof XLSX==='undefined'){ showStatus('❌ Não consegui carregar o leitor de Excel. Confira a internet e recarregue a página.','err'); return; }
+        parseXLSX(ev.target.result);
+        return;
+      }
+      // CSV (sistema antigo). Detecta encoding: UTF-8; se tiver caractere inválido, latin-1
       var bytes=new Uint8Array(ev.target.result);
       var txtUtf8=new TextDecoder('utf-8').decode(bytes);
-      var texto;
-      if(txtUtf8.indexOf('\uFFFD')>=0){
-        // tinha byte inválido em UTF-8 → é latin-1
-        texto=new TextDecoder('iso-8859-1').decode(bytes);
-      }else{
-        texto=txtUtf8;
-      }
+      var texto = txtUtf8.indexOf('\uFFFD')>=0 ? new TextDecoder('iso-8859-1').decode(bytes) : txtUtf8;
       parseCSV(texto);
     }catch(err){
       showStatus('❌ Erro ao ler o arquivo: '+err.message,'err');
     }
   };
-  reader.readAsArrayBuffer(file); // lê como bytes pra detectar encoding
+  reader.readAsArrayBuffer(file);
 });
 
+function _norm(s){return String(s||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').trim();}
+
+// ── SISTEMA NOVO: "Relatório Dinâmico ABC de Venda" (.xlsx) ──
+// Linhas de quebra "Data: dd/mm/aaaa" e "Dia da Semana: 4 - quarta-feira",
+// depois uma linha por produto (Nº, Código, Descrição, Qtde, Venda, ...).
+function parseXLSX(buf){
+  var wb=XLSX.read(new Uint8Array(buf),{type:'array'});
+  var ws=wb.Sheets[wb.SheetNames[0]];
+  var rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
+  var hi=-1;
+  for(var r=0;r<rows.length && hi<0;r++){
+    var t=(rows[r]||[]).map(_norm);
+    if(t.indexOf('codigo')>=0 && t.indexOf('descricao')>=0) hi=r;
+  }
+  if(hi<0){ showStatus('❌ Não achei o cabeçalho (Código / Descrição). É o Relatório ABC de Venda?','err'); return; }
+  var hdr=rows[hi].map(_norm);
+  function col(n){ return hdr.indexOf(n); }
+  var iCod=col('codigo'), iDesc=col('descricao'), iQtd=col('qtde'), iVenda=col('venda'),
+      iVm=col('vl. medio'), iCusto=col('custo total'), iLucro=col('lucro'), iMarg=col('margem'), iCurva=col('curva');
+  // No Excel o número pode estar na coluna do título ou na seguinte (célula mesclada)
+  function nval(row,i){
+    if(i<0) return 0;
+    for(var k=i;k<=i+1;k++){ var v=row[k]; if(typeof v==='number') return v; if(v!==null&&v!==''&&!isNaN(parseFloat(v))) return num(v); }
+    return 0;
+  }
+  // Setor pelo cabeçalho "Seção: PADARIA"
+  for(var a=0;a<hi;a++){
+    var linha=(rows[a]||[]).filter(function(x){return typeof x==='string';}).join(' ');
+    var m=linha.match(/Se[cç][aã]o:\s*([A-Za-zÀ-ú]+)/i);
+    if(m){ var sec=_norm(m[1]).toUpperCase(); var sel=document.getElementById('setorSel');
+      if(sec.indexOf('PASTEL')===0) sec='CONFEITARIA';
+      for(var o=0;o<sel.options.length;o++) if(sel.options[o].value===sec) sel.value=sec; }
+  }
+  dadosParsed=[];
+  var dataAtual=null, diaAtual='';
+  for(var r2=hi+1;r2<rows.length;r2++){
+    var row=rows[r2]||[];
+    var c0=row[0];
+    if(typeof c0==='string'){
+      if(/total/i.test(c0)) continue;
+      var md=c0.match(/Data:\s*(\d{1,2}\/\d{1,2}\/\d{4})/i);
+      if(md){ dataAtual=dataBR(md[1]); continue; }
+      var mw=c0.match(/Dia da Semana:\s*\d*\s*-?\s*(.+)$/i);
+      if(mw){ diaAtual=mw[1].trim(); continue; }
+      continue;
+    }
+    if(typeof c0!=='number' || !dataAtual) continue;
+    var cod=row[iCod]; if(cod===null||cod===undefined||cod==='') continue;
+    // O sistema novo põe a unidade no fim da descrição ("PAO KG  kg") — tira
+    var desc=String(row[iDesc]||'').replace(/\s+/g,' ').trim().replace(/ kg$/,'');
+    var marg=nval(row,iMarg);
+    dadosParsed.push({
+      cod:String(cod).trim(), produto:desc, data:dataAtual, dia_semana:diaAtual,
+      quantidade:nval(row,iQtd), faturamento:nval(row,iVenda), preco_medio:nval(row,iVm),
+      custo_total:nval(row,iCusto), lucro:nval(row,iLucro),
+      margem: Math.abs(marg)<=1.5 ? Math.round(marg*10000)/100 : marg,
+      classe_abc:String(row[iCurva]||'').trim(),
+      revenda:_ehRevenda(cod,desc), sistema:'novo'
+    });
+  }
+  if(!dadosParsed.length){ showStatus('❌ Nenhuma venda encontrada no arquivo.','err'); return; }
+  _mostrarPrevia('Excel do sistema novo');
+}
+
+// ── SISTEMA ANTIGO: CSV com ; ──
 function parseCSV(texto){
   var linhas=texto.split(/\r?\n/).filter(function(l){return l.trim()!=='';});
   if(linhas.length<2){ showStatus('❌ Arquivo vazio ou sem dados.','err'); return; }
   var header=linhas[0].split(';').map(function(h){return h.trim();});
-  // Normaliza pra comparar sem acento e sem caso
-  function norm(s){return (s||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'');}
-  // Mapear índices das colunas que interessam (tolerante a acento)
-  // Tenta match exato primeiro; se não achar, match parcial
   function idx(nome){
-    var alvo=norm(nome);
-    for(var i=0;i<header.length;i++){ if(norm(header[i])===alvo)return i; }
-    for(var j=0;j<header.length;j++){ if(norm(header[j]).indexOf(alvo)>=0)return j; }
+    var alvo=_norm(nome);
+    for(var i=0;i<header.length;i++){ if(_norm(header[i])===alvo)return i; }
+    for(var j=0;j<header.length;j++){ if(_norm(header[j]).indexOf(alvo)>=0)return j; }
     return -1;
   }
   var iData=idx('quebra'), iDia=idx('quebra2'), iCod=idx('codigo'), iDesc=idx('descricao');
   var iQtd=idx('quantidade'), iFat=idx('faturamento'), iPm=idx('preco medio');
   var iCusto=idx('custo total'), iLucro=idx('lucro'), iMargem=idx('margem'), iClasse=idx('classific');
-
   if(iDesc<0||iData<0){ showStatus('❌ Colunas esperadas não encontradas. Confira se é o ABC detalhado.','err'); return; }
-
   dadosParsed=[];
-  var mesDetectado='';
   for(var i=1;i<linhas.length;i++){
     var c=linhas[i].split(';');
     var desc=(c[iDesc]||'').trim();
     if(!desc)continue;
     var dataISO=dataBR(c[iData]);
     if(!dataISO)continue;
-    if(!mesDetectado)mesDetectado=dataISO.slice(0,7);
     dadosParsed.push({
-      cod:(c[iCod]||'').trim(),
-      produto:desc,
-      data:dataISO,
-      dia_semana:(c[iDia]||'').trim(),
-      quantidade:num(c[iQtd]),
-      faturamento:num(c[iFat]),
-      preco_medio:num(c[iPm]),
-      custo_total:num(c[iCusto]),
-      lucro:num(c[iLucro]),
-      margem:num(c[iMargem]),
+      cod:(c[iCod]||'').trim(), produto:desc, data:dataISO, dia_semana:(c[iDia]||'').trim(),
+      quantidade:num(c[iQtd]), faturamento:num(c[iFat]), preco_medio:num(c[iPm]),
+      custo_total:num(c[iCusto]), lucro:num(c[iLucro]), margem:num(c[iMargem]),
       classe_abc:(c[iClasse]||'').trim()
     });
   }
-
   if(dadosParsed.length===0){ showStatus('❌ Nenhuma linha válida encontrada.','err'); return; }
+  _mostrarPrevia('CSV do sistema antigo');
+}
 
-  // Mostrar os meses detectados no arquivo (multi-mês)
-  var mesesArq={};
-  dadosParsed.forEach(function(d){var m=(d.data||'').slice(0,7);if(/^20\d\d-\d\d$/.test(m))mesesArq[m]=(mesesArq[m]||0)+1;});
-  var listaMeses=Object.keys(mesesArq).sort();
-  var elMeses=document.getElementById('mesesDetectados');
-  if(elMeses){
-    if(listaMeses.length)elMeses.innerHTML=listaMeses.map(function(m){return m+' ('+mesesArq[m]+' linhas)';}).join(' · ');
-    else elMeses.innerHTML='⚠️ nenhuma data válida encontrada';
-  }
-  if(mesDetectado)document.getElementById('mesRef').value=mesDetectado;
+function _fmtBR(iso){ var p=String(iso).split('-'); return p.length===3?(p[2]+'/'+p[1]):iso; }
 
-  // Resumo
-  var totFat=0,totQtd=0;
-  dadosParsed.forEach(function(d){ totFat+=d.faturamento; totQtd+=d.quantidade; });
-  var produtos={};
-  dadosParsed.forEach(function(d){ produtos[d.produto]=true; });
+// ── REVENDA: produtos que aparecem na seção mas NÃO são produzidos aqui ──
+// Vão para o setor "REVENDA <setor>": ficam guardados, mas fora da média,
+// das metas, do CMV e da conferência. Para incluir outro, ponha o código aqui.
+// Dia da troca do caixa: tem venda nos DOIS sistemas. Nesse dia o importador
+// não apaga a parte do sistema antigo — só troca a parte do sistema novo.
+var DIA_TROCA='2026-10-15';
+var REVENDA_COD=[];   // ex.: ['1234','5678']
+function _ehRevenda(cod,desc){
+  var c=String(cod||'').trim().replace(/^0+/,'');
+  return REVENDA_COD.indexOf(c)>=0 || /DEL PERNAMB|GALETO/i.test(desc||'');
+}
 
-  var resumoHtml=''
+function _mostrarPrevia(origem){
+  // Dias no arquivo, com o total de cada um (dia incompleto aparece baixo)
+  var dias={};
+  dadosParsed.forEach(function(d){ dias[d.data]=(dias[d.data]||0)+d.faturamento; });
+  var lista=Object.keys(dias).sort();
+  var media=lista.reduce(function(s,k){return s+dias[k];},0)/Math.max(1,lista.length);
+  document.getElementById('mesesDetectados').innerHTML=origem+' · '+lista.length+' dias: '
+    +lista.map(function(k){ var baixo=dias[k]<media*0.5;
+      return '<span style="'+(baixo?'color:#C0392B;':'')+'">'+_fmtBR(k)+(baixo?' (baixo)':'')+'</span>'; }).join(' · ');
+  var ini=document.getElementById('dataIni');
+  if(!ini.value || ini.value<lista[0] || ini.value>lista[lista.length-1]) ini.value=lista[0];
+  // Faltando dia no meio do período?
+  var faltam=[]; if(lista.length>1){ var d=new Date(lista[0]+'T12:00:00'), fim=new Date(lista[lista.length-1]+'T12:00:00');
+    while(d<fim){ d.setDate(d.getDate()+1); var k=d.toISOString().slice(0,10); if(!dias[k]) faltam.push(_fmtBR(k)); } }
+
+  var totFat=0, produtos={}, rev={}, revFat=0;
+  dadosParsed.forEach(function(d){ totFat+=d.faturamento; produtos[d.cod+'|'+d.produto]=true;
+    if(d.revenda){ rev[d.produto]=1; revFat+=d.faturamento; } });
+  var revTxt=Object.keys(rev).length ? ' <br>🛒 Revenda separada (fora da produção): '+Object.keys(rev).join(', ')
+    +' — R$ '+revFat.toLocaleString('pt-BR',{maximumFractionDigits:0})+'.' : '';
+  document.getElementById('resumo').innerHTML=''
     +'<div><div class="v">'+dadosParsed.length+'</div><div class="l">Linhas</div></div>'
     +'<div><div class="v">'+Object.keys(produtos).length+'</div><div class="l">Produtos</div></div>'
     +'<div><div class="v">R$ '+(totFat/1000).toFixed(1)+'k</div><div class="l">Faturamento</div></div>';
-  document.getElementById('resumo').innerHTML=resumoHtml;
-
-  // Prévia (primeiras 20 linhas)
-  var t='<table><thead><tr><th>Cód</th><th>Produto</th><th>Data</th><th>Qtd</th><th>Fat</th><th>ABC</th></tr></thead><tbody>';
+  var t='<table><thead><tr><th>Cód</th><th>Produto</th><th>Data</th><th>Qtd</th><th>Venda R$</th><th>ABC</th></tr></thead><tbody>';
   dadosParsed.slice(0,20).forEach(function(d){
-    t+='<tr><td>'+d.cod+'</td><td>'+d.produto+'</td><td>'+d.data+'</td><td>'+d.quantidade.toFixed(1)+'</td><td>'+d.faturamento.toFixed(2)+'</td><td>'+d.classe_abc+'</td></tr>';
+    t+='<tr><td>'+d.cod+'</td><td>'+d.produto+'</td><td>'+_fmtBR(d.data)+'</td><td>'+d.quantidade.toFixed(2)+'</td><td>'+d.faturamento.toFixed(2)+'</td><td>'+d.classe_abc+'</td></tr>';
   });
-  t+='</tbody></table>';
-  document.getElementById('preview').innerHTML=t;
-
+  document.getElementById('preview').innerHTML=t+'</tbody></table>';
   document.getElementById('previewCard').style.display='block';
   document.getElementById('importCard').style.display='block';
-  showStatus('✅ Arquivo lido: '+dadosParsed.length+' linhas. Confira a prévia e importe.','ok');
+  showStatus('✅ Arquivo lido: '+dadosParsed.length+' linhas em '+lista.length+' dias.'
+    +(faltam.length?' <br>⚠️ Sem venda no arquivo: '+faltam.join(', ')+'.':'')
+    +revTxt
+    +' <br>Confira a prévia e importe.','ok');
 }
 
 async function importar(){
   var setor=document.getElementById('setorSel').value;
-  if(dadosParsed.length===0){ showStatus('❌ Nenhum dado pra importar.','err'); return; }
-
-  // Deriva o mes_ref da DATA de cada linha (suporta arquivo com 1 mês, trimestre ou período qualquer)
-  var porMes={};
-  var semData=0;
-  dadosParsed.forEach(function(d){
-    var m=(d.data||'').slice(0,7); // 'AAAA-MM'
-    if(!/^20\d\d-\d\d$/.test(m)){ semData++; return; }
-    if(!porMes[m])porMes[m]=[];
-    porMes[m].push(d);
-  });
-  var meses=Object.keys(porMes).sort();
-  if(meses.length===0){ showStatus('❌ Nenhuma linha com data válida.','err'); return; }
-  if(semData>0 && !confirm(semData+' linha(s) sem data válida serão ignoradas. Continuar?')){ return; }
+  var ini=document.getElementById('dataIni').value||'';
+  var dados=dadosParsed.filter(function(d){ return /^20\d\d-\d\d-\d\d$/.test(d.data||'') && (!ini || d.data>=ini); });
+  if(dados.length===0){ showStatus('❌ Nenhuma linha a partir de '+_fmtBR(ini)+'.','err'); return; }
+  var dias={}; dados.forEach(function(d){ dias[d.data]=1; });
+  var lista=Object.keys(dias).sort();
 
   var btn=document.getElementById('btnImportar');
   btn.disabled=true;
-
   try{
-    var totalInseridos=0;
-    for(var mi=0;mi<meses.length;mi++){
-      var mesRef=meses[mi];
-      var linhas=porMes[mesRef];
-      showStatus('⏳ Mês '+(mi+1)+'/'+meses.length+' ('+mesRef+'): apagando dados antigos...','info');
-
-      // 1. Apagar dados existentes desse mês+setor (evita duplicar)
-      var delUrl=SUPA_URL+'/rest/v1/vendas_abc?mes_ref=eq.'+encodeURIComponent(mesRef)+'&setor=eq.'+encodeURIComponent(setor);
-      var rDel=await fetch(delUrl,{method:'DELETE',headers:SH});
-      if(!rDel.ok && rDel.status!==404){ throw new Error('Falha ao limpar '+mesRef+': '+await rDel.text()); }
-
-      // 2. Inserir em lotes de 500
-      var rows=linhas.map(function(d){
-        return {
-          cod:d.cod, produto:d.produto, setor:setor, data:d.data,
-          dia_semana:d.dia_semana, quantidade:d.quantidade, faturamento:d.faturamento,
-          preco_medio:d.preco_medio, custo_total:d.custo_total, lucro:d.lucro,
-          margem:d.margem, classe_abc:d.classe_abc, mes_ref:mesRef
-        };
-      });
-      var lote=500, inseridos=0;
-      for(var i=0;i<rows.length;i+=lote){
-        var bloco=rows.slice(i,i+lote);
-        showStatus('⏳ Mês '+(mi+1)+'/'+meses.length+' ('+mesRef+'): '+inseridos+'/'+rows.length,'info');
-        var rIns=await fetch(SUPA_URL+'/rest/v1/vendas_abc',{
-          method:'POST',
-          headers:Object.assign({},SH,{'Prefer':'return=minimal'}),
-          body:JSON.stringify(bloco)
-        });
-        if(!rIns.ok){ throw new Error('Falha ao inserir '+mesRef+': '+await rIns.text()); }
-        inseridos+=bloco.length;
-      }
-      totalInseridos+=inseridos;
+    var setoresDel='setor=in.('+encodeURIComponent('"'+setor+'","REVENDA '+setor+'"')+')';
+    // 0. Dia da troca: apaga só o que veio do sistema novo (a parte antiga fica e soma)
+    var ehNovo=dados.some(function(d){return d.sistema==='novo';});
+    if(ehNovo && dias[DIA_TROCA]){
+      var rT=await fetch(SUPA_URL+'/rest/v1/vendas_abc?'+setoresDel+'&data=eq.'+DIA_TROCA+'&sistema=eq.novo',{method:'DELETE',headers:SH});
+      if(!rT.ok && rT.status!==404){ throw new Error('Falha ao limpar o dia da troca: '+await rT.text()+' — rode antes o SQL que cria a coluna "sistema".'); }
+      lista=lista.filter(function(k){return k!==DIA_TROCA;});
     }
-
-    showStatus('✅ Importação concluída! '+totalInseridos+' registros de '+setor+' em '+meses.length+' mês(es): '+meses.join(', ')+'.','ok');
-    btn.disabled=false;
+    // 1. Apaga SÓ os dias que vêm no arquivo (em blocos de 20 dias)
+    for(var i=0;i<lista.length;i+=20){
+      var bloco=lista.slice(i,i+20);
+      showStatus('⏳ Limpando '+(i+bloco.length)+'/'+lista.length+' dias já existentes...','info');
+      var delUrl=SUPA_URL+'/rest/v1/vendas_abc?'+setoresDel+'&data=in.('+bloco.join(',')+')';
+      var rDel=await fetch(delUrl,{method:'DELETE',headers:SH});
+      if(!rDel.ok && rDel.status!==404){ throw new Error('Falha ao limpar dias: '+await rDel.text()); }
+    }
+    // 2. Insere em lotes de 500 (mês de referência sai da data de cada linha)
+    var rows=dados.map(function(d){
+      return { cod:d.cod, produto:d.produto, setor:(d.revenda?'REVENDA '+setor:setor), data:d.data,
+        dia_semana:d.dia_semana, quantidade:d.quantidade, faturamento:d.faturamento,
+        preco_medio:d.preco_medio, custo_total:d.custo_total, lucro:d.lucro,
+        margem:d.margem, classe_abc:d.classe_abc, mes_ref:d.data.slice(0,7),
+        sistema:(d.sistema||'antigo') };
+    });
+    var inseridos=0;
+    for(var j=0;j<rows.length;j+=500){
+      var lote=rows.slice(j,j+500);
+      showStatus('⏳ Gravando '+inseridos+'/'+rows.length+'...','info');
+      var rIns=await fetch(SUPA_URL+'/rest/v1/vendas_abc',{method:'POST',headers:Object.assign({},SH,{'Prefer':'return=minimal'}),body:JSON.stringify(lote)});
+      if(!rIns.ok){ throw new Error('Falha ao gravar: '+await rIns.text()); }
+      inseridos+=lote.length;
+    }
+    var todos=Object.keys(dias).sort();
+    showStatus('✅ Importação concluída! '+inseridos+' vendas de '+setor+' em '+todos.length+' dias ('+_fmtBR(todos[0])+' a '+_fmtBR(todos[todos.length-1])+').'
+      +(ehNovo&&dias[DIA_TROCA]?' <br>🔄 '+_fmtBR(DIA_TROCA)+' (dia da troca): somado com a venda do sistema antigo.':''),'ok');
   }catch(err){
     showStatus('❌ Erro: '+err.message,'err');
-    btn.disabled=false;
   }
+  btn.disabled=false;
 }
 </script>
 </body>
