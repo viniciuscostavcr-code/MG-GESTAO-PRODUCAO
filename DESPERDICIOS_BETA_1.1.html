@@ -758,65 +758,72 @@ const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 let SUPA_OK=false;
 const K='mg_desp3';
 
-// ── VALORES: custo e preço por produto (ficha técnica → fallback ABC de vendas) ──
-// Calculado na hora, nunca gravado: corrigir uma ficha ou importar novo ABC
-// atualiza automaticamente todos os relatórios, inclusive os antigos.
-var VALORES={};        // { codNormalizado: {custo, preco, fonte} }
+// ── VALORES: custo e preço por produto = ABC DE VENDAS, pelo CÓDIGO ──
+// Regra única (igual ao Dashboard):
+//  1. pega o custo e o preço médio do produto no mês mais recente em que ele
+//     vendeu, dentro dos últimos 4 meses importados (fat ÷ qtd, custo ÷ qtd);
+//  2. o valor vale na base em que o produto é vendido (kg ou unidade); se o
+//     registro estiver na outra base, converte pelo peso de 1 unidade do
+//     cadastro de produtos;
+//  3. sem venda no período, ou base diferente sem peso → fica SEM VALOR
+//     (aparece na lista para corrigir). Não usa ficha nem busca por nome.
+// Calculado na hora, nunca gravado: importar novo ABC atualiza tudo.
+var VALORES={};        // { codNormalizado: {custo, preco, custoUn, precoUn, fonte, mes} }
 var VALORES_OK=false;
+var PESO_UN={};        // { codNormalizado: kg de 1 unidade } — do cadastro de produtos
 
 function normCod(c){return String(c||'').trim().replace(/^0+/,'');}
+// Base em que o produto é VENDIDO, pelo nome no ABC (mesma regra do Dashboard)
+function _baseVendaUn(nome){
+  var n=String(nome||'').toUpperCase();
+  if(/\bUND?\b|\bUNID\b|UND\.|\bUN$/.test(n))return true;
+  if(/\bKG\b/.test(n))return false;
+  return /COXINHA|PASTEL|ENROLADINHO|EMPADA|RISOLE|CROQUETE|ESFIHA|QUIBE|JOELHO|SALGADO|HOT.?DOG|SANDUICHE|BURGER/.test(n);
+}
 
 async function carregarValores(){
   if(VALORES_OK)return VALORES;
   var mapa={};
   try{
-    // 1) Fichas técnicas — fonte preferencial
-    var fichas=await sbSelect('fichas_tecnicas','select=id,cod,produto_nome,rendimento_kg,preco_venda_kg&ativo=eq.true&limit=1000');
-    var itens =await sbSelect('ficha_itens','select=ficha_id,insumo_id,qtd_bruta,qtd_liquida&limit=5000');
-    var insumos=await sbSelect('insumos','select=id,custo_kg_l&limit=2000');
-    var custoIns={};
-    (insumos||[]).forEach(function(i){custoIns[i.id]=parseFloat(i.custo_kg_l)||0;});
-    var custoReceita={};
-    (itens||[]).forEach(function(it){
-      var q=parseFloat(it.qtd_bruta)||parseFloat(it.qtd_liquida)||0;
-      custoReceita[it.ficha_id]=(custoReceita[it.ficha_id]||0)+q*(custoIns[it.insumo_id]||0);
-    });
-    (fichas||[]).forEach(function(f){
-      var cn=normCod(f.cod);
-      if(!cn)return;
-      var rend=parseFloat(f.rendimento_kg)||0;
-      var custoKg=rend>0?(custoReceita[f.id]||0)/rend:0;
-      if(custoKg>0){
-        mapa[cn]={custo:custoKg,preco:parseFloat(f.preco_venda_kg)||0,fonte:'ficha'};
-      }
-    });
-    // 2) ABC de vendas — preenche o que a ficha não cobre
+    // Peso de 1 unidade pelo cadastro do produto (para converter kg ↔ unidade)
+    try{
+      var prods=await sbSelect('produtos','select=cod,peso_unidade_kg&limit=3000');
+      (prods||[]).forEach(function(pr){
+        var c=normCod(pr.cod), pk=parseFloat(pr.peso_unidade_kg)||0;
+        if(c&&pk>0)PESO_UN[c]=pk;
+      });
+    }catch(e){}
     var mesR=await sbSelect('vendas_abc','select=mes_ref&order=mes_ref.desc&limit=1');
     if(mesR&&mesR.length){
       var mes=mesR[0].mes_ref, off=0, linhas=[];
+      var d0=new Date(parseInt(mes.slice(0,4),10),parseInt(mes.slice(5,7),10)-4,1);
+      var mesIni=d0.getFullYear()+'-'+String(d0.getMonth()+1).padStart(2,'0');
       while(true){
-        var parte=await sbSelect('vendas_abc','select=cod,quantidade,faturamento,custo_total&mes_ref=eq.'+mes+'&limit=1000&offset='+off);
+        var parte=await sbSelect('vendas_abc','select=cod,produto,data,mes_ref,quantidade,faturamento,custo_total&mes_ref=gte.'+mesIni+'&order=id.asc&limit=1000&offset='+off);
         if(!parte||!parte.length)break;
         linhas=linhas.concat(parte);
         if(parte.length<1000)break;
-        off+=1000; if(off>50000)break;
+        off+=1000; if(off>80000)break;
       }
+      // soma por código e mês
       var agg={};
       linhas.forEach(function(v){
-        var cn=normCod(v.cod); if(!cn)return;
-        if(!agg[cn])agg[cn]={q:0,f:0,c:0};
-        agg[cn].q+=parseFloat(v.quantidade)||0;
-        agg[cn].f+=parseFloat(v.faturamento)||0;
-        agg[cn].c+=parseFloat(v.custo_total)||0;
+        var cn=normCod(v.cod); if(!cn||!v.mes_ref)return;
+        var k=cn+'|'+v.mes_ref;
+        if(!agg[k])agg[k]={cn:cn,mes:v.mes_ref,q:0,f:0,c:0,nome:'',ult:''};
+        var a=agg[k];
+        a.q+=parseFloat(v.quantidade)||0; a.f+=parseFloat(v.faturamento)||0; a.c+=parseFloat(v.custo_total)||0;
+        if((v.data||'')>=a.ult){a.ult=v.data||a.ult;a.nome=v.produto||a.nome;}
       });
-      Object.keys(agg).forEach(function(cn){
-        var a=agg[cn]; if(a.q<=0)return;
-        var custoAbc=a.c/a.q, precoAbc=a.f/a.q;
-        if(!mapa[cn]){
-          mapa[cn]={custo:custoAbc,preco:precoAbc,fonte:'abc'};
-        }else if(!mapa[cn].preco||mapa[cn].preco<=0){
-          mapa[cn].preco=precoAbc; // ficha sem preço cadastrado → usa o do PDV
-        }
+      // fica o mês mais recente com venda de cada código
+      Object.keys(agg).forEach(function(k){
+        var a=agg[k]; if(a.q<=0)return;
+        var atual=mapa[a.cn];
+        if(atual&&atual.mes>=a.mes)return;
+        var un=_baseVendaUn(a.nome), custo=a.c/a.q, preco=a.f/a.q;
+        mapa[a.cn]= un
+          ? {custo:0,preco:0,custoUn:custo,precoUn:preco,fonte:'abc',mes:a.mes,nomeVenda:a.nome}
+          : {custo:custo,preco:preco,custoUn:0,precoUn:0,fonte:'abc',mes:a.mes,nomeVenda:a.nome};
       });
     }
   }catch(e){console.log('Valores indisponíveis:',e.message);}
@@ -825,11 +832,21 @@ async function carregarValores(){
 }
 
 // Valor financeiro de um registro de desperdício
-function valorDesp(cod,qtd){
+function valorDesp(cod,qtd,unidade){
   var v=VALORES[normCod(cod)];
   var q=parseFloat(qtd)||0;
   if(!v)return {custo:0,preco:0,temValor:false};
-  return {custo:v.custo*q, preco:(v.preco||0)*q, temValor:true, fonte:v.fonte};
+  // Registro em unidade usa custo/preço por unidade; em kg usa por quilo.
+  var ehUnd=String(unidade||'').toLowerCase().indexOf('und')>=0;
+  var c = ehUnd ? (v.custoUn||0) : (v.custo||0);
+  var p = ehUnd ? (v.precoUn||0) : (v.preco||0);
+  // Se a base pedida não existir, converte pela outra usando o PESO DA UNIDADE
+  // (ficha: rendimento kg ÷ unidades; senão o peso do cadastro do produto).
+  // Sem peso, fica sem valor — multiplicar R$/kg por unidades dava valor errado.
+  var peso = v.pesoUn || PESO_UN[normCod(cod)] || 0;
+  if(!c && peso>0) c = ehUnd ? (v.custo||0)*peso : (v.custoUn||0)/peso;
+  if(!p && peso>0) p = ehUnd ? (v.preco||0)*peso : (v.precoUn||0)/peso;
+  return {custo:c*q, preco:p*q, temValor:(c>0||p>0), fonte:v.fonte};
 }
 function fmtRS(v){return 'R$ '+(Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
 
@@ -2506,7 +2523,7 @@ async function expConsolidadoDesp(){
       if(!aggProd[keyP].cod && r.cod) aggProd[keyP].cod=r.cod;
       aggProd[keyP].total+=qty;
       aggProd[keyP].motivos[r.mot]=(aggProd[keyP].motivos[r.mot]||0)+qty;
-      var vv=valorDesp(r.cod,qty);
+      var vv=valorDesp(r.cod,qty,und);
       aggProd[keyP].vCusto=(aggProd[keyP].vCusto||0)+vv.custo;
       aggProd[keyP].vPreco=(aggProd[keyP].vPreco||0)+vv.preco;
       totalCusto+=vv.custo; totalPreco+=vv.preco;
