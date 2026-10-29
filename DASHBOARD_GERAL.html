@@ -224,7 +224,9 @@ let PRODUCAO=[],DESPERDICIO=[],PROD_CAD={};
 // Setores que entram no sistema APENAS como fonte de preço para o desperdício.
 // Não participam de faturamento, ruptura, CMV, comparativos nem conferência —
 // são revenda ou preparo na hora, sem produção própria.
-var SETORES_SO_PRECO = ['LANCHONETE'];
+var SETORES_SO_PRECO = ['LANCHONETE','REVENDA PADARIA','REVENDA CONFEITARIA','REVENDA LANCHONETE'];
+// Data em que o caixa mudou de sistema (códigos novos a partir daqui)
+var TROCA_SISTEMA='2026-10-15';
 function ehSetorSoPreco(s){
   return SETORES_SO_PRECO.indexOf((s||'').toUpperCase().trim()) >= 0;
 }
@@ -408,13 +410,18 @@ async function montarABCdoBanco(mesEscolhido){
   // 3. Agregar por produto+setor, somando o mês e contando dias com venda
   var agg={};
   var diasMes={};
+  var ultDiaSetor={};   // último dia com venda de cada setor (acusa setor sem importar)
   vendas.forEach(function(v){
     if(v.data)diasMes[v.data]=true;
-    var key=(v.produto||'')+'|'+(v.setor||'');
+    var codN=String(v.cod||'').trim().replace(/^0+/,'');
+    var key=(codN?('#'+codN):(v.produto||''))+'|'+(v.setor||'');
     if(!agg[key]){
-      agg[key]={n:v.produto,s:v.setor,fat:0,qtd:0,cus:0,luc:0,dias:{},cod:v.cod||'',classe:v.classe_abc||'C'};
+      agg[key]={n:v.produto,s:v.setor,fat:0,qtd:0,cus:0,luc:0,dias:{},cod:v.cod||'',classe:v.classe_abc||'C',ult:''};
     }
     var a=agg[key];
+    // Fica o nome da venda mais recente (o do sistema novo)
+    if(v.produto&&(v.data||'')>=a.ult){a.n=v.produto;a.ult=v.data||a.ult;}
+    if(v.data){var st=(v.setor||'').toUpperCase();if(!ultDiaSetor[st]||v.data>ultDiaSetor[st])ultDiaSetor[st]=v.data;}
     a.fat+=Number(v.faturamento)||0;
     a.qtd+=Number(v.quantidade)||0;
     a.cus+=Number(v.custo_total)||0;
@@ -488,7 +495,8 @@ async function montarABCdoBanco(mesEscolhido){
     _origem: 'supabase',
     _mes: mes,
     _mes25: mesAnoAnterior,
-    _tem25: !!tot25
+    _tem25: !!tot25,
+    _ult_setor: ultDiaSetor
   };
 }
 
@@ -528,11 +536,16 @@ async function carregarOperacao(){
     const[prod,desp,prodCad]=await Promise.all([
       sbGet('producao_itens','select=*&data_dia=gte.'+ini+'&data_dia=lte.'+fim+'&limit=10000'),
       sbGet('desperdicios','select=*&limit=10000'),
-      sbGet('produtos','select=id,cod,nome,setor&limit=3000')
+      sbGet('produtos','select=*&limit=3000')
     ]);
     // Mapa produto_id → código do PDV (producao_itens guarda só o id)
     PROD_CAD={};
-    (prodCad||[]).forEach(function(p){PROD_CAD[p.id]={cod:(p.cod||'').toString().trim(),nome:p.nome,setor:p.setor};});
+    PESO_UN_COD={};
+    (prodCad||[]).forEach(function(p){
+      PROD_CAD[p.id]={cod:(p.cod||'').toString().trim(),nome:p.nome,setor:p.setor};
+      var pk=parseFloat(p.peso_unidade_kg)||0;
+      if(pk>0&&p.cod)PESO_UN_COD[_normCod(p.cod)]=pk;
+    });
     PRODUCAO=prod||[];
     DESPERDICIO=(desp||[]).map(function(r){
       let d=r.data||'';if(d.includes('/')){const p=d.split('/');d=p[2]+'-'+p[1]+'-'+p[0];}
@@ -702,6 +715,43 @@ async function drawDesperdicioEvolucao(){
 }
 
 // ════════ GERAL ════════
+// Avisos sobre a qualidade dos dados do mês (aparecem no topo do Geral)
+function avisosDadosHTML(){
+  var h='';
+  var mes=ABC._mes||MES_ATUAL||'';
+  // a) Mês da troca de sistema
+  if(mes&&TROCA_SISTEMA.slice(0,7)===mes){
+    var d=TROCA_SISTEMA.split('-');
+    h+='<div class="insight"><strong>🔄 Mês da troca do caixa:</strong> até '+(parseInt(d[2],10)-1)+'/'+d[1]
+      +' as vendas são do sistema antigo e a partir de '+d[2]+'/'+d[1]+' do sistema novo. '
+      +'Os códigos são os mesmos nos dois sistemas, então cada produto aparece uma vez só.</div>';
+  }
+  // b) Um setor com vendas bem mais antigas que o outro = falta importar
+  var u=ABC._ult_setor||{};
+  var maior=Object.keys(u).filter(function(k){return !ehSetorSoPreco(k);}).map(function(k){return u[k];}).sort().pop();
+  if(maior){
+    Object.keys(u).forEach(function(st){
+      if(ehSetorSoPreco(st))return;
+      var dif=(new Date(maior+'T12:00:00')-new Date(u[st]+'T12:00:00'))/86400000;
+      if(dif>=3){
+        var p=u[st].split('-');
+        h+='<div class="insight alert"><strong>⚠️ '+st+' só tem vendas até '+p[2]+'/'+p[1]+'.</strong> '
+          +'Falta importar o relatório dos dias seguintes — até lá o faturamento, a margem e a ruptura desse setor ficam incompletos.</div>';
+      }
+    });
+  }
+  // c) Produto vendido com custo zero no caixa = CMV aparece menor do que é
+  var semCusto=(ABC.produtos||[]).filter(function(p){return p.fat>=50&&(Number(p.cus)||0)<=0;})
+    .sort(function(a,b){return b.fat-a.fat;});
+  if(semCusto.length){
+    var tot=semCusto.reduce(function(s,p){return s+p.fat;},0);
+    h+='<div class="insight alert"><strong>💲 '+semCusto.length+' produto'+(semCusto.length>1?'s':'')+' sem custo no caixa</strong> ('
+      +fmtR(tot)+' em vendas): '+semCusto.slice(0,6).map(function(p){return p.n;}).join(', ')
+      +(semCusto.length>6?'…':'')+'. Nesses itens o lucro aparece igual à venda e o CMV fica menor do que é — cadastre o custo no sistema de caixa.</div>';
+  }
+  return h;
+}
+
 function renderGeral(){
   const v=totaisVendas();
   let despKg=0;DESPERDICIO.forEach(function(d){if(d.und!=='und')despKg+=d.qty;});
@@ -717,6 +767,7 @@ function renderGeral(){
   h+='<div class="kpi"><div class="kpi-label">CMV Geral</div><div class="kpi-val" style="color:'+(v.cmv26<=35?'var(--grn)':v.cmv26<=45?'var(--yellow)':'var(--red)')+'">'+pct(v.cmv26)+'</div><div class="kpi-sub">custo ÷ venda</div></div>';
   h+='</div>';
 
+  h+=avisosDadosHTML();
   if(varLuc>varFat)h+='<div class="insight"><strong>📈 Crescimento com eficiência:</strong> faturamento +'+varFat.toFixed(1)+'%, mas lucro +'+varLuc.toFixed(1)+'%. Cada real vendido rende mais que em 2025.</div>';
 
   // OS 2 VAZAMENTOS
@@ -1002,7 +1053,8 @@ function mesEhParcial(m){
 // ════════ LINHA DO TEMPO DA GESTÃO (faturamento, margem %, CMV % com marcos) ════════
 var MARCOS_GESTAO=[
   {mes:'2025-03',label:'Início da gestão',emoji:'📍'},
-  {mes:'2025-09',label:'Consolidação da correção de preços',emoji:'📍'}
+  {mes:'2025-09',label:'Consolidação da correção de preços',emoji:'📍'},
+  {mes:'2026-10',label:'Troca do sistema de caixa (15/10)',emoji:'🔄'}
 ];
 
 async function drawLinhaTempoGestao(){
@@ -1563,6 +1615,7 @@ function htmlTopDesperdicioSetor(desp){
 // e vendidos como vários itens diferentes no PDV. Sem agrupar,
 // a massa parece "sobrar" e os derivados parecem "surgir do nada".
 // ══════════════════════════════════════════════════════
+// Códigos do PDV (são os mesmos no sistema antigo e no novo)
 var GRUPOS_PRODUCAO=[
   {
     nome:'MASSA DOCE',
@@ -1591,9 +1644,10 @@ var GRUPOS_PRODUCAO=[
   {
     nome:'MASSA CROISSANT/FOLHADO',
     // croissant, mini croissant, doce, sanduíche + folhados
-    codigos:['5246','4203','4370','3516','5051','7560','7446']
+    codigos:['5246','4203','4370','3516','3536','5051','7560','7446']
   }
 ];
+var SETOR_GRUPOS='PADARIA';
 
 // Produtos que não são produzidos aqui — ficam fora da conferência
 var FORA_CONFERENCIA_COD=['5865','7898331012662'];  // palmier (confeitaria), chantilly (revenda)
@@ -1601,13 +1655,23 @@ var FORA_CONFERENCIA_COD=['5865','7898331012662'];  // palmier (confeitaria), ch
 function _normCod(c){return String(c||'').trim().replace(/^0+/,'');}
 
 // Grupo ao qual um código pertence (ou null)
-function grupoDoCodigo(cod){
+function grupoDoCodigo(cod,setor){
   var c=_normCod(cod);
   if(!c)return null;
+  // Os grupos são da padaria: um código igual em outro setor não entra
+  if(setor&&normSetor(setor)!==SETOR_GRUPOS)return null;
   for(var i=0;i<GRUPOS_PRODUCAO.length;i++){
     if(GRUPOS_PRODUCAO[i].codigos.indexOf(c)>=0)return GRUPOS_PRODUCAO[i].nome;
   }
   return null;
+}
+// Converte unidades para kg pelo peso da unidade do cadastro (produtos.peso_unidade_kg)
+var PESO_UN_COD={};
+function _qtdKgConf(q,un,cod){
+  var u=String(un||'').toLowerCase();
+  if(u.indexOf('un')!==0)return q;              // já está em kg
+  var peso=PESO_UN_COD[_normCod(cod)];
+  return peso>0?q*peso:q;                        // sem peso cadastrado: fica como está
 }
 function foraDaConferencia(cod){
   return FORA_CONFERENCIA_COD.indexOf(_normCod(cod))>=0;
@@ -1650,22 +1714,27 @@ function renderConferencia(){
     var cod=cad?cad.cod:'';
     if(foraDaConferencia(cod))return;
     var nome=p.produto_nome||(cad&&cad.nome)||'';
-    var grupo=grupoDoCodigo(cod);
+    var grupo=grupoDoCodigo(cod,p.setor||(cad&&cad.setor));
     var chave=grupo||normCodConf(cod);
     if(!chave)return;
-    if(!prod[chave])prod[chave]={nome:grupo||nome,setor:p.setor||'',qtd:0,un:(p.unidade||'KG').toLowerCase(),ehGrupo:!!grupo,itens:[]};
-    prod[chave].qtd+=parseFloat(p.qtd_produzida)||0;
+    if(!prod[chave])prod[chave]={nome:grupo||nome,setor:p.setor||'',qtd:0,un:grupo?'kg':(p.unidade||'KG').toLowerCase(),ehGrupo:!!grupo,itens:[]};
+    var q=parseFloat(p.qtd_produzida)||0;
+    // No grupo tudo vira kg: o que é feito em unidade usa o peso da unidade
+    if(grupo)q=_qtdKgConf(q,p.unidade,cod);
+    prod[chave].qtd+=q;
   });
 
   // 2) Vendido — soma os derivados dentro do grupo da massa
   var vend={};
   (ABC.produtos||[]).forEach(function(v){
     if(foraDaConferencia(v.cod))return;
-    var grupo=grupoDoCodigo(v.cod);
+    var grupo=grupoDoCodigo(v.cod,v.s);
     var chave=grupo||normCodConf(v.cod);
     if(!chave)return;
     if(!vend[chave])vend[chave]={qtd:0,fat:0,nome:grupo||(v.n||''),itens:[]};
-    vend[chave].qtd+=parseFloat(v.qtd)||0;
+    var qv=parseFloat(v.qtd)||0;
+    if(grupo)qv=_qtdKgConf(qv,v.un,v.cod);
+    vend[chave].qtd+=qv;
     vend[chave].fat+=parseFloat(v.fat)||0;
     if(grupo)vend[chave].itens.push(v.n||'');
   });
@@ -1673,11 +1742,13 @@ function renderConferencia(){
   // 3) Desperdiçado — mesma lógica de grupo
   var desp={};
   DESPERDICIO.forEach(function(d){
-    var grupo=grupoDoCodigo(d.cod);
+    var grupo=grupoDoCodigo(d.cod,d.setor);
     var chave=grupo||normCodConf(d.cod);
     if(!chave)return;
     if(!desp[chave])desp[chave]=0;
-    desp[chave]+=parseFloat(d.qty)||0;
+    var qd=parseFloat(d.qty)||0;
+    if(grupo)qd=_qtdKgConf(qd,d.und,d.cod);
+    desp[chave]+=qd;
   });
 
   // 4) Cruzamento
