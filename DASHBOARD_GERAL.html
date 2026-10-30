@@ -957,6 +957,7 @@ function renderRuptura(){
   h+='<div class="card" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div style="font-size:.8rem;font-weight:700;color:var(--brown);flex:1;min-width:140px">🖨️ Para filtrar e imprimir com detalhe, use a aba <b>Produtos</b></div>'
     +'</div>';
 
+  h+='<div class="card"><div class="card-title">📈 Evolução da ruptura <span class="sub">venda perdida por mês · R$ e % do faturamento</span></div><div class="chart-box tall"><canvas id="chRupturaEvol"></canvas></div><div id="rupturaEvolNota" style="font-size:.7rem;color:var(--gray);margin-top:6px"></div></div>';
   h+='<div class="card"><div class="card-title">🔴 Top 12 Rupturas <span class="sub">maior venda perdida</span></div><div class="chart-box tall"><canvas id="chRuptura"></canvas></div></div>';
 
   // Lista detalhada (top 15 por venda perdida)
@@ -1009,6 +1010,7 @@ async function voltarParaRuptura(i){
   }catch(e){alert('Não consegui salvar: '+e.message);}
 }
 async function recarregarABC(){
+  SERIE_CACHE=null;   // a evolução da ruptura recalcula sem os produtos tirados
   var a=await montarABCdoBanco(MES_ATUAL);
   if(a&&a.produtos&&a.produtos.length){
     ABC=a;
@@ -1020,7 +1022,32 @@ async function recarregarABC(){
     },100);
   }
 }
+// Gráfico de evolução mensal da ruptura (barras R$ + linha % do faturamento)
+async function drawRupturaEvol(){
+  var el=document.getElementById('chRupturaEvol'); if(!el)return;
+  var dados=await serieMensalCompleta();
+  var meses=Object.keys(dados).filter(function(m){return dados[m].rupt!==undefined;}).sort();
+  if(!meses.length)return;
+  var nomes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var labels=meses.map(function(m){return nomes[parseInt(m.slice(5,7),10)-1]+'/'+m.slice(2,4)+(mesEhParcial(m)?'*':'');});
+  var valores=meses.map(function(m){return Math.round(dados[m].rupt||0);});
+  var pcts=meses.map(function(m){return dados[m].fat>0?Math.round((dados[m].rupt||0)/dados[m].fat*1000)/10:null;});
+  var corBar=meses.map(function(m){return mesEhParcial(m)?'rgba(192,57,43,.35)':CORES.red;});
+  destroyChart('chRupturaEvol');
+  charts['chRupturaEvol']=new Chart(el,{type:'bar',data:{labels:labels,datasets:[
+      {type:'bar',label:'Venda perdida (R$)',data:valores,backgroundColor:corBar,borderRadius:4,yAxisID:'y'},
+      {type:'line',label:'% do faturamento',data:pcts,borderColor:CORES.orange,backgroundColor:CORES.orange,borderWidth:2,tension:.3,pointRadius:3,yAxisID:'y1',spanGaps:true}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'top',labels:{font:{size:11}}},tooltip:{callbacks:{label:function(c){return c.dataset.yAxisID==='y1'?(c.dataset.label+': '+c.parsed.y+'%'):(c.dataset.label+': '+fmtR(c.parsed.y));}}}},
+      scales:{y:{position:'left',ticks:{font:{size:10},callback:function(v){return 'R$'+(v/1000)+'k';}}},
+              y1:{position:'right',grid:{drawOnChartArea:false},ticks:{font:{size:10},callback:function(v){return v+'%';}}},
+              x:{ticks:{font:{size:10}}}}}});
+  var nota=document.getElementById('rupturaEvolNota');
+  if(nota)nota.textContent='* mês parcial (menos de 25 dias de venda importados): a ruptura fica subestimada. Mesma regra da lista abaixo; produtos tirados da ruptura não entram em nenhum mês.';
+}
 function drawRupturaChart(){
+  drawRupturaEvol();
   const rupturas=ABC.produtos.filter(ehRupturaValida).sort(function(a,b){return b.perda-a.perda;}).slice(0,12);
   destroyChart('chRuptura');
   const el=document.getElementById('chRuptura');
@@ -1143,10 +1170,11 @@ async function serieMensalCompleta(forcar){
   if(SERIE_CACHE&&!forcar)return SERIE_CACHE;
   var porMes={}; // {'2025-03': {fat:0,luc:0,cus:0}, ...}
   var diasSet={};
+  var ruptAgg={}; // {mes: {produto: {fat, dias}}}
   try{
     var offset=0,bloco=1000,linhas=[];
     while(true){
-      var parte=await sbGet('vendas_abc','select=mes_ref,data,setor,quantidade,faturamento,lucro,custo_total&order=id.asc&limit='+bloco+'&offset='+offset);
+      var parte=await sbGet('vendas_abc','select=mes_ref,data,setor,cod,produto,quantidade,faturamento,lucro,custo_total&order=id.asc&limit='+bloco+'&offset='+offset);
       if(!parte||parte.length===0)break;
       linhas=linhas.concat(parte);
       if(parte.length<bloco)break;
@@ -1170,6 +1198,27 @@ async function serieMensalCompleta(forcar){
         if(!diasSet[m])diasSet[m]={};
         diasSet[m][v.data]=true;
       }
+      // para a ruptura do mês: venda e dias de cada produto
+      var cR=String(v.cod||'').trim().replace(/^0+/,'');
+      var kR=(cR?('#'+cR):(v.produto||''))+'|'+st;
+      if(!ruptAgg[m])ruptAgg[m]={};
+      if(!ruptAgg[m][kR])ruptAgg[m][kR]={fat:0,dias:{},cod:v.cod||'',n:v.produto||''};
+      ruptAgg[m][kR].fat+=fatV;
+      if((Number(v.quantidade)||0)>0&&v.data)ruptAgg[m][kR].dias[v.data]=true;
+    });
+    // Ruptura de cada mês — MESMA regra da aba Ruptura: produto que vendeu em
+    // 2+ dias, faturando R$ 50+/dia quando vende; perda = venda média/dia ×
+    // dias sem venda. Fica fora o que o gestor tirou da ruptura.
+    var ignR={};(RUPT_IGNORAR||[]).forEach(function(r){ignR[String(r.cod||'')]=true;});
+    Object.keys(ruptAgg).forEach(function(m){
+      var tot=Object.keys(diasSet[m]||{}).length, perda=0;
+      Object.keys(ruptAgg[m]).forEach(function(k){
+        var a=ruptAgg[m][k];
+        if(ignR[_chaveRupt(a.cod,a.n)])return;
+        var dv=Object.keys(a.dias).length, ds=tot-dv, fd=dv>0?a.fat/dv:0;
+        if(dv>=2&&ds>0&&fd>=50)perda+=fd*ds;
+      });
+      if(porMes[m])porMes[m].rupt=perda;
     });
     DIAS_POR_MES={};
     Object.keys(diasSet).forEach(function(m){DIAS_POR_MES[m]=Object.keys(diasSet[m]).length;});
