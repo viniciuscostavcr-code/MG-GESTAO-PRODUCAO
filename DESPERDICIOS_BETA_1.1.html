@@ -1567,16 +1567,18 @@ function gerarPDF(titulo,resp,mot,itens){
 }
 
 // ═══ HISTÓRICO ═══
+// Com setor escolhido, cada dia traz SÓ os itens daquele setor — assim a
+// lista, o CSV, o PDF e o Consolidado mostram apenas o setor filtrado
+// (antes o dia entrava inteiro, com os itens de todos os setores).
 function histFiltrado(){
   return D.hist.filter(h=>{
     if(HFILT.de&&h.data<HFILT.de)return false;
     if(HFILT.ate&&h.data>HFILT.ate)return false;
-    if(HFILT.set){
-      const temSet=h.regs.some(r=>r.set===HFILT.set);
-      if(!temSet)return false;
-    }
     return true;
-  });
+  }).map(h=>{
+    if(!HFILT.set)return h;
+    return Object.assign({},h,{regs:h.regs.filter(r=>r.set===HFILT.set)});
+  }).filter(h=>h.regs.length>0);
 }
 function populateFiltroSet(){
   const sel=document.getElementById('fSet');
@@ -1637,12 +1639,18 @@ function renderHist(){
 }
 
 async function delDia(id){
-  if(!await confirmar('Apagar todos os registros deste dia?','Apagar dia','🗑️','Apagar'))return;
+  // Com filtro de setor, apaga só os itens desse setor no dia
+  const soSet=HFILT.set||'';
+  if(!await confirmar(soSet?('Apagar os registros de '+soSet+' deste dia?'):'Apagar todos os registros deste dia?','Apagar dia','🗑️','Apagar'))return;
   const h=D.hist.find(x=>x.id===id);if(!h)return;
+  const alvo=soSet?h.regs.filter(r=>r.set===soSet):h.regs;
   setSyncUI('wait');
   try{
-    if(SUPA_OK)await Promise.all(h.regs.map(r=>sbDelete('desperdicios',r.id)));
-    D.hist=D.hist.filter(x=>x.id!==id);
+    if(SUPA_OK)await Promise.all(alvo.map(r=>sbDelete('desperdicios',r.id)));
+    if(soSet){
+      h.regs=h.regs.filter(r=>r.set!==soSet);
+      if(!h.regs.length)D.hist=D.hist.filter(x=>x.id!==id);
+    } else D.hist=D.hist.filter(x=>x.id!==id);
     await saveLocal();setSyncUI(SUPA_OK?'ok':'local');renderHist();toast('Dia apagado','er');
   }catch(e){setSyncUI('off');toast('Erro ao apagar','er');}
 }
@@ -2629,8 +2637,8 @@ async function expConsolidadoDesp(){
     +'td{padding:6px 8px;border-bottom:1px solid #eee;}'
     +'.tot{background:#EAF4EF;font-weight:700;}'
     +'</style>'
-    +'<h1>📊 Consolidado de Desperdícios</h1>'
-    +'<div class="info">Período: '+dtDeFmt+' até '+dtAteFmt+' · Gerado em '+new Date().toLocaleString('pt-BR')+'</div>'
+    +'<h1>📊 Consolidado de Desperdícios'+(HFILT.set?' — '+(ICO[HFILT.set]||'')+' '+HFILT.set:'')+'</h1>'
+    +'<div class="info">'+(HFILT.set?'Setor: <b>'+HFILT.set+'</b> · ':'Todos os setores · ')+'Período: '+dtDeFmt+' até '+dtAteFmt+' · Gerado em '+new Date().toLocaleString('pt-BR')+'</div>'
     +'<div class="kpis">'
     +'<div class="kpi"><div class="kpi-v">'+qtd3(totalGeral)+'</div><div class="kpi-l">Total desperdiçado</div></div>'
     +'<div class="kpi"><div class="kpi-v" style="color:#C0392B;font-size:16px;">'+fmtRS(totalCusto)+'</div><div class="kpi-l">Custo perdido</div></div>'
