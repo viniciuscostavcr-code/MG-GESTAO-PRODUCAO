@@ -359,6 +359,18 @@ function inferirUnidade(nm){
   if(/COXINHA|PASTEL|ENROLADINHO|EMPADA|RISOLE|CROQUETE|ESFIHA|QUIBE|JOELHO|SALG\s|SALGADO/.test(u))return 'und';
   return 'kg';
 }
+// Busca TODAS as linhas (o Supabase devolve no máximo 1000 por vez)
+async function sbGetAll(t,p){
+  var todas=[],off=0;
+  while(true){
+    var parte=await sbGet(t,p+'&order=id.asc&limit=1000&offset='+off);
+    if(!parte||!parte.length)break;
+    todas=todas.concat(parte);
+    if(parte.length<1000)break;
+    off+=1000; if(off>100000)break;
+  }
+  return todas;
+}
 async function sbGet(t,p){const r=await fetch(SUPA_URL+'/rest/v1/'+t+'?'+p,{headers:SH});if(!r.ok)throw new Error(await r.text());return r.json();}
 
 // ════════════════════════════════════════════════════
@@ -462,13 +474,7 @@ async function montarABCdoBanco(mesEscolhido){
   });
   var totalDias=Object.keys(diasMes).length||30;
 
-  // Ruptura por DIA DA SEMANA: produto que só vende em alguns dias (ex.: galeto
-  // no fim de semana) só conta falta nesses dias. Um dia da semana vale para o
-  // produto quando ele vendeu em pelo menos metade das vezes que esse dia apareceu no mês.
   var diasLista=Object.keys(diasMes);
-  function _dow(d){return new Date(d+'T12:00:00').getDay();}
-  var qtdDowMes=[0,0,0,0,0,0,0];
-  diasLista.forEach(function(d){qtdDowMes[_dow(d)]++;});
   // Produtos que o gestor tirou da ruptura (tabela ruptura_ignorar)
   RUPT_IGNORAR=[];var ign={};
   try{
@@ -492,11 +498,8 @@ async function montarABCdoBanco(mesEscolhido){
   Object.keys(agg).forEach(function(k){
     var a=agg[k];
     var dv=Object.keys(a.dias).length;
-    var qtdDowProd=[0,0,0,0,0,0,0];
-    Object.keys(a.dias).forEach(function(d){qtdDowProd[_dow(d)]++;});
-    var dowsVale=[0,1,2,3,4,5,6].filter(function(w){return qtdDowMes[w]>0&&qtdDowProd[w]>=qtdDowMes[w]*0.5;});
-    // dias sem venda = só os dias da semana em que o produto costuma vender
-    var ds=diasLista.filter(function(d){return dowsVale.indexOf(_dow(d))>=0&&!a.dias[d];}).length;
+    // dias sem venda = dias do mês (com venda na loja) em que o produto não vendeu
+    var ds=diasLista.filter(function(d){return !a.dias[d];}).length;
     var un=inferUn(a.n,!a.fracao);
     // perda estimada = faturamento médio diário × dias sem venda
     var fatDia=dv>0?(a.fat/dv):0;
@@ -504,9 +507,7 @@ async function montarABCdoBanco(mesEscolhido){
     var chIgn=_chaveRupt(a.cod,a.n);
     var fora=!!ign[chIgn];
     if(fora){ds=0;perda=0;}
-    var nomesDow=['dom','seg','ter','qua','qui','sex','sáb'];
-    var padrao=(dowsVale.length>0&&dowsVale.length<7)?dowsVale.map(function(w){return nomesDow[w];}).join('/'):'';
-    var item={n:a.n,s:a.s,fat:a.fat,qtd:a.qtd,cus:a.cus,luc:a.luc,dv:dv,ds:ds,perda:perda,classe:a.classe,cod:a.cod,un:un,foraRupt:fora,diasVenda:padrao,chRupt:chIgn};
+    var item={n:a.n,s:a.s,fat:a.fat,qtd:a.qtd,cus:a.cus,luc:a.luc,dv:dv,ds:ds,perda:perda,classe:a.classe,cod:a.cod,un:un,foraRupt:fora,chRupt:chIgn};
     todosProdutos.push(item);
     // Setores "só preço" ficam fora de TODAS as análises (faturamento, CMV,
     // ruptura, comparativos). Continuam disponíveis em todosProdutos para
@@ -618,8 +619,8 @@ async function carregarOperacao(){
     var fim=mesRef+'-'+String(ultimoDia).padStart(2,'0');
 
     const[prod,desp,prodCad]=await Promise.all([
-      sbGet('producao_itens','select=*&data_dia=gte.'+ini+'&data_dia=lte.'+fim+'&limit=10000'),
-      sbGet('desperdicios','select=*&limit=10000'),
+      sbGetAll('producao_itens','select=*&data_dia=gte.'+ini+'&data_dia=lte.'+fim),
+      sbGetAll('desperdicios','select=*'),
       sbGet('produtos','select=*&limit=3000')
     ]);
     // Mapa produto_id → código do PDV (producao_itens guarda só o id)
@@ -965,11 +966,11 @@ function renderRuptura(){
   rupturas.forEach(function(p,i){
     h+='<div class="rank-item"><div class="rank-num bad">'+(i+1)+'</div>'
       +'<div class="rank-nome"><span class="classe-tag classe-'+(p.classe||'C')+'">'+(p.classe||'C')+'</span> '+p.n
-      +'<div class="rank-sub">'+p.s+' · vendeu '+p.dv+' dias · '+p.ds+' sem venda'+(p.diasVenda?' (vende '+p.diasVenda+')':'')+' · fat '+fmtR(p.fat)+'</div></div>'
+      +'<div class="rank-sub">'+p.s+' · vendeu '+p.dv+' dias · '+p.ds+' sem venda · fat '+fmtR(p.fat)+'</div></div>'
       +'<div class="rank-val" style="color:var(--red)">'+fmtR(p.perda)
       +'<div><button onclick="tirarDaRuptura('+i+')" title="Não contar este produto na ruptura" style="margin-top:4px;border:1px solid #ddd;background:#fff;border-radius:6px;padding:2px 7px;font-size:.66rem;cursor:pointer;color:#666">🚫 tirar</button></div></div></div>';
   });
-  h+='<div class="insight" style="margin-top:10px;margin-bottom:0">💡 Produto que só vende em alguns dias da semana (ex.: galeto no fim de semana) só conta falta nesses dias. Use <strong>🚫 tirar</strong> para o que não é falta de verdade (encomenda, sazonal, revenda). Lista completa com filtros na aba <strong>Produtos</strong>.</div></div>';
+  h+='<div class="insight" style="margin-top:10px;margin-bottom:0">💡 Use <strong>🚫 tirar</strong> para o produto em que dia sem venda não é falta de verdade (só vende em alguns dias, encomenda, sazonal, revenda). Lista completa com filtros na aba <strong>Produtos</strong>.</div></div>';
 
   // Produtos fora da ruptura
   if(RUPT_IGNORAR.length){
