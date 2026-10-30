@@ -69,6 +69,29 @@ body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif
 .scr{flex:1;position:relative;overflow:hidden;}
 .vw{display:none;position:absolute;inset:0;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .vw.on{display:flex;}
+/* Calculadora de fermento */
+.ferm-wrap{max-width:520px;width:100%;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:12px;box-sizing:border-box;}
+.ferm-titulo{font-size:1.05rem;font-weight:800;color:#1B4332;}
+.ferm-sub{font-size:.78rem;color:#6B7280;line-height:1.45;}
+.ferm-bloco{background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;}
+.ferm-bloco-tit{font-size:.72rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#2D6A4F;}
+.ferm-lin{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.86rem;color:#374151;flex-wrap:wrap;}
+.ferm-lin b{color:#1B4332;}
+.ferm-tempo{display:flex;gap:6px;}
+.ferm-inp{display:inline-flex;align-items:center;gap:4px;}
+.ferm-inp input{width:84px;font-size:1.15rem;font-weight:700;padding:8px 10px;border:1.5px solid #D1D5DB;border-radius:9px;text-align:right;font-variant-numeric:tabular-nums;box-sizing:border-box;}
+.ferm-tempo .ferm-inp input{width:64px;}
+.ferm-inp input:focus{outline:none;border-color:#2D6A4F;box-shadow:0 0 0 3px rgba(45,106,79,.15);}
+.ferm-inp em{font-style:normal;font-size:.78rem;color:#6B7280;min-width:22px;}
+.ferm-res{background:#1B4332;color:#fff;border-radius:12px;padding:14px 16px;text-align:center;}
+.ferm-res-lab{font-size:.74rem;opacity:.85;}
+.ferm-res-val{font-size:2.3rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.15;}
+.ferm-res-det{font-size:.8rem;opacity:.9;}
+.ferm-aviso{background:#FEF3C7;color:#92400E;border-radius:10px;padding:10px 12px;font-size:.8rem;line-height:1.4;}
+.ferm-formula{background:#F4F4F2;border-radius:10px;padding:10px 12px;font-size:.8rem;color:#374151;display:flex;flex-direction:column;gap:6px;}
+.ferm-conta{font-variant-numeric:tabular-nums;color:#1B4332;}
+.ferm-nota{font-size:.72rem;color:#6B7280;line-height:1.45;}
+.ferm-limpar{align-self:flex-start;background:#fff;border:1px solid #D1D5DB;border-radius:8px;padding:7px 14px;font-size:.8rem;cursor:pointer;color:#374151;}
 #v-checklist.on{overflow:hidden;}
 
 /* ══ CHECKLIST HOME ══ */
@@ -704,6 +727,7 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
   <div class="tab" id="tab-producao" onclick="goTab('producao')">📅 Produção</div>
   <div class="tab" id="tab-ordens" onclick="goTab('ordens')">📝 Ordens</div>
   <div class="tab" id="tab-historico" onclick="goTab('historico')">📊 Histórico</div>
+  <div class="tab" id="tab-fermento" onclick="goTab('fermento')">🧪 Fermento</div>
 </div>
 
 <!-- VIEWS -->
@@ -819,6 +843,48 @@ body.modo-foco .prod-tabela-wrap{max-height:calc(100vh - 48px)!important;margin:
 
   <div class="vw" id="v-historico">
     <div class="loading-wrap"><div class="spin"></div></div>
+  </div>
+
+  <!-- CALCULADORA DE FERMENTO -->
+  <div class="vw" id="v-fermento">
+    <div class="ferm-wrap">
+      <div class="ferm-titulo">🧪 Fermento da próxima batida — pão francês</div>
+      <div class="ferm-sub">Feita para a massa do pão francês. Use a primeira massa do dia como referência: quanto fermento ela levou e quanto tempo levou até o ponto de forno. A calculadora ajusta o fermento para o tempo que você quer.</div>
+
+      <div class="ferm-bloco">
+        <div class="ferm-bloco-tit">1ª massa (referência)</div>
+        <label class="ferm-lin"><span>Farinha usada <b>M₁</b></span>
+          <span class="ferm-inp"><input id="fmM1" type="number" inputmode="decimal" min="0" step="0.1" oninput="calcFermento()"><em>kg</em></span></label>
+        <label class="ferm-lin"><span>Fermento usado <b>F₁</b></span>
+          <span class="ferm-inp"><input id="fmF1" type="number" inputmode="decimal" min="0" step="1" oninput="calcFermento()"><em>g</em></span></label>
+        <div class="ferm-lin"><span>Tempo real até o forno <b>T₁</b></span>
+          <span class="ferm-tempo"><span class="ferm-inp"><input id="fmT1h" type="number" inputmode="numeric" min="0" step="1" oninput="calcFermento()"><em>h</em></span>
+          <span class="ferm-inp"><input id="fmT1m" type="number" inputmode="numeric" min="0" max="59" step="5" oninput="calcFermento()"><em>min</em></span></span></div>
+      </div>
+
+      <div class="ferm-bloco">
+        <div class="ferm-bloco-tit">Próxima batida</div>
+        <div class="ferm-lin"><span>Tempo desejado até o forno <b>T₂</b></span>
+          <span class="ferm-tempo"><span class="ferm-inp"><input id="fmT2h" type="number" inputmode="numeric" min="0" step="1" oninput="calcFermento()"><em>h</em></span>
+          <span class="ferm-inp"><input id="fmT2m" type="number" inputmode="numeric" min="0" max="59" step="5" oninput="calcFermento()"><em>min</em></span></span></div>
+        <label class="ferm-lin"><span>Farinha da próxima batida <b>M₂</b></span>
+          <span class="ferm-inp"><input id="fmM2" type="number" inputmode="decimal" min="0" step="0.1" oninput="calcFermento()"><em>kg</em></span></label>
+      </div>
+
+      <div class="ferm-res" id="fmRes">
+        <div class="ferm-res-lab">Fermento para a próxima batida</div>
+        <div class="ferm-res-val" id="fmResVal">—</div>
+        <div class="ferm-res-det" id="fmResDet">Preencha os campos acima.</div>
+      </div>
+      <div class="ferm-aviso" id="fmAviso" hidden></div>
+
+      <div class="ferm-formula">
+        <div><b>F = (F₁ × T₁) ÷ (T₂ × M₁) × M₂</b></div>
+        <div id="fmConta" class="ferm-conta"></div>
+        <div class="ferm-nota">Regra prática: menos tempo pede mais fermento, e mais tempo pede menos, na mesma proporção. Vale para a mesma massa, com água e ambiente na mesma temperatura. Se a temperatura mudar muito (manhã fria × tarde quente), confira o ponto da massa.</div>
+      </div>
+      <button class="ferm-limpar" onclick="limparFermento()">Limpar</button>
+    </div>
   </div>
 
 </div>
@@ -2355,15 +2421,58 @@ function executarPrint() {
 // ══════════════════════════════════════════════════
 // TABS
 // ══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
+// CALCULADORA DE FERMENTO
+// F = (F₁ × T₁) ÷ (T₂ × M₁) × M₂
+//   F₁ fermento da 1ª massa (g) · T₁ tempo real até o forno (h)
+//   T₂ tempo desejado (h)       · M₁ farinha da 1ª massa (kg)
+//   M₂ farinha da próxima batida (kg)
+// ══════════════════════════════════════════════════
+var FERM_CAMPOS=['fmM1','fmF1','fmT1h','fmT1m','fmT2h','fmT2m','fmM2'];
+function _fmNum(id){var v=parseFloat(String((document.getElementById(id)||{}).value||'').replace(',','.'));return isNaN(v)?0:v;}
+function _fmHoras(h,m){return _fmNum(h)+_fmNum(m)/60;}
+function _fmTempoTxt(h){var hh=Math.floor(h),mm=Math.round((h-hh)*60);if(mm===60){hh++;mm=0;}return hh+'h'+(mm?String(mm).padStart(2,'0'):'');}
+function _fmBR(v,c){return (Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:c,maximumFractionDigits:c});}
+function calcFermento(){
+  var M1=_fmNum('fmM1'),F1=_fmNum('fmF1'),T1=_fmHoras('fmT1h','fmT1m'),T2=_fmHoras('fmT2h','fmT2m'),M2=_fmNum('fmM2');
+  try{var o={};FERM_CAMPOS.forEach(function(id){o[id]=(document.getElementById(id)||{}).value||'';});localStorage.setItem('gf_fermento',JSON.stringify(o));}catch(e){}
+  var val=document.getElementById('fmResVal'),det=document.getElementById('fmResDet'),av=document.getElementById('fmAviso'),conta=document.getElementById('fmConta');
+  if(!(M1>0&&F1>0&&T1>0&&T2>0&&M2>0)){
+    val.textContent='—'; det.textContent='Preencha os campos acima.'; av.hidden=true; conta.textContent=''; return;
+  }
+  var F=(F1*T1)/(T2*M1)*M2;
+  var porKg1=F1/M1, porKg2=F/M2;
+  val.textContent=_fmBR(F,0)+' g';
+  det.textContent=_fmBR(porKg2,1)+' g por kg de farinha (a 1ª massa usou '+_fmBR(porKg1,1)+' g/kg)';
+  conta.textContent='F = ('+_fmBR(F1,0)+' g × '+_fmBR(T1,2)+' h) ÷ ('+_fmBR(T2,2)+' h × '+_fmBR(M1,1)+' kg) × '+_fmBR(M2,1)+' kg = '+_fmBR(F,0)+' g';
+  var r=T1/T2, msgs=[];
+  if(r>2||r<0.5)msgs.push('O tempo desejado ('+_fmTempoTxt(T2)+') está muito longe do tempo real ('+_fmTempoTxt(T1)+'). Nessa faixa a regra fica imprecisa: faça a mudança aos poucos e confira o ponto.');
+  if(porKg2>60)msgs.push('Mais de 60 g de fermento por kg de farinha é muito: a massa pode ficar com gosto de fermento. Prefira aumentar o tempo.');
+  if(porKg2<3)msgs.push('Menos de 3 g por kg de farinha é pouco para fermento fresco: a massa pode não crescer no tempo. Confira os valores.');
+  av.hidden=!msgs.length; av.innerHTML=msgs.map(function(m){return '⚠️ '+m;}).join('<br>');
+}
+function _carregarFermento(){
+  try{var o=JSON.parse(localStorage.getItem('gf_fermento')||'null');
+    if(o)FERM_CAMPOS.forEach(function(id){var el=document.getElementById(id);if(el&&o[id]!==undefined&&el.value==='')el.value=o[id];});
+  }catch(e){}
+  calcFermento();
+}
+function limparFermento(){
+  FERM_CAMPOS.forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  try{localStorage.removeItem('gf_fermento');}catch(e){}
+  calcFermento();
+}
+
 function goTab(t) {
   TAB = t;
   BUSCA_PROD = '';
   BUSCA_HOJE = '';
   BUSCA_HIST = '';
-  ['checklist','producao','ordens','historico'].forEach(id => {
+  ['checklist','producao','ordens','historico','fermento'].forEach(id => {
     document.getElementById('tab-'+id).classList.toggle('on', id===t);
     document.getElementById('v-'+id).classList.toggle('on', id===t);
   });
+  if (t === 'fermento') _carregarFermento();
   if (t === 'producao')  renderProducao();
   if (t === 'ordens') renderOrdens();
   if (t === 'historico') renderHistorico();
@@ -7225,7 +7334,14 @@ async function imprimirHistoricoConsolidado() {
     if (!fic || fic.sintetico) { it.custoUnit = null; it.custoTotal = null; return; }
     var ehUnd = (it.und === 'UND' || it.und === 'UN');
     var base  = ehUnd ? (fic.custoUn || 0) : (fic.custoKg || 0);
-    if (!base) base = ehUnd ? (fic.custoKg || 0) : (fic.custoUn || 0);
+    // Sem custo na base certa: converte pelo peso de 1 unidade (ficha ou cadastro).
+    // Nunca multiplica R$/kg por unidades (inflava o custo).
+    if (!base) {
+      var pObjC = (TODOS_PRODS||[]).find(function(x){ return x.nome === it.nome; });
+      var pesoC = (fic.rendimentoKg>0 && fic.rendimentoUn>0) ? fic.rendimentoKg/fic.rendimentoUn
+                : (parseFloat(pObjC && pObjC.peso_unidade_kg) || 0);
+      if (pesoC > 0) base = ehUnd ? (fic.custoKg || 0) * pesoC : (fic.custoUn || 0) / pesoC;
+    }
     it.custoUnit  = base > 0 ? base : null;
     it.custoTotal = base > 0 ? base * it.produzido : null;
   });
