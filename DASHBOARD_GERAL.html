@@ -313,19 +313,32 @@ function precoProduto(ref){
   var nome, cod, und='';
   if(typeof ref==='object'&&ref!==null){nome=ref.produto||ref.n||'';cod=ref.cod||'';und=ref.und||ref.unidade||'';}
   else{nome=ref||'';cod='';}
-  // Cada etapa só vale se o preço estiver na base do registro (kg/un) ou der
-  // para converter; senão segue para a próxima (antes parava num preço errado).
-  var r;
-  // 1º: casa por código no mês (usa o preço médio real do ABC: fat/qtd)
-  var p=acharABCporCod(cod);
-  if(p&&p.qtd>0){r=_precoNaBase({ck:p.cus/p.qtd,vk:p.fat/p.qtd,classe:p.classe,fonte:'abc-cod'},p.un,und,p.cod||cod);if(r)return r;}
-  // 2º: casa por código nos meses anteriores (produto que não vendeu este mês)
+  // REGRA (igual ao módulo Desperdícios):
+  //  CUSTO  → 1º ficha técnica do GestFood (view custo_ficha_atual); sem ficha,
+  //           o custo da venda (ABC). O custo do caixa tem muitos erros.
+  //  PREÇO  → sempre o preço médio real da venda (ABC), pelo código.
+  //  Tudo na base do registro (kg/un), convertendo pelo peso da unidade.
+  //  Sem nada pelo código → SEM PREÇO. Não busca por nome.
   var c0=String(cod||'').trim().replace(/^0+/,'');
-  var h=c0&&ABC.precos_hist?ABC.precos_hist[c0]:null;
-  if(h&&h.qtd>0){r=_precoNaBase({ck:h.cus/h.qtd,vk:h.fat/h.qtd,classe:null,fonte:'abc-hist'},h.un,und,c0);if(r)return r;}
-  // Sem venda pelo código no período → SEM PREÇO (aparece na lista para corrigir).
-  // Não busca por nome: era isso que pegava o preço de outro produto.
-  return null;
+  var r=null;
+  // venda (ABC): 1º o mês escolhido, 2º o último mês em que vendeu
+  var p=acharABCporCod(cod);
+  if(p&&p.qtd>0)r=_precoNaBase({ck:p.cus/p.qtd,vk:p.fat/p.qtd,classe:p.classe,fonte:'abc-cod'},p.un,und||p.un,p.cod||cod);
+  if(!r){
+    var h=c0&&ABC.precos_hist?ABC.precos_hist[c0]:null;
+    if(h&&h.qtd>0)r=_precoNaBase({ck:h.cus/h.qtd,vk:h.fat/h.qtd,classe:null,fonte:'abc-hist'},h.un,und||h.un,c0);
+    if(!und&&h)und=h.un;
+  }
+  if(!und&&p)und=p.un;
+  // custo da ficha na base do registro
+  var fc=c0&&ABC.custo_ficha?ABC.custo_ficha[c0]:null;
+  if(fc){
+    var ehUn=_ehBaseUn(und||'kg');
+    var peso=fc.peso||PESO_UN_COD[c0]||0;
+    var ck=ehUn?(fc.un||(fc.kg&&peso?fc.kg*peso:0)):(fc.kg||(fc.un&&peso?fc.un/peso:0));
+    if(ck>0)return{ck:ck,vk:r?r.vk:0,classe:r?r.classe:null,fonte:'ficha'};
+  }
+  return r;
 }
 
 function fmtR(v){return 'R$ '+(v||0).toLocaleString('pt-BR',{maximumFractionDigits:0});}
@@ -444,6 +457,8 @@ async function montarABCdoBanco(mesEscolhido){
     if(v.cod)a.cod=v.cod;
     if(v.classe_abc)a.classe=v.classe_abc;
     if((Number(v.quantidade)||0)>0 && v.data)a.dias[v.data]=true;
+    // quantidade sempre inteira = vendido por unidade (kg vem com casas decimais)
+    var qv=Number(v.quantidade)||0; if(qv!==Math.round(qv))a.fracao=true;
   });
   var totalDias=Object.keys(diasMes).length||30;
 
@@ -462,13 +477,14 @@ async function montarABCdoBanco(mesEscolhido){
   }catch(e){console.log('Tabela ruptura_ignorar ainda não criada:',e.message);}
 
   // 4. Montar lista de produtos no formato esperado (com dv, ds, perda, un)
-  function inferUn(nome){
+  // Base em que o produto é VENDIDO no caixa (mesma regra da view preco_venda_atual):
+  // UN/UND no nome → unidade; KG no nome → kg; sem nada → unidade se a
+  // quantidade vendida é sempre inteira, senão kg.
+  function inferUn(nome,qtdInteira){
     var n=(nome||'').toUpperCase();
     if(/\bUND?\b|\bUNID\b|UND\.|\bUN$/.test(n))return 'und';
     if(/\bKG\b/.test(n))return 'kg';
-    // sem unidade no nome: salgado/lanche é vendido por unidade
-    if(/COXINHA|PASTEL|ENROLADINHO|EMPADA|RISOLE|CROQUETE|ESFIHA|QUIBE|JOELHO|SALGADO|HOT.?DOG|SANDUICHE|BURGER/.test(n))return 'und';
-    return 'kg';
+    return qtdInteira?'und':'kg';
   }
   var produtos=[];
   var undMap={};
@@ -481,7 +497,7 @@ async function montarABCdoBanco(mesEscolhido){
     var dowsVale=[0,1,2,3,4,5,6].filter(function(w){return qtdDowMes[w]>0&&qtdDowProd[w]>=qtdDowMes[w]*0.5;});
     // dias sem venda = só os dias da semana em que o produto costuma vender
     var ds=diasLista.filter(function(d){return dowsVale.indexOf(_dow(d))>=0&&!a.dias[d];}).length;
-    var un=inferUn(a.n);
+    var un=inferUn(a.n,!a.fracao);
     // perda estimada = faturamento médio diário × dias sem venda
     var fatDia=dv>0?(a.fat/dv):0;
     var perda=fatDia*ds;
@@ -522,37 +538,26 @@ async function montarABCdoBanco(mesEscolhido){
     if(p.dv>=2&&p.ds>0&&fatDia>=50)rupturaTotal+=p.perda;
   });
 
-  // 5b. Preço dos 3 meses anteriores, por código — para valorizar o desperdício
-  //     de produto que não vendeu no mês (antes caía na busca por nome e
-  //     pegava outro produto: "COXINHA" un saía com o preço da mini coxinha kg).
+  // 5b. Último preço de venda de cada código, de qualquer mês (view
+  //     preco_venda_atual no banco — a MESMA fonte do módulo Desperdícios).
+  //     Usado quando o produto não vendeu no mês escolhido.
   var precosHist={};
   try{
-    var d0=new Date(parseInt(mes.slice(0,4),10),parseInt(mes.slice(5,7),10)-4,1);
-    var mesIni=d0.getFullYear()+'-'+String(d0.getMonth()+1).padStart(2,'0');
-    var offH=0,linhasH=[];
-    while(true){
-      var parteH=await sbGet('vendas_abc','select=cod,produto,data,mes_ref,quantidade,faturamento,custo_total&mes_ref=gte.'+mesIni+'&mes_ref=lt.'+mes+'&order=id.asc&limit=1000&offset='+offH);
-      if(!parteH||!parteH.length)break;
-      linhasH=linhasH.concat(parteH);
-      if(parteH.length<1000)break;
-      offH+=1000; if(offH>40000)break;
-    }
-    // soma por código e mês; fica o mês mais recente com venda
-    var aggH={};
-    linhasH.forEach(function(v){
-      var c=String(v.cod||'').trim().replace(/^0+/,''); if(!c||!v.mes_ref)return;
-      var k=c+'|'+v.mes_ref;
-      if(!aggH[k])aggH[k]={c:c,mes:v.mes_ref,qtd:0,fat:0,cus:0,n:'',ult:''};
-      var x=aggH[k];
-      x.qtd+=Number(v.quantidade)||0; x.fat+=Number(v.faturamento)||0; x.cus+=Number(v.custo_total)||0;
-      if((v.data||'')>=x.ult){x.ult=v.data||x.ult;x.n=v.produto||x.n;}
+    var pv=await sbGet('preco_venda_atual','select=cod,mes_ref,nome,custo_unit,preco_unit,base&limit=5000');
+    (pv||[]).forEach(function(x){
+      var c=String(x.cod||'').trim().replace(/^0+/,''); if(!c)return;
+      precosHist[c]={qtd:1,cus:Number(x.custo_unit)||0,fat:Number(x.preco_unit)||0,n:x.nome||'',mes:x.mes_ref,un:(x.base==='un'?'und':'kg')};
     });
-    Object.keys(aggH).forEach(function(k){
-      var x=aggH[k]; if(x.qtd<=0)return;
-      if(precosHist[x.c]&&precosHist[x.c].mes>=x.mes)return;
-      x.un=inferUn(x.n); precosHist[x.c]=x;
+  }catch(e){console.log('View preco_venda_atual indisponível (rode o SQL):',e.message);}
+  // 5c. Custo da ficha técnica por código (view custo_ficha_atual)
+  var custoFicha={};
+  try{
+    var cf=await sbGet('custo_ficha_atual','select=cod,custo_kg,custo_un,peso_un&limit=5000');
+    (cf||[]).forEach(function(x){
+      var c=String(x.cod||'').trim().replace(/^0+/,''); if(!c)return;
+      custoFicha[c]={kg:Number(x.custo_kg)||0,un:Number(x.custo_un)||0,peso:Number(x.peso_un)||0};
     });
-  }catch(e){console.log('Preços dos meses anteriores indisponíveis:',e.message);}
+  }catch(e){console.log('View custo_ficha_atual indisponível (rode o SQL):',e.message);}
 
   // 6. Buscar o MESMO MÊS do ano anterior (ex: 2026-06 → 2025-06) pra comparação real
   var mesAnoAnterior=(parseInt(mes.slice(0,4),10)-1)+mes.slice(4); // '2025-06'
@@ -574,7 +579,8 @@ async function montarABCdoBanco(mesEscolhido){
     _mes25: mesAnoAnterior,
     _tem25: !!tot25,
     _ult_setor: ultDiaSetor,
-    precos_hist: precosHist
+    precos_hist: precosHist,
+    custo_ficha: custoFicha
   };
 }
 

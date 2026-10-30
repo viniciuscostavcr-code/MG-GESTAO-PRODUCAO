@@ -793,7 +793,21 @@ async function carregarValores(){
         if(c&&pk>0)PESO_UN[c]=pk;
       });
     }catch(e){}
-    var mesR=await sbSelect('vendas_abc','select=mes_ref&order=mes_ref.desc&limit=1');
+    // Fonte principal: view preco_venda_atual (último mês com venda de cada
+    // código, de qualquer período) — a mesma que o Dashboard usa.
+    var usouView=false;
+    try{
+      var pv=await sbSelect('preco_venda_atual','select=cod,mes_ref,nome,custo_unit,preco_unit,base&limit=5000');
+      (pv||[]).forEach(function(x){
+        var cn=normCod(x.cod); if(!cn)return;
+        var c=Number(x.custo_unit)||0, pr=Number(x.preco_unit)||0;
+        mapa[cn]=(x.base==='un')
+          ? {custo:0,preco:0,custoUn:c,precoUn:pr,fonte:'abc',mes:x.mes_ref,nomeVenda:x.nome}
+          : {custo:c,preco:pr,custoUn:0,precoUn:0,fonte:'abc',mes:x.mes_ref,nomeVenda:x.nome};
+      });
+      usouView=true;
+    }catch(e){console.log('View preco_venda_atual indisponível, usando os últimos 4 meses:',e.message);}
+    var mesR=usouView?null:await sbSelect('vendas_abc','select=mes_ref&order=mes_ref.desc&limit=1');
     if(mesR&&mesR.length){
       var mes=mesR[0].mes_ref, off=0, linhas=[];
       var d0=new Date(parseInt(mes.slice(0,4),10),parseInt(mes.slice(5,7),10)-4,1);
@@ -826,6 +840,24 @@ async function carregarValores(){
           : {custo:custo,preco:preco,custoUn:0,precoUn:0,fonte:'abc',mes:a.mes,nomeVenda:a.nome};
       });
     }
+    // CUSTO: a ficha técnica do GestFood manda (o custo do caixa tem muitos
+    // erros). O PREÇO continua sendo o da venda real (ABC).
+    try{
+      var cf=await sbSelect('custo_ficha_atual','select=cod,custo_kg,custo_un,peso_un&limit=5000');
+      (cf||[]).forEach(function(x){
+        var cn=normCod(x.cod); if(!cn)return;
+        var ck=Number(x.custo_kg)||0, cu=Number(x.custo_un)||0, pz=Number(x.peso_un)||0;
+        if(!(ck>0||cu>0))return;
+        var m=mapa[cn]||{custo:0,preco:0,custoUn:0,precoUn:0};
+        // preço do ABC na outra base, se der para converter pelo peso da ficha
+        if(pz>0){
+          if(!m.preco&&m.precoUn)m.preco=m.precoUn/pz;
+          if(!m.precoUn&&m.preco)m.precoUn=m.preco*pz;
+        }
+        m.custo=ck; m.custoUn=cu; m.pesoUn=pz; m.fonte='ficha';
+        mapa[cn]=m;
+      });
+    }catch(e){console.log('View custo_ficha_atual indisponível:',e.message);}
   }catch(e){console.log('Valores indisponíveis:',e.message);}
   VALORES=mapa; VALORES_OK=true;
   return VALORES;
