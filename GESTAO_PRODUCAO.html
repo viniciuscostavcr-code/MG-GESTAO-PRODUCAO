@@ -69,6 +69,43 @@ body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif
 .scr{flex:1;position:relative;overflow:hidden;}
 .vw{display:none;position:absolute;inset:0;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .vw.on{display:flex;}
+/* ── PASSO A PASSO (painel da bancada) ── */
+.pp-start{display:block;width:calc(100% - 24px);margin:8px 12px 4px;background:#1B4332;color:#fff;border:none;border-radius:12px;padding:14px;font-size:1.05rem;font-weight:800;cursor:pointer;}
+.pp-ov[hidden]{display:none!important;}
+.pp-ov{position:fixed;inset:0;z-index:900;background:#F6F7F5;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);}
+.pp-top{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#1B4332;color:#fff;}
+.pp-top b{flex:1;font-size:.95rem;}
+.pp-x{background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:1rem;cursor:pointer;}
+.pp-bar{height:6px;background:#D1E7DA;}
+.pp-bar i{display:block;height:100%;background:#2D6A4F;transition:width .25s;}
+.pp-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;display:flex;flex-direction:column;gap:12px;max-width:640px;width:100%;margin:0 auto;box-sizing:border-box;}
+.pp-eyebrow{font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#2D6A4F;}
+.pp-titulo{font-size:1.6rem;font-weight:900;color:#1C1C1A;line-height:1.15;}
+.pp-card{background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:14px;}
+.pp-sug{font-size:1rem;color:#374151;}
+.pp-sug b{font-size:1.35rem;color:#1B4332;}
+.pp-num{display:flex;align-items:center;gap:8px;justify-content:center;margin-top:6px;}
+.pp-num button{width:58px;height:58px;border-radius:14px;border:1.5px solid #D1D5DB;background:#fff;font-size:1.6rem;font-weight:800;cursor:pointer;}
+.pp-num input{width:150px;height:62px;font-size:2rem;font-weight:900;text-align:center;border:2px solid #2D6A4F;border-radius:14px;font-variant-numeric:tabular-nums;box-sizing:border-box;}
+.pp-und{font-size:1.1rem;font-weight:800;color:#6B7280;}
+.pp-ing{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:11px 4px;border-top:1px solid #F0F0EE;font-size:1rem;cursor:pointer;user-select:none;}
+.pp-ing:first-child{border-top:none;}
+.pp-ing .ck{width:26px;height:26px;border:2px solid #9CA3AF;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;}
+.pp-ing.on .ck{background:#2D6A4F;border-color:#2D6A4F;}
+.pp-ing.on span.nm{color:#9CA3AF;text-decoration:line-through;}
+.pp-ing span.nm{flex:1;}
+.pp-ing b{white-space:nowrap;color:#92400E;font-size:1.05rem;}
+.pp-sep{display:flex;justify-content:space-between;padding:7px 2px;border-top:1px dashed #C7D2FE;font-size:.98rem;}
+.pp-sep b{color:#1D4ED8;}
+.pp-nota{font-size:.82rem;color:#6B7280;line-height:1.45;}
+.pp-ja{background:#ECFDF5;color:#065F46;border-radius:10px;padding:8px 10px;font-size:.88rem;}
+.pp-acoes{display:flex;flex-direction:column;gap:8px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:#fff;border-top:1px solid #E5E7EB;max-width:640px;width:100%;margin:0 auto;box-sizing:border-box;}
+.pp-ok{background:#2D6A4F;color:#fff;border:none;border-radius:14px;padding:16px;font-size:1.15rem;font-weight:900;cursor:pointer;}
+.pp-ok:disabled{opacity:.6;}
+.pp-row{display:flex;gap:8px;}
+.pp-sec{flex:1;background:#fff;border:1.5px solid #D1D5DB;border-radius:12px;padding:12px;font-size:.95rem;font-weight:700;color:#374151;cursor:pointer;}
+.pp-abc{display:inline-block;font-size:.8rem;font-weight:900;color:#fff;border-radius:5px;padding:1px 7px;vertical-align:3px;margin-left:6px;}
+
 /* Calculadora de fermento */
 .ferm-wrap{max-width:520px;width:100%;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:12px;box-sizing:border-box;}
 .ferm-titulo{font-size:1.05rem;font-weight:800;color:#1B4332;}
@@ -1583,6 +1620,8 @@ async function imprimirLotesMassa(){
   (TODOS_PRODS||[]).forEach(function(p){
     var und=(p.unidade||'KG').toUpperCase();
     var cat=p.categoria||'SEM CATEGORIA';
+    // A massa cadastrada como produto sai no quadro "Massas base" (não duplica)
+    if(_normProdNome(p.nome).indexOf('massa ')===0 && FICHAS_NOME && FICHAS_NOME[_normProdNome(p.nome)]) return;
     var fic=fichaDoProduto({cod:p.cod,nome:p.nome});
     var lote=_loteDaFicha(fic,und);
     if(!(lote>0)){
@@ -1630,6 +1669,27 @@ async function imprimirLotesMassa(){
       // maior quantidade primeiro (item em unidades, como ovos, conta ~50 g cada)
       var _pk=function(x){ return /^(un|und|unid)/i.test(String(x.un||'')) ? x.q*0.05 : x.q; };
       var ing=(m.outrosIng||[]).slice().sort(function(x,y){ return _pk(y)-_pk(x); });
+      // Massa com limite de masseira (ex.: pão francês 25–35 kg de farinha):
+      // uma coluna por tamanho de batida, para a equipe pesar sem fazer conta.
+      var lim=_limiteBatida(m.nome);
+      if(lim && m.baseKg>0){
+        var tam=[lim.min, Math.round((lim.min+lim.max)/2), lim.max];
+        var th='padding:3px 5px;font-size:9px;font-weight:800;color:#fff;background:#1D4ED8;text-align:right;white-space:nowrap;';
+        var td='padding:2.5px 5px;font-size:10px;border-bottom:1px solid #F3F3F1;';
+        h+='<div style="grid-column:span 2;border:1.3px solid #1D4ED8;border-radius:8px;overflow:hidden;break-inside:avoid;page-break-inside:avoid;">'
+          +'<div style="background:#1D4ED8;color:#fff;padding:4px 8px;display:flex;justify-content:space-between;align-items:baseline;gap:4px;">'
+          +'<span style="font-size:11.5px;font-weight:900;">'+m.nome+'</span><span style="font-size:8.5px;font-weight:700;opacity:.9;">BATIDA POR KG DE FARINHA</span></div>'
+          +'<table style="width:100%;border-collapse:collapse;"><tr><th style="'+th+'text-align:left;">Ingrediente</th>'
+          +tam.map(function(t){ return '<th style="'+th+'">'+t+' kg</th>'; }).join('')+'</tr>';
+        ing.forEach(function(x){
+          h+='<tr><td style="'+td+'">'+box+_nomeInsumoCurto(x.nome,3)+'</td>'
+            +tam.map(function(t){ return '<td style="'+td+'text-align:right;font-weight:800;">'+_fmtQtdIng(x,t/m.baseKg)+'</td>'; }).join('')+'</tr>';
+        });
+        h+='<tr><td style="'+td+'color:'+C.gray+';">Rende (massa crua)</td>'
+          +tam.map(function(t){ return '<td style="'+td+'text-align:right;font-weight:900;color:#1D4ED8;">'+_fmtNum(Math.round((m.rendimentoKg||0)*t/m.baseKg*10)/10)+' kg</td>'; }).join('')+'</tr>'
+          +'</table></div>';
+        return;
+      }
       h+='<div style="border:1.3px solid #1D4ED8;border-radius:8px;overflow:hidden;break-inside:avoid;page-break-inside:avoid;">'
         +'<div style="background:#1D4ED8;color:#fff;padding:4px 8px;display:flex;justify-content:space-between;align-items:baseline;gap:4px;">'
         +'<span style="font-size:11.5px;font-weight:900;line-height:1.15;">'+m.nome+'</span><span style="font-size:8.5px;font-weight:700;opacity:.9;white-space:nowrap;">1 BATIDA</span></div>'
@@ -1853,8 +1913,21 @@ function _htmlEquipe(o){
           if(x.md) _mc += (modo==='lotes' && x.loteSize>0) ? _lotesMD(qx,x.loteSize)*MASSA_DOCE_LOTE_KG : _massaDoceKg(x,qx);
           else if(x.massaPU>0 && modo!=='lotes') _mc += qx*x.massaPU;
         });
+        // limite da masseira da massa desse grupo (ex.: pão francês 25–35 kg)
+        var _limG=null;
+        o.linhas.some(function(x){
+          if(x.categoria!==l.categoria) return false;
+          var px=(TODOS_PRODS||[]).find(function(y){ return y.nome===x.nome; });
+          _limG=px ? _limiteBatida(_nomeMassaProd(px)) : null;
+          return !!_limG;
+        });
         var _ft=_fc.map(function(x){
-          return _fmtFarinha(x.kg)+(x.nome!=='farinha'?' <span style="font-weight:600;text-transform:none;">'+x.nome+'</span>':'');
+          var bt='';
+          if(_limG && x.nome==='farinha'){
+            var pb=_planoBatidas(x.kg,_limG);
+            if(pb) bt=' <span style="font-weight:900;">('+pb.n+'× '+_fmtNum(pb.por)+' kg)</span>';
+          }
+          return _fmtFarinha(x.kg)+(x.nome!=='farinha'?' <span style="font-weight:600;text-transform:none;">'+x.nome+'</span>':'')+bt;
         }).join(' + ');
         if(_mc>0) _ft=(_ft?_ft+' · ':'')+_fmtNum(Math.round(_mc*10)/10)+' kg massa';
         h+='<div style="background:'+l.cor+';color:#fff;font-size:7.5px;font-weight:800;letter-spacing:.4px;padding:1.5px 4px;text-transform:uppercase;display:flex;flex-wrap:wrap;justify-content:space-between;column-gap:4px;row-gap:1px;align-items:baseline;">'
@@ -1919,7 +1992,7 @@ function _htmlEquipe(o){
   if((o.aggMassaDoceDia && o.aggMassaDoceDia.some(function(x){return x>0;})) || (modo!=='lotes' && o.linhas.some(function(x){ return x.massaPU>0; }))){
     h+='<div style="margin-top:3px;font-size:9.5px;color:#1D4ED8;"><b>Números em azul</b>: kg de <b>massa crua</b> a separar na balança para cada produto. Bata a massa do grupo e divida pela lista.</div>';
   }
-  h+='<div style="margin-top:3px;font-size:9.5px;color:#713F12;"><b>🌾 ao lado do grupo</b> = farinha de trigo a bater para o grupo no dia (ou a pré-mistura indicada), pela ficha técnica. Pese, divida nas batidas da masseira e depois separe a massa pelos produtos do grupo.</div>';
+  h+='<div style="margin-top:3px;font-size:9.5px;color:#713F12;"><b>🌾 ao lado do grupo</b> = farinha de trigo a bater para o grupo no dia (ou a pré-mistura indicada), pela ficha técnica. <b>(2× 30 kg)</b> = quantas batidas e quanto de farinha em cada, no limite da masseira. Os ingredientes de cada batida estão na tela Hoje.</div>';
   var _sb=Object.keys(_semBase);
   if(_sb.length){
     h+='<div style="margin-top:2px;font-size:8.5px;color:#A0A5A0;">Fora da conta da farinha: '+_sb.map(function(n){ return n+' ('+_semBase[n]+')'; }).join(' · ')+'</div>';
@@ -5410,6 +5483,7 @@ function _renderConfirmarHoje(vw) {
     html += `<div class="phoje-aviso fech">🔒 Domingo — setor fechado.<br>Sem produção hoje.</div>`;
   } else {
     if (isDom) html += `<div class="phoje-aviso dom">⚠️ Domingo — equipe reduzida.<br>Somente pães básicos.</div>`;
+    html += `<button class="pp-start" onclick="abrirPassoAPasso()">▶️ Fazer a produção passo a passo</button>`;
     html += _rateioMassasHoje(prodsHoje, hoje, dsem);
 
     // Separar em dois grupos: com sugestão e sem sugestão
@@ -8220,6 +8294,200 @@ function _baseNomeMassa(nome){
   var f=FICHAS_NOME && FICHAS_NOME[_normProdNome(nome)];
   return (f && f.baseNome) || 'farinha';
 }
+
+// ══════════════════════════════════════════════════
+// PASSO A PASSO — painel da bancada
+// Um passo por vez, como a folha impressa, mas o padeiro registra o que
+// produziu de verdade. Ordem: para cada massa do dia, 1º bater a massa
+// (batidas + ingredientes), depois cada produto dela; no fim, os produtos de
+// receita própria, na ordem de prioridade. A sugestão (meta) já vem no campo.
+// Grava igual à tela Hoje (producao_itens, status confirmado).
+// ══════════════════════════════════════════════════
+var PP = null;
+function abrirPassoAPasso(){
+  var hoje=_today(), dsem=_diaSemNum(hoje);
+  var prods=(TODOS_PRODS||[]).filter(function(p){
+    var l=getLoteProduto(p.nome, SETOR, dsem, hoje);
+    return (Number(l.qtd)||0)>0 || !!PROD_ITENS[p.id+'_'+hoje];
+  }).sort(function(a,b){ return _sortKeyProd(a)-_sortKeyProd(b); });
+  if(!prods.length){ toast('Nada planejado para hoje','wa'); return; }
+  var grupos={}, ordem=[], soltos=[];
+  prods.forEach(function(p){
+    var mpu=_massaPorUnidProd(p), nm=mpu>0?_nomeMassaProd(p):'';
+    if(nm){ if(!grupos[nm]){ grupos[nm]=[]; ordem.push(nm); } grupos[nm].push(p); }
+    else soltos.push(p);
+  });
+  var passos=[];
+  ordem.forEach(function(nm){
+    passos.push({tipo:'massa', nm:nm, prods:grupos[nm]});
+    grupos[nm].forEach(function(p){ passos.push({tipo:'prod', p:p, nm:nm}); });
+  });
+  soltos.forEach(function(p){ passos.push({tipo:'prod', p:p}); });
+  passos.push({tipo:'fim'});
+  PP={passos:passos, i:0, ck:{}, hoje:hoje, dsem:dsem};
+  var ov=document.getElementById('ppOv');
+  if(!ov){ ov=document.createElement('div'); ov.id='ppOv'; ov.className='pp-ov'; document.body.appendChild(ov); }
+  ov.hidden=false;
+  _ppRender();
+}
+function fecharPassoAPasso(){
+  var ov=document.getElementById('ppOv'); if(ov){ ov.hidden=true; ov.innerHTML=''; }
+  PP=null;
+  var vw=document.getElementById('v-producao'); if(vw && PROD_VIEW==='hoje') _renderConfirmarHoje(vw);
+}
+function _ppMeta(p){ return Number(getLoteProduto(p.nome, SETOR, PP.dsem, PP.hoje).qtd)||0; }
+function _ppUnd(p){ return String(p.unidade||'KG').toUpperCase()==='UND' ? 'un' : 'kg'; }
+// massa total de um grupo (kg) pelas metas
+function _ppMassaGrupo(ps){
+  return ps.reduce(function(s,p){ return s+_ppMeta(p)*_massaPorUnidProd(p); },0);
+}
+function _ppIngLista(chave, ings, f){
+  return ings.map(function(x,k){
+    var id=chave+'_'+k, on=!!PP.ck[id];
+    var ferm=/FERMENTO/i.test(x.nome||'');
+    return '<div class="pp-ing'+(on?' on':'')+'" onclick="_ppCk(\''+id+'\',this)"><span class="ck">'+(on?'✓':'')+'</span>'
+      +'<span class="nm">'+escHtml(_nomeInsumoCurto(x.nome,3))+(ferm?'<br><span style="font-size:.75rem;color:#92400E;">ajuste na aba 🧪 Fermento</span>':'')+'</span>'
+      +'<b>'+_fmtQtdIng(x,f)+'</b></div>';
+  }).join('');
+}
+function _ppCk(id, el){ PP.ck[id]=!PP.ck[id]; el.classList.toggle('on',PP.ck[id]); el.querySelector('.ck').textContent=PP.ck[id]?'✓':''; }
+function _ppRender(){
+  var ov=document.getElementById('ppOv'); if(!ov||!PP) return;
+  var st=PP.passos[PP.i], N=PP.passos.length-1;
+  var h='<div class="pp-top"><b>'+(st.tipo==='fim'?'Produção de hoje':'Passo '+(PP.i+1)+' de '+N)+'</b><button class="pp-x" onclick="fecharPassoAPasso()">✕ Sair</button></div>'
+    +'<div class="pp-bar"><i style="width:'+Math.round(Math.min(PP.i,N)/N*100)+'%"></i></div><div class="pp-body">';
+  var acoes='';
+  if(st.tipo==='massa'){
+    var kg=_ppMassaGrupo(st.prods), r=_farinhaPorKgMassaNome(st.nm), bn=_baseNomeMassa(st.nm);
+    h+='<div class="pp-eyebrow">Bater a massa</div><div class="pp-titulo">'+escHtml(st.nm)+'</div>';
+    h+='<div class="pp-card"><div class="pp-sug">Massa do dia: <b>'+_fmtNum(Math.round(kg*10)/10)+' kg</b>'
+      +(r>0?'<br>'+(bn==='farinha'?'Farinha':escHtml(bn))+': <b>'+_fmtFarinha(kg*r)+'</b>':'')+'</div></div>';
+    var fm=FICHAS_NOME && (FICHAS_NOME[_normProdNome(st.nm)] || (st.nm==='MASSA DE TRIGO'?FICHAS_NOME['bolo de trigo']:null));
+    if(r>0 && bn==='farinha'){
+      var lim=_limiteBatida(st.nm), pb=_planoBatidas(kg*r, lim);
+      if(pb && lim){
+        h+='<div class="pp-card" style="border-color:#F59E0B;background:#FFF7ED;"><div class="pp-sug" style="color:#92400E;"><b style="color:#92400E;">'+pb.n+' batida'+(pb.n>1?'s':'')+' de '+_fmtNum(pb.por)+' kg</b> de farinha</div>'
+          +(pb.foraDoLimite?'<div class="pp-nota" style="color:#92400E;">A masseira trabalha com '+lim.min+' a '+lim.max+' kg por batida: a farinha do dia ficou '+_fmtNum(pb.total)+' kg.</div>':'')+'</div>';
+      }
+      if(fm && fm.baseKg>0 && (fm.outrosIng||[]).length && pb){
+        h+='<div class="pp-eyebrow">Separe '+(lim&&pb.n>1?'para CADA batida':'os ingredientes')+' · toque para marcar</div>'
+          +'<div class="pp-card">'+_ppIngLista('m'+PP.i, fm.outrosIng, pb.por/fm.baseKg)+'</div>';
+      }
+    }
+    h+='<div class="pp-eyebrow">Depois de bater, separe a massa</div><div class="pp-card">';
+    st.prods.forEach(function(p){
+      var m=_ppMeta(p)*_massaPorUnidProd(p);
+      h+='<div class="pp-sep"><span>'+escHtml(_nomeCurto(p.nome))+'</span><b>'+_fmtNum(Math.round(m*10)/10)+' kg</b></div>';
+    });
+    h+='</div>';
+    acoes='<button class="pp-ok" onclick="_ppIr(1)">✓ Massa batida — próximo</button>';
+  } else if(st.tipo==='prod'){
+    var p=st.p, meta=_ppMeta(p), mpu=_massaPorUnidProd(p), und=_ppUnd(p);
+    var it=PROD_ITENS[p.id+'_'+PP.hoje], rasc=PROD_HOJE_VALS[p.id];
+    var jaQ = (rasc&&rasc.done) ? rasc.val : (it && it.status==='confirmado' ? Number(it.qtd_produzida) : null);
+    var cl=(typeof _getClasse==='function')?_getClasse(p.id):'';
+    var corCl={A:'#C0392B',B:'#D97706',C:'#9CA3AF'}[cl]||'#9CA3AF';
+    h+='<div class="pp-eyebrow">'+(st.nm?'Separar e produzir · '+escHtml(st.nm):'Produzir')+'</div>'
+      +'<div class="pp-titulo">'+escHtml(_nomeCurto(p.nome))+(cl?'<span class="pp-abc" style="background:'+corCl+';">'+cl+'</span>':'')+'</div>';
+    // o campo: kg de massa crua (produto de massa) ou kg/un do produto
+    var campoUnd = mpu>0 ? 'kg de massa' : und;
+    var sugCampo = mpu>0 ? Math.round(meta*mpu*10)/10 : meta;
+    var valIni = jaQ!==null ? (mpu>0 ? Math.round(jaQ*mpu*10)/10 : jaQ) : sugCampo;
+    h+='<div class="pp-card"><div class="pp-sug">Sugestão: <b>'+_fmtNum(sugCampo)+' '+campoUnd+'</b>'
+      +(mpu>0?'<br><span class="pp-nota">= '+_fmtNum(meta)+' '+und+' de '+escHtml(_nomeCurto(p.nome).toLowerCase())+'</span>':'')+'</div>';
+    if(jaQ!==null) h+='<div class="pp-ja" style="margin-top:8px;">✅ Já registrado hoje: '+_fmtNum(jaQ)+' '+und+'</div>';
+    var passo = mpu>0 ? 0.5 : (und==='un' ? 1 : 0.5);
+    h+='<div class="pp-nota" style="margin-top:10px;text-align:center;">Quanto você '+(mpu>0?'separou de massa':'produziu')+'?</div>'
+      +'<div class="pp-num"><button onclick="_ppStep(-'+passo+')">−</button><input id="ppQtd" type="number" inputmode="decimal" min="0" step="'+passo+'" value="'+(valIni||0)+'"><button onclick="_ppStep('+passo+')">+</button></div>'
+      +'<div style="text-align:center;" class="pp-und">'+campoUnd+'</div></div>';
+    // ingredientes da receita própria (produto que não sai de massa compartilhada)
+    if(!(mpu>0)){
+      var fic=fichaDoProduto(p);
+      var rend=fic ? (und==='un' ? fic.rendimentoUn : fic.rendimentoKg) : 0;
+      if(fic && !fic.sintetico && rend>0 && meta>0 && (fic.outrosIng||[]).length){
+        h+='<div class="pp-eyebrow">Ingredientes para '+_fmtNum(meta)+' '+und+' · toque para marcar</div>'
+          +'<div class="pp-card">'+_ppIngLista('p'+PP.i, fic.outrosIng, meta/rend)+'</div>';
+      }
+    }
+    acoes='<button class="pp-ok" id="ppOk" onclick="_ppSalvar(false)">✓ OK, registrar</button>'
+      +'<div class="pp-row"><button class="pp-sec" onclick="_ppSalvar(true)">Não produzi hoje</button><button class="pp-sec" onclick="_ppIr(1)">Pular</button></div>';
+  } else {
+    var tot=0, feitos=0;
+    PP.passos.forEach(function(x){ if(x.tipo!=='prod') return; tot++; var r=PROD_HOJE_VALS[x.p.id]; var it2=PROD_ITENS[x.p.id+'_'+PP.hoje];
+      if((r&&r.done)||(it2&&it2.status==='confirmado')) feitos++; });
+    h+='<div class="pp-eyebrow">Fim</div><div class="pp-titulo">'+(feitos===tot?'Produção do dia registrada ✅':'Faltam '+(tot-feitos)+' produto'+(tot-feitos>1?'s':''))+'</div>'
+      +'<div class="pp-card"><div class="pp-sug"><b>'+feitos+'</b> de <b>'+tot+'</b> produtos registrados.</div>'
+      +(feitos<tot?'<div class="pp-nota" style="margin-top:6px;">Os que você pulou continuam na tela Hoje.</div>':'')+'</div>';
+    acoes='<button class="pp-ok" onclick="fecharPassoAPasso()">Concluir</button>';
+  }
+  h+='</div><div class="pp-acoes">'+acoes+(PP.i>0?'<button class="pp-sec" onclick="_ppIr(-1)">← Voltar</button>':'')+'</div>';
+  ov.innerHTML=h;
+  var b=ov.querySelector('.pp-body'); if(b) b.scrollTop=0;
+}
+function _ppStep(d){
+  var inp=document.getElementById('ppQtd'); if(!inp) return;
+  var v=Math.max(0,(parseFloat(String(inp.value).replace(',','.'))||0)+d);
+  inp.value=Math.round(v*100)/100;
+}
+function _ppIr(d){
+  if(!PP) return;
+  PP.i=Math.max(0,Math.min(PP.passos.length-1,PP.i+d));
+  _ppRender();
+}
+async function _ppSalvar(zero){
+  var st=PP&&PP.passos[PP.i]; if(!st||st.tipo!=='prod') return;
+  var p=st.p, mpu=_massaPorUnidProd(p);
+  var inp=document.getElementById('ppQtd');
+  var v=zero?0:(parseFloat(String(inp&&inp.value||'0').replace(',','.'))||0);
+  var qtd = mpu>0 ? Math.round(v/mpu*100)/100 : v;
+  var btn=document.getElementById('ppOk'); if(btn){ btn.disabled=true; btn.textContent='Salvando…'; }
+  if(!PROD_HOJE_VALS[p.id]) PROD_HOJE_VALS[p.id]={};
+  PROD_HOJE_VALS[p.id].val=qtd; PROD_HOJE_VALS[p.id].done=true;
+  var ok=await _upsertProdItem(p.id, PP.hoje, {qtd_produzida:qtd, status:'confirmado'});
+  if(!ok){ PROD_HOJE_VALS[p.id].done=false; if(btn){ btn.disabled=false; btn.textContent='✓ OK, registrar'; } return; }
+  toast(zero?'Registrado: não produzido':'✅ '+_nomeCurto(p.nome)+' registrado','ok');
+  _ppIr(1);
+}
+
+// ── BATIDAS DA MASSEIRA ──
+// Limite de FARINHA por batida de cada massa (kg). Massa sem limite aqui
+// sai numa batida só, com a farinha do dia. Para incluir outra massa, use o
+// nome da ficha da massa (sem acento, minúsculo): 'massa folhada': {min:..,max:..}
+var BATIDA_LIMITES = {
+  'massa frances': {min:25, max:35}
+};
+function _limiteBatida(nomeMassa){ return BATIDA_LIMITES[_normProdNome(nomeMassa||'')] || null; }
+// Divide a farinha do dia em batidas iguais dentro do limite da masseira.
+// Se não couber exato (ex.: 40 kg com limite 25–35), arredonda para o total
+// possível mais perto da meta; empate → para mais (melhor sobrar que faltar).
+function _planoBatidas(far, lim){
+  if(!(far>0)) return null;
+  if(!lim) return {n:1, por:far, total:far, ajuste:0};
+  var best=null, nMax=Math.ceil(far/lim.min)+1;
+  for(var n=1;n<=nMax;n++){
+    var tot=Math.min(Math.max(far,n*lim.min),n*lim.max), d=Math.abs(tot-far);
+    if(!best || d<best.d-1e-9 || (Math.abs(d-best.d)<1e-9 && tot>best.total)) best={n:n,total:tot,d:d};
+  }
+  var por=Math.min(Math.ceil(best.total/best.n*2-1e-9)/2, lim.max);   // 0,5 kg, sem passar do máximo
+  return {n:best.n, por:por, total:por*best.n, ajuste:por*best.n-far, foraDoLimite:best.d>0.01};
+}
+// Ingredientes de UMA batida (ou da massa do dia), pela ficha da massa
+function _ingredientesBatidaHTML(nomeMassa, farBatida){
+  var fm=FICHAS_NOME && (FICHAS_NOME[_normProdNome(nomeMassa)] || (nomeMassa==='MASSA DE TRIGO' ? FICHAS_NOME['bolo de trigo'] : null));
+  if(!fm || !(fm.baseKg>0) || !(fm.outrosIng||[]).length) return '';
+  var f=farBatida/fm.baseKg;
+  var ing=(fm.outrosIng||[]);   // na ordem da ficha técnica
+  var h='';
+  ing.forEach(function(x){
+    var ferm=/FERMENTO/i.test(x.nome||'');
+    h+='<div style="display:flex;justify-content:space-between;gap:8px;font-size:.84rem;padding:3px 0;border-top:1px dashed #FCD9A8;">'
+      +'<span>☐ '+escHtml(_nomeInsumoCurto(x.nome,3))
+      +(ferm?' <span style="font-size:.7rem;color:#92400E;">(ajuste na aba 🧪 Fermento)</span>':'')+'</span>'
+      +'<b style="color:#92400E;white-space:nowrap;">'+_fmtQtdIng(x,f)+'</b></div>';
+  });
+  return h;
+}
+
 // Quadro do topo da tela Hoje: para cada massa do dia, quanto bater e quanto
 // de massa crua separar para cada produto (o rateio da batida).
 function _rateioMassasHoje(prods, hoje, dsem){
@@ -8241,8 +8509,27 @@ function _rateioMassasHoje(prods, hoje, dsem){
     var far = r>0 ? (_fmtFarinha(x.kg*r)+' de '+bn) : '';
     h+='<div style="background:#EEF2FF;border:1.5px solid #2563EB;border-radius:10px;padding:8px 10px;margin-bottom:8px;">'
       +'<div style="font-weight:800;color:#1D4ED8;font-size:.86rem;">🥖 '+escHtml(nm)+'</div>'
-      +'<div style="font-size:.8rem;margin:2px 0 6px;color:#1C1C1A;">'+(far?'Bater <b>'+far+'</b> · ':'')+'<b>'+_fmtNum(Math.round(x.kg*10)/10)+' kg de massa</b></div>'
-      +'<div style="font-size:.72rem;color:#6B7280;margin-bottom:2px;">Separar na balança:</div>';
+      +'<div style="font-size:.8rem;margin:2px 0 6px;color:#1C1C1A;">'+(far?'Bater <b>'+far+'</b> · ':'')+'<b>'+_fmtNum(Math.round(x.kg*10)/10)+' kg de massa</b></div>';
+    // Batidas da masseira + o que separar em cada uma
+    if(r>0 && bn==='farinha'){
+      var lim=_limiteBatida(nm), pb=_planoBatidas(x.kg*r, lim);
+      var ingH=pb ? _ingredientesBatidaHTML(nm, pb.por) : '';
+      if(pb && (lim || ingH)){
+        h+='<div style="background:#FFF7ED;border:1px solid #F59E0B;border-radius:8px;padding:7px 9px;margin:0 0 8px;">'
+          +'<div style="font-weight:800;color:#92400E;font-size:.86rem;">'
+          +(lim ? ('🌀 '+pb.n+' batida'+(pb.n>1?'s':'')+' de '+_fmtNum(pb.por)+' kg de farinha') : '🌀 Ingredientes da massa do dia')+'</div>';
+        if(lim && pb.foraDoLimite){
+          var dm=pb.ajuste/r;
+          h+='<div style="font-size:.74rem;color:#92400E;margin-top:2px;">A meta pede '+_fmtNum(Math.round(x.kg*r*10)/10)+' kg de farinha. A masseira trabalha com '
+            +lim.min+' a '+lim.max+' kg por batida, então ficou '+_fmtNum(pb.total)+' kg ('+(dm>0?'+':'−')+_fmtNum(Math.round(Math.abs(dm)*10)/10)+' kg de massa).</div>';
+        }
+        if(ingH){
+          h+='<div style="font-size:.72rem;color:#6B7280;margin:5px 0 1px;">Separar '+(lim&&pb.n>1?'para CADA batida':(lim?'para a batida':'para a massa do dia'))+':</div>'+ingH;
+        }
+        h+='</div>';
+      }
+    }
+    h+='<div style="font-size:.72rem;color:#6B7280;margin-bottom:2px;">Separar na balança:</div>';
     x.itens.forEach(function(it){
       h+='<div style="display:flex;justify-content:space-between;font-size:.82rem;padding:2px 0;border-top:1px dashed #C7D2FE;">'
         +'<span>'+escHtml(it.nome)+'</span><b style="color:#1D4ED8;">'+_fmtNum(it.kg)+' kg'+(it.un?' <span style="font-weight:600;color:#6B7280;">('+_fmtNum(it.un)+' un)</span>':'')+'</b></div>';

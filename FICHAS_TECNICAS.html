@@ -1821,6 +1821,31 @@ function aoSelecionarProduto(){
   }
 }
 
+// Cria ou atualiza o insumo de uma ficha sem produto (massa/preparo):
+// mesmo nome, comprado "em kg", preço = custo de 1 kg da receita.
+async function _sincronizarInsumoDaFicha(nome, itens, rendKg){
+  if(!nome || !(rendKg>0)) return;
+  var total=0;
+  (itens||[]).forEach(function(it){
+    if(!it.insumo_id) return;
+    var ins=INSUMOS.find(function(i){return i.id===it.insumo_id;});
+    var ck=ins?parseFloat(ins.custo_kg_l)||0:0;
+    var q=(parseFloat(it.qtd_liquida)||0)*(parseFloat(it.fator_correcao)||1);
+    total+=q*ck;
+  });
+  var custoKg=Math.round(total/rendKg*10000)/10000;
+  var norm=function(x){return String(x||'').trim().toUpperCase();};
+  var exist=INSUMOS.find(function(i){return norm(i.nome)===norm(nome);});
+  var body={fornecedor:'Produção própria (ficha)',unidade_compra:'kg',qtd_embalagem:1,
+            preco_embalagem:custoKg,ativo:true,atualizado_em:new Date().toISOString()};
+  var idIns;
+  if(exist){ await sbPatch('insumos',exist.id,body); idIns=exist.id; }
+  else{ var r=await sbPost('insumos',Object.assign({nome:norm(nome)},body)); idIns=r&&r[0]&&r[0].id; }
+  // custo_kg_l: grava também, caso a coluna não seja calculada pelo banco
+  if(idIns){ try{ await sbPatch('insumos',idIns,{custo_kg_l:custoKg}); }catch(e){} }
+  toast('🧪 Insumo "'+norm(nome)+'" '+(exist?'atualizado':'criado')+': R$ '+custoKg.toFixed(2).replace('.',',')+'/kg','ok');
+}
+
 let _salvandoFicha=false; // trava anti-duplicação
 async function salvarFicha(){
   if(_salvandoFicha)return; // já está salvando — ignora clique extra
@@ -1893,6 +1918,14 @@ async function salvarFicha(){
         unidade:it.unidade||'kg',
         ordem:i+1
       });
+    }
+    // Ficha SEM produto (massa base, recheio, preparo): vira também um INSUMO
+    // com o mesmo nome e o custo por kg da receita, para ser usada como
+    // ingrediente nas fichas dos produtos (ex.: MASSA FRANCÊS no pão francês).
+    // (também quando a massa foi cadastrada como produto: nome começando com MASSA)
+    if(!cod || /^MASSA\s/i.test(produto_nome)){
+      try{ await _sincronizarInsumoDaFicha(produto_nome, ingredientesModal, rendimento_kg); }
+      catch(e){ console.error(e); toast('⚠️ Ficha salva, mas não consegui criar o insumo: '+String(e.message||e).slice(0,80),'er'); }
     }
     fecharModalFull();
     toast('✅ Ficha salva!','ok');
