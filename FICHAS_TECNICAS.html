@@ -352,6 +352,15 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
   </div>
   <div class="modal-full-body">
     <input type="hidden" id="fichaId">
+    <!-- Receita nova de um produto: a ficha atual dele vira "ANTIGO" -->
+    <div id="boxSubstituir" style="display:none;background:#FFF7ED;border:1.5px solid #F59E0B;border-radius:10px;padding:10px 12px;margin-bottom:12px;">
+      <div style="font-weight:800;color:#92400E;font-size:.88rem;">🔁 Esta é a receita nova de um produto?</div>
+      <div style="font-size:.75rem;color:#6B7280;margin:3px 0 8px;line-height:1.4;">Escolha o produto. A receita que ele usa hoje fica guardada com <b>ANTIGO</b> no nome (grupo RECEITAS ANTIGAS) e esta passa a ser a receita dele, com o código do produto.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <select id="fichaSubstProd" style="flex:1;min-width:180px;"><option value="">Escolha o produto...</option></select>
+        <button type="button" class="btn btn-grn btn-sm" onclick="substituirReceitaProduto()">Usar como receita nova</button>
+      </div>
+    </div>
     <div class="fg-row">
       <div class="fg">
         <label>Nome do produto *</label>
@@ -1454,6 +1463,7 @@ function imprimirFichaProducao(id) {
 function abrirModalFicha(id){
   ingredientesModal=[];
   popularDropdownProdutos();
+  var _bxS=document.getElementById('boxSubstituir'); if(_bxS) _bxS.style.display='none';
   document.getElementById('fichaId').value='';
   document.getElementById('fichaProdutoSel').value='';
   document.getElementById('fichaNome').value='';
@@ -1513,6 +1523,17 @@ function abrirModalFicha(id){
       document.getElementById('fotoPreviewWrap').style.display='block';
       document.getElementById('fotoPlaceholder').style.display='none';
     }
+    // Ficha sem código de produto: oferece transformá-la na receita nova de um produto
+    var bx=document.getElementById('boxSubstituir');
+    if(bx){
+      var semCod=!String(f.cod||'').trim() && !/ANTIGO\b/i.test(f.produto_nome||'');
+      bx.style.display=semCod?'block':'none';
+      if(semCod){
+        var sp=document.getElementById('fichaSubstProd');
+        sp.innerHTML='<option value="">Escolha o produto...</option>'+(PRODUTOS_CAT||[]).filter(function(p){return String(p.cod||'').trim();})
+          .map(function(p){return '<option value="'+String(p.nome).replace(/"/g,'&quot;')+'">'+p.nome+' ('+String(p.cod).replace(/^0+/,'')+')</option>';}).join('');
+      }
+    }
     ingredientesModal=(FICHA_ITENS[f.id]||[]).map(function(it){
       return{insumo_id:it.insumo_id,insumo_nome:it.insumo_nome,qtd_liquida:it.qtd_liquida,fator_correcao:it.fator_correcao,unidade:it.unidade,ordem:it.ordem};
     });
@@ -1523,6 +1544,45 @@ function abrirModalFicha(id){
 }
 
 function editarFicha(id){abrirModalFicha(id);}
+
+// A ficha aberta (sem código) vira a receita do produto escolhido. A ficha que
+// o produto usava é renomeada para "... ANTIGO", perde o código e vai para o
+// grupo RECEITAS ANTIGAS — continua no app para consulta, fora dos custos.
+async function substituirReceitaProduto(){
+  var id=document.getElementById('fichaId').value;
+  var nova=FICHAS.find(function(x){return x.id===id;});
+  var nomeProd=document.getElementById('fichaSubstProd').value;
+  var prod=(PRODUTOS_CAT||[]).find(function(p){return p.nome===nomeProd;});
+  if(!nova||!prod){toast('⚠️ Escolha o produto','er');return;}
+  var nc=function(c){return String(c||'').trim().replace(/^0+/,'');};
+  var cod=nc(prod.cod);
+  var velha=FICHAS.find(function(x){return x.id!==nova.id && nc(x.cod)===cod;});
+  var msg='"'+nova.produto_nome+'" vai virar a receita de '+prod.nome+' (cód. '+cod+').'
+    +(velha?'\n\nA receita atual ("'+velha.produto_nome+'") fica guardada como "'+velha.produto_nome+' ANTIGO".':'')
+    +'\n\nConfirmar?';
+  if(!confirm(msg))return;
+  var hoje=new Date().toLocaleDateString('pt-BR');
+  try{
+    if(velha){
+      var nomeAnt=velha.produto_nome+' ANTIGO';
+      if(FICHAS.some(function(x){return x.produto_nome===nomeAnt;})) nomeAnt+=' '+hoje;
+      await sbPatch('fichas_tecnicas',velha.id,{produto_nome:nomeAnt,cod:null,grupo:'RECEITAS ANTIGAS',
+        indicacao:'Receita substituída em '+hoje+' por "'+nova.produto_nome+'" (cód. '+cod+')'});
+    }
+    var setor=(prod.setor==='PASTELARIA')?'CONFEITARIA':(prod.setor||nova.setor);
+    await sbPatch('fichas_tecnicas',nova.id,{cod:prod.cod,produto_nome:prod.nome,setor:setor});
+    // O insumo criado quando esta ficha era "sem produto" não serve mais (se ninguém usa)
+    var ins=INSUMOS.find(function(i){return String(i.nome||'').trim().toUpperCase()===String(nova.produto_nome||'').trim().toUpperCase()
+                                        && /Produção própria \(ficha\)/.test(i.fornecedor||'');});
+    if(ins){
+      var usado=Object.keys(FICHA_ITENS).some(function(fid){ return (FICHA_ITENS[fid]||[]).some(function(it){return it.insumo_id===ins.id;}); });
+      if(!usado){ try{ await sbPatch('insumos',ins.id,{ativo:false}); }catch(e){} }
+    }
+    fecharModalFull();
+    toast('✅ '+prod.nome+' agora usa a receita nova'+(velha?' · antiga guardada':''),'ok');
+    await carregarTudo();
+  }catch(e){ console.error(e); toast('❌ Erro ao trocar a receita: '+String(e.message||e).slice(0,80),'er'); }
+}
 
 function fecharModalFull(){
   document.getElementById('modalFicha').classList.add('hidden');
@@ -1823,8 +1883,12 @@ function aoSelecionarProduto(){
 
 // Cria ou atualiza o insumo de uma ficha sem produto (massa/preparo):
 // mesmo nome, comprado "em kg", preço = custo de 1 kg da receita.
-async function _sincronizarInsumoDaFicha(nome, itens, rendKg){
-  if(!nome || !(rendKg>0)) return;
+// MASSA → insumo em kg. Ficha com rendimento em UNIDADES (disco de pizza,
+// recheio porcionado…) → insumo por unidade: entra nas outras fichas em "und"
+// (ex.: 10 und de DISCO DE PIZZA), como ovo, com o peso de 1 unidade.
+async function _sincronizarInsumoDaFicha(nome, itens, rendKg, rendUn){
+  var porUnidade = !/^MASSA\s/i.test(nome||'') && rendUn>0;
+  if(!nome || (!porUnidade && !(rendKg>0))) return;
   var total=0;
   (itens||[]).forEach(function(it){
     if(!it.insumo_id) return;
@@ -1833,17 +1897,18 @@ async function _sincronizarInsumoDaFicha(nome, itens, rendKg){
     var q=(parseFloat(it.qtd_liquida)||0)*(parseFloat(it.fator_correcao)||1);
     total+=q*ck;
   });
-  var custoKg=Math.round(total/rendKg*10000)/10000;
+  var custoKg=Math.round(total/(porUnidade?rendUn:rendKg)*10000)/10000;   // por kg, ou por unidade
   var norm=function(x){return String(x||'').trim().toUpperCase();};
   var exist=INSUMOS.find(function(i){return norm(i.nome)===norm(nome);});
-  var body={fornecedor:'Produção própria (ficha)',unidade_compra:'kg',qtd_embalagem:1,
+  var body={fornecedor:'Produção própria (ficha)',unidade_compra:(porUnidade?'und':'kg'),qtd_embalagem:1,
             preco_embalagem:custoKg,ativo:true,atualizado_em:new Date().toISOString()};
+  if(porUnidade && rendKg>0) body.peso_unitario_kg=Math.round(rendKg/rendUn*10000)/10000;
   var idIns;
   if(exist){ await sbPatch('insumos',exist.id,body); idIns=exist.id; }
   else{ var r=await sbPost('insumos',Object.assign({nome:norm(nome)},body)); idIns=r&&r[0]&&r[0].id; }
   // custo_kg_l: grava também, caso a coluna não seja calculada pelo banco
   if(idIns){ try{ await sbPatch('insumos',idIns,{custo_kg_l:custoKg}); }catch(e){} }
-  toast('🧪 Insumo "'+norm(nome)+'" '+(exist?'atualizado':'criado')+': R$ '+custoKg.toFixed(2).replace('.',',')+'/kg','ok');
+  toast('🧪 Insumo "'+norm(nome)+'" '+(exist?'atualizado':'criado')+': R$ '+custoKg.toFixed(2).replace('.',',')+(porUnidade?' por unidade':'/kg'),'ok');
 }
 
 let _salvandoFicha=false; // trava anti-duplicação
@@ -1923,8 +1988,9 @@ async function salvarFicha(){
     // com o mesmo nome e o custo por kg da receita, para ser usada como
     // ingrediente nas fichas dos produtos (ex.: MASSA FRANCÊS no pão francês).
     // (também quando a massa foi cadastrada como produto: nome começando com MASSA)
-    if(!cod || /^MASSA\s/i.test(produto_nome)){
-      try{ await _sincronizarInsumoDaFicha(produto_nome, ingredientesModal, rendimento_kg); }
+    // e o DISCO (disco de pizza…), que entra nas outras fichas contado em unidades
+    if(!cod || /^MASSA\s/i.test(produto_nome) || /^DISCO\s/i.test(produto_nome)){
+      try{ await _sincronizarInsumoDaFicha(produto_nome, ingredientesModal, rendimento_kg, rendimento_unid); }
       catch(e){ console.error(e); toast('⚠️ Ficha salva, mas não consegui criar o insumo: '+String(e.message||e).slice(0,80),'er'); }
     }
     fecharModalFull();

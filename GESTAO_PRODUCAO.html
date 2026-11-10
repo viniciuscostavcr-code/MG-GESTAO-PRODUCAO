@@ -1168,7 +1168,20 @@ async function _upsertMinimosPadrao() {
 // ══════════════════════════════════════════════════
 // ESTADO
 // ══════════════════════════════════════════════════
-let SETOR = IS_ADMIN ? 'PADARIA' : (GF_USER.setor||'').toUpperCase().trim();
+// Setor do operador: vem do cadastro do usuário. Escritas diferentes
+// (Conf./Past., Pastelaria, padaria…) são normalizadas. Operador sem setor
+// escolhe na barra de setores — a escolha fica guardada no aparelho.
+function _normSetorUser(s){
+  var v=String(s||'').toUpperCase().trim();
+  if(!v) return '';
+  if(v.indexOf('PAD')===0) return 'PADARIA';
+  if(v.indexOf('CONF')===0 || v.indexOf('PAST')===0) return 'CONFEITARIA';
+  return v;
+}
+var OPERADOR_ESCOLHE_SETOR = !IS_ADMIN && ['PADARIA','CONFEITARIA'].indexOf(_normSetorUser(GF_USER.setor))<0;
+let SETOR = IS_ADMIN ? 'PADARIA'
+  : (OPERADOR_ESCOLHE_SETOR ? (function(){ try{ return localStorage.getItem('gf_setor_operador')||'PADARIA'; }catch(e){ return 'PADARIA'; } })()
+                            : _normSetorUser(GF_USER.setor));
 let TURNO = 'manha';
 let DATA = _today();
 let SESSAO = null;
@@ -1269,8 +1282,11 @@ async function init() {
   document.getElementById('userNm').textContent = GF_USER.nome;
 
   // Setor
-  if (IS_ADMIN) {
+  if (IS_ADMIN || OPERADOR_ESCOLHE_SETOR) {
     document.getElementById('setorBar').style.display = 'flex';
+    var _bp=document.getElementById('sbPad'), _bc=document.getElementById('sbConf');
+    if(_bp) _bp.classList.toggle('on', SETOR==='PADARIA');
+    if(_bc) _bc.classList.toggle('on', SETOR==='CONFEITARIA');
   } else if (!SETOR) {
     _hideSplash();
     document.getElementById('ckContent').innerHTML =
@@ -2606,6 +2622,7 @@ window.addEventListener('resize', _detectarOrientacao);
 // ══════════════════════════════════════════════════
 async function setSetor(s) {
   SETOR = s;
+  if (OPERADOR_ESCOLHE_SETOR) { try{ localStorage.setItem('gf_setor_operador', s); }catch(e){} }
 
   // Atualizar botões visuais
   const btnPad  = document.getElementById('sbPad');
@@ -2662,7 +2679,7 @@ async function _carregarDados() {
     // Carregar todos os ativos, filtrar por setor no cliente (igual ao Desperdícios)
     const prods = await sbSelect('produtos', 'ativo=eq.true&order=nome.asc&limit=2000');
     TODOS_PRODS = (prods||[])
-      .filter(p => (p.setor||'').toUpperCase().trim() === SETOR)
+      .filter(p => _normSetorUser(p.setor) === SETOR)   // PASTELARIA conta como CONFEITARIA
       .map(p => ({
         ...p,
         categoria: ((p.categoria||'OUTROS')).toUpperCase(),
@@ -8033,7 +8050,7 @@ async function carregarFichas(){
                 && !_nomesFicha[_normProdNome(_nU)]){
           if(!premix[it.ficha_id] || q>premix[it.ficha_id].q) premix[it.ficha_id]={nome:nomeIns[it.insumo_id],q:q};
         }
-        (subIt[it.ficha_id]=subIt[it.ficha_id]||[]).push({nome:nomeIns[it.insumo_id]||'',q:q});
+        (subIt[it.ficha_id]=subIt[it.ficha_id]||[]).push({nome:nomeIns[it.insumo_id]||'',q:q,un:String(it.unidade||'')});
       }
       if(_nU==='MASSA BOLO DE TRIGO'){
         massaQtd[it.ficha_id]=(massaQtd[it.ficha_id]||0)+q;
@@ -8103,6 +8120,9 @@ async function carregarFichas(){
         var nk=_normProdNome(x.nome);
         var sub=porNome[nk];
         if(!sub || sub===d || nk.indexOf('massa ')===0 || !(sub.rendimentoKg>0)) return;
+        // Ingrediente contado em UNIDADES (ex.: 10 und de DISCO DE PIZZA) é peça
+        // pronta, feita antes e guardada: não puxa massa nem farinha no dia.
+        if(/^(un|und|unid)/i.test(x.un||'')) return;
         if(!(d.baseKg>0) || d._herdou){
           if(sub.baseKg>0){ d.baseKg+=x.q*sub.baseKg/sub.rendimentoKg; d.baseNome=sub.baseNome; d._herdou=true; }
         }
