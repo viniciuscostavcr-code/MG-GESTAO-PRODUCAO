@@ -104,6 +104,23 @@ body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif
 .pp-ok:disabled{opacity:.6;}
 .pp-row{display:flex;gap:8px;}
 .pp-sec{flex:1;background:#fff;border:1.5px solid #D1D5DB;border-radius:12px;padding:12px;font-size:.95rem;font-weight:700;color:#374151;cursor:pointer;}
+.pp-mex-btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.pp-mex{background:#1B4332;color:#fff;border:none;border-radius:12px;padding:14px 16px;font-size:1.1rem;font-weight:900;cursor:pointer;min-width:96px;}
+.pp-mex-outro{display:inline-flex;gap:6px;align-items:center;}
+.pp-mex-outro input{width:110px;height:50px;font-size:1.1rem;font-weight:800;text-align:center;border:1.5px solid #D1D5DB;border-radius:12px;box-sizing:border-box;}
+.pp-mex-outro .pp-mex{min-width:50px;padding:12px 14px;}
+.pp-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.pp-chip{background:#EAF4EF;color:#1B4332;border-radius:999px;padding:6px 6px 6px 12px;font-weight:800;font-size:.95rem;display:inline-flex;align-items:center;gap:6px;}
+.pp-chip button{border:none;background:#fff;border-radius:999px;width:26px;height:26px;cursor:pointer;font-weight:900;color:#C0392B;}
+.pp-tot{margin-top:10px;font-size:1rem;color:#374151;}
+.pp-tot b{color:#1B4332;font-size:1.15rem;}
+.pp-dist{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 2px;border-top:1px solid #F0F0EE;}
+.pp-dist:first-child{border-top:none;}
+.pp-dist .nm{flex:1;font-weight:700;}
+.pp-dist .nm small{display:block;font-weight:500;color:#6B7280;font-size:.78rem;}
+.pp-dist input{width:96px;height:44px;font-size:1.05rem;font-weight:800;text-align:center;border:1.5px solid #2D6A4F;border-radius:10px;box-sizing:border-box;}
+.pp-dist .resto{min-width:96px;text-align:center;font-weight:900;font-size:1.05rem;color:#1D4ED8;}
+.pp-far-btn{display:block;width:100%;margin:2px 0 8px;background:#1B4332;color:#fff;border:none;border-radius:9px;padding:9px;font-size:.86rem;font-weight:800;cursor:pointer;}
 .pp-abc{display:inline-block;font-size:.8rem;font-weight:900;color:#fff;border-radius:5px;padding:1px 7px;vertical-align:3px;margin-left:6px;}
 
 /* Calculadora de fermento */
@@ -4488,6 +4505,7 @@ function _buildTabelaEsqueleto() {
     + '<button onclick="fecharMenuProd();imprimirPlanejamentoSemanal(\'kg\');" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#1B4332;font-family:inherit;border-bottom:1px solid #F0F0EE;">🖨️ Equipe — em kg <span style="color:#6B7280;font-size:.7rem;">(fase 1)</span></button>'
     + '<button onclick="fecharMenuProd();imprimirPlanejamentoSemanal(\'kgl\');" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#1B4332;font-family:inherit;border-bottom:1px solid #F0F0EE;">🖨️ Equipe — kg + lote <span style="color:#6B7280;font-size:.7rem;">(fase 2)</span></button>'
     + '<button onclick="fecharMenuProd();imprimirPlanejamentoSemanal(\'chao\');" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#1B4332;font-family:inherit;border-bottom:1px solid #F0F0EE;">🖨️ Equipe — em lotes <span style="color:#6B7280;font-size:.7rem;">(fase 3)</span></button>'
+    + '<button onclick="fecharMenuProd();imprimirMural();" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#1D4ED8;font-weight:700;font-family:inherit;border-bottom:1px solid #F0F0EE;">🪧 Imprimir Mural da bancada</button>'
     + '<button onclick="fecharMenuProd();imprimirLotesMassa();" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#D97706;font-family:inherit;border-bottom:1px solid #F0F0EE;">🧾 Imprimir Lotes (por categoria)</button>'
     + (IS_ADMIN ? '<button onclick="fecharMenuProd();imprimirPlanejamentoSemanal(\'gerencia\');" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#8A6D3B;font-family:inherit;border-bottom:1px solid #F0F0EE;">🖨️ Semanal — Gerência</button>' : '')
     + '<button onclick="fecharMenuProd();imprimirPlanejamentoMensal();" style="display:block;width:100%;text-align:left;background:none;border:none;padding:11px 14px;cursor:pointer;font-size:.8rem;color:#1B4332;font-family:inherit;border-bottom:1px solid #F0F0EE;">🖨️ Imprimir Mensal</button>'
@@ -5500,7 +5518,8 @@ function _renderConfirmarHoje(vw) {
     html += `<div class="phoje-aviso fech">🔒 Domingo — setor fechado.<br>Sem produção hoje.</div>`;
   } else {
     if (isDom) html += `<div class="phoje-aviso dom">⚠️ Domingo — equipe reduzida.<br>Somente pães básicos.</div>`;
-    html += `<button class="pp-start" onclick="abrirPassoAPasso()">▶️ Fazer a produção passo a passo</button>`;
+    html += `<button class="pp-start" onclick="abrirMexidas()">🌾 Registrar as mexidas de hoje</button>`
+         +  `<button class="pp-start" style="background:#fff;color:#1B4332;border:1.5px solid #CFE3D7;font-size:.9rem;padding:10px;" onclick="abrirPassoAPasso()">▶️ Passo a passo completo</button>`;
     html += _rateioMassasHoje(prodsHoje, hoje, dsem);
 
     // Separar em dois grupos: com sugestão e sem sugestão
@@ -8324,7 +8343,7 @@ function _baseNomeMassa(nome){
 // Grava igual à tela Hoje (producao_itens, status confirmado).
 // ══════════════════════════════════════════════════
 var PP = null;
-function abrirPassoAPasso(){
+function abrirPassoAPasso(nmAlvo){
   var hoje=_today(), dsem=_diaSemNum(hoje);
   var prods=(TODOS_PRODS||[]).filter(function(p){
     var l=getLoteProduto(p.nome, SETOR, dsem, hoje);
@@ -8344,7 +8363,12 @@ function abrirPassoAPasso(){
   });
   soltos.forEach(function(p){ passos.push({tipo:'prod', p:p}); });
   passos.push({tipo:'fim'});
-  PP={passos:passos, i:0, ck:{}, hoje:hoje, dsem:dsem};
+  PP={passos:passos, i:0, ck:{}, hoje:hoje, dsem:dsem, mex:{}, alloc:{}};
+  if(nmAlvo){ var _ix=passos.findIndex(function(x){return x.tipo==='massa'&&x.nm===nmAlvo;}); if(_ix>=0) PP.i=_ix; }
+  // Mexidas já registradas hoje (para somar, e não substituir)
+  sbSelect('producao_batidas','select=massa,mexidas&data=eq.'+hoje+'&setor=eq.'+encodeURIComponent(SETOR))
+    .then(function(rows){ if(!PP) return; PP.mexSalvo=PP.mexSalvo||{}; (rows||[]).forEach(function(r){ PP.mex[r.massa]=(r.mexidas||[]).map(Number); PP.mexSalvo[r.massa]=true; }); _ppRender(); })
+    .catch(function(){});
   var ov=document.getElementById('ppOv');
   if(!ov){ ov=document.createElement('div'); ov.id='ppOv'; ov.className='pp-ov'; document.body.appendChild(ov); }
   ov.hidden=false;
@@ -8394,13 +8418,20 @@ function _ppRender(){
           +'<div class="pp-card">'+_ppIngLista('m'+PP.i, fm.outrosIng, pb.por/fm.baseKg)+'</div>';
       }
     }
-    h+='<div class="pp-eyebrow">Depois de bater, separe a massa</div><div class="pp-card">';
-    st.prods.forEach(function(p){
-      var m=_ppMeta(p)*_massaPorUnidProd(p);
-      h+='<div class="pp-sep"><span>'+escHtml(_nomeCurto(p.nome))+'</span><b>'+_fmtNum(Math.round(m*10)/10)+' kg</b></div>';
-    });
-    h+='</div>';
-    acoes='<button class="pp-ok" onclick="_ppIr(1)">✓ Massa batida — próximo</button>';
+    var _totFar=0;
+    if(r>0){ h+=_ppFarinhaHTML(st, r, bn); _totFar=(PP.mex[st.nm]||[]).reduce(function(a,b){return a+b;},0); }
+    if(!(_totFar>0)){
+      h+='<div class="pp-eyebrow">Plano: massa para cada produto</div><div class="pp-card">';
+      st.prods.forEach(function(p){
+        var m=_ppMeta(p)*_massaPorUnidProd(p);
+        h+='<div class="pp-sep"><span>'+escHtml(_nomeCurto(p.nome))+'</span><b>'+_fmtNum(Math.round(m*10)/10)+' kg</b></div>';
+      });
+      h+='</div>';
+    }
+    acoes = r>0
+      ? '<button class="pp-ok" id="ppOkFar" onclick="_ppSalvarFarinha()"'+(_totFar>0?'':' disabled')+'>✓ Registrar a produção pela '+(bn==='farinha'?'farinha':escHtml(bn))+'</button>'
+        +'<button class="pp-sec" onclick="_ppIr(1)">Registrar produto por produto</button>'
+      : '<button class="pp-ok" onclick="_ppIr(1)">✓ Massa batida — próximo</button>';
   } else if(st.tipo==='prod'){
     var p=st.p, meta=_ppMeta(p), mpu=_massaPorUnidProd(p), und=_ppUnd(p);
     var it=PROD_ITENS[p.id+'_'+PP.hoje], rasc=PROD_HOJE_VALS[p.id];
@@ -8469,6 +8500,306 @@ async function _ppSalvar(zero){
   _ppIr(1);
 }
 
+
+// ── REGISTRO PELA FARINHA ──
+// O padeiro toca uma vez por mexida (+25 kg, +35 kg ou outro peso). O app
+// converte farinha → massa pela ficha e divide a massa entre os produtos:
+// no começo pela proporção do plano do dia; o padeiro pode corrigir os
+// produtos menores (baguete, mini…) e o principal fica com o resto.
+function _ppMexTotal(nm){ return (PP.mex[nm]||[]).reduce(function(a,b){return a+b;},0); }
+function _ppDistrib(st, r){
+  var R=_ppMexTotal(st.nm)/r;
+  var pl=st.prods.map(function(p){ return {p:p, mpu:_massaPorUnidProd(p), plano:_ppMeta(p)*_massaPorUnidProd(p)}; });
+  var M=pl.reduce(function(a,x){return a+x.plano;},0);
+  var iP=0; pl.forEach(function(x,i){ if(x.plano>pl[iP].plano) iP=i; });
+  var ed=PP.alloc[st.nm]||{}, soma=0;
+  pl.forEach(function(x,i){
+    if(i===iP) return;
+    x.a = (ed[x.p.id]!==undefined) ? ed[x.p.id] : (M>0 ? Math.round(R*x.plano/M*10)/10 : 0);
+    soma+=x.a;
+  });
+  pl[iP].a=Math.round((R-soma)*10)/10; pl[iP].principal=true;
+  pl.forEach(function(x){ x.q = x.mpu>0 ? Math.round(x.a/x.mpu*100)/100 : 0; });
+  return {R:R, itens:pl};
+}
+function _ppFarinhaHTML(st, r, bn){
+  var mex=PP.mex[st.nm]||[], tot=_ppMexTotal(st.nm), lim=_limiteBatida(st.nm);
+  var lbl = bn==='farinha' ? 'farinha' : bn;
+  var tam = lim ? [lim.min, lim.max] : [];
+  var h='<div class="pp-eyebrow">Quanto de '+escHtml(lbl)+' foi batido hoje? · toque uma vez por mexida</div><div class="pp-card">'
+    +'<div class="pp-mex-btns">'+tam.map(function(t){ return '<button class="pp-mex" onclick="_ppMexAdd('+t+')">+ '+t+' kg</button>'; }).join('')
+    +'<span class="pp-mex-outro"><input id="ppMexOutro" type="number" inputmode="decimal" min="0" step="0.5" placeholder="outro kg"><button class="pp-mex" onclick="_ppMexAdd(-1)">+</button></span></div>';
+  if(mex.length){
+    h+='<div class="pp-chips">'+mex.map(function(k,i){ return '<span class="pp-chip">'+_fmtNum(k)+' kg<button onclick="_ppMexDel('+i+')" aria-label="Tirar esta mexida">✕</button></span>'; }).join('')+'</div>'
+      +'<div class="pp-tot">'+mex.length+' mexida'+(mex.length>1?'s':'')+' · <b>'+_fmtNum(Math.round(tot*10)/10)+' kg</b> de '+escHtml(lbl)
+      +' → <b>'+_fmtNum(Math.round(tot/r*10)/10)+' kg</b> de massa</div>';
+  }
+  h+='</div>';
+  if(tot>0){
+    var d=_ppDistrib(st, r);
+    h+='<div class="pp-eyebrow">Massa de cada produto · corrija se separou diferente</div><div class="pp-card">';
+    d.itens.forEach(function(x){
+      var und=_ppUnd(x.p);
+      h+='<div class="pp-dist"><span class="nm">'+escHtml(_nomeCurto(x.p.nome))
+        +'<small>plano: '+_fmtNum(Math.round(x.plano*10)/10)+' kg de massa · = '+_fmtNum(x.q)+' '+und+'</small></span>'
+        +(x.principal
+          ? '<span class="resto"'+(x.a<0?' style="color:#C0392B;"':'')+'>'+_fmtNum(x.a)+' kg<br><small style="font-weight:600;color:#6B7280;font-size:.72rem;">o resto</small></span>'
+          : '<input type="number" inputmode="decimal" min="0" step="0.5" value="'+x.a+'" onchange="_ppAlloc(\''+x.p.id+'\',this.value)">')
+        +'</div>';
+    });
+    h+='</div>';
+    if(d.itens.some(function(x){return x.a<0;})) h+='<div class="pp-ja" style="background:#FEE2E2;color:#991B1B;">A massa separada passou da massa batida. Confira os números.</div>';
+    if(mex.length && PP.mexSalvo && PP.mexSalvo[st.nm]) h+='<div class="pp-nota">Já registrado hoje. Se bater mais, toque de novo nos botões e registre: o total do dia é atualizado.</div>';
+  }
+  return h;
+}
+function _ppMexAdd(t){
+  var st=PP&&PP.passos[PP.i]; if(!st) return;
+  if(t<0){ var inp=document.getElementById('ppMexOutro'); t=parseFloat(String(inp&&inp.value||'').replace(',','.'))||0; }
+  if(!(t>0)) return;
+  (PP.mex[st.nm]=PP.mex[st.nm]||[]).push(t);
+  _ppRender();
+}
+function _ppMexDel(i){
+  var st=PP&&PP.passos[PP.i]; if(!st||!PP.mex[st.nm]) return;
+  PP.mex[st.nm].splice(i,1); _ppRender();
+}
+function _ppAlloc(id, v){
+  var st=PP&&PP.passos[PP.i]; if(!st) return;
+  (PP.alloc[st.nm]=PP.alloc[st.nm]||{})[id]=Math.max(0,parseFloat(String(v).replace(',','.'))||0);
+  _ppRender();
+}
+async function _ppSalvarFarinha(){
+  var st=PP&&PP.passos[PP.i]; if(!st||st.tipo!=='massa') return;
+  var r=_farinhaPorKgMassaNome(st.nm), tot=_ppMexTotal(st.nm);
+  if(!(r>0)||!(tot>0)) return;
+  var d=_ppDistrib(st, r);
+  if(d.itens.some(function(x){return x.a<0;})){ toast('A massa separada passou da massa batida','er'); return; }
+  var btn=document.getElementById('ppOkFar'); if(btn){ btn.disabled=true; btn.textContent='Salvando…'; }
+  var okTudo=true;
+  for(var i=0;i<d.itens.length;i++){
+    var x=d.itens[i]; if(!(x.a>0)) continue;
+    if(!PROD_HOJE_VALS[x.p.id]) PROD_HOJE_VALS[x.p.id]={};
+    PROD_HOJE_VALS[x.p.id].val=x.q; PROD_HOJE_VALS[x.p.id].done=true;
+    var ok=await _upsertProdItem(x.p.id, PP.hoje, {qtd_produzida:x.q, status:'confirmado'});
+    if(!ok){ okTudo=false; PROD_HOJE_VALS[x.p.id].done=false; }
+  }
+  // Guarda as mexidas do dia (uma linha por massa, com o total atualizado)
+  try{
+    await sbDelete('producao_batidas','data=eq.'+PP.hoje+'&setor=eq.'+encodeURIComponent(SETOR)+'&massa=eq.'+encodeURIComponent(st.nm));
+    await sbInsert('producao_batidas',{data:PP.hoje, setor:SETOR, massa:st.nm, farinha_kg:Math.round(tot*100)/100,
+      mexidas:PP.mex[st.nm], massa_kg:Math.round(d.R*100)/100, responsavel:(GF_USER&&GF_USER.nome)||''});
+    (PP.mexSalvo=PP.mexSalvo||{})[st.nm]=true;
+  }catch(e){ toast('Produção registrada. Para guardar as mexidas, rode o SQL da tabela producao_batidas.','wa'); }
+  if(!okTudo){ if(btn){ btn.disabled=false; btn.textContent='✓ Registrar'; } return; }
+  toast('✅ '+st.nm+': '+_fmtNum(Math.round(tot*10)/10)+' kg de farinha registrados','ok');
+  // pula os produtos desta massa (já registrados)
+  var j=PP.i+1;
+  while(j<PP.passos.length-1 && PP.passos[j].tipo==='prod' && PP.passos[j].nm===st.nm) j++;
+  PP.i=j; _ppRender();
+}
+
+
+// ══════════════════════════════════════════════════
+// MODO PADEIRO — registrar as mexidas do dia
+// Uma tela só: para cada massa do dia, quantas mexidas de 25 e de 35 kg
+// (ou o total de farinha, nas massas sem tamanho fixo). A massa é dividida
+// entre os produtos pela proporção do plano do dia. Grava a produção dos
+// produtos e guarda as mexidas (tabela producao_batidas).
+// ══════════════════════════════════════════════════
+var MX=null;
+function abrirMexidas(){
+  var hoje=_today(), dsem=_diaSemNum(hoje);
+  var g={}, ordem=[];
+  (TODOS_PRODS||[]).forEach(function(p){
+    var l=getLoteProduto(p.nome, SETOR, dsem, hoje);
+    if(!((Number(l.qtd)||0)>0)) return;
+    var mpu=_massaPorUnidProd(p); if(!(mpu>0)) return;
+    var nm=_nomeMassaProd(p); if(!nm) return;
+    if(!(_farinhaPorKgMassaNome(nm)>0)) return;
+    if(!g[nm]){ g[nm]={nm:nm, prods:[], r:_farinhaPorKgMassaNome(nm), bn:_baseNomeMassa(nm), lim:_limiteBatida(nm), c:{}, outro:0}; ordem.push(nm); }
+    g[nm].prods.push(p);
+  });
+  if(!ordem.length){ toast('Nenhuma massa planejada para hoje','wa'); return; }
+  MX={hoje:hoje, dsem:dsem, grupos:ordem.map(function(n){return g[n];})};
+  sbSelect('producao_batidas','select=massa,mexidas&data=eq.'+hoje+'&setor=eq.'+encodeURIComponent(SETOR))
+    .then(function(rows){
+      if(!MX) return;
+      (rows||[]).forEach(function(r){
+        var gr=MX.grupos.find(function(x){return x.nm===r.massa;}); if(!gr) return;
+        (r.mexidas||[]).map(Number).forEach(function(k){
+          if(gr.lim && (k===gr.lim.min || k===gr.lim.max)) gr.c[k]=(gr.c[k]||0)+1; else gr.outro+=k;
+        });
+      });
+      _mxRender();
+    }).catch(function(){});
+  var ov=document.getElementById('ppOv');
+  if(!ov){ ov=document.createElement('div'); ov.id='ppOv'; ov.className='pp-ov'; document.body.appendChild(ov); }
+  ov.hidden=false;
+  _mxRender();
+}
+function _mxTotal(gr){
+  var t=gr.outro||0;
+  Object.keys(gr.c).forEach(function(k){ t+=Number(k)*gr.c[k]; });
+  return t;
+}
+function _mxRender(){
+  var ov=document.getElementById('ppOv'); if(!ov||!MX) return;
+  var h='<div class="pp-top"><b>Mexidas de hoje</b><button class="pp-x" onclick="fecharMexidas()">✕ Sair</button></div><div class="pp-body">'
+    +'<div class="pp-nota">Para cada massa, conte quantas mexidas foram batidas hoje. O app calcula a massa e registra os pães sozinho.</div>';
+  MX.grupos.forEach(function(gr,gi){
+    var lbl=gr.bn==='farinha'?'farinha':gr.bn, tot=_mxTotal(gr);
+    h+='<div class="pp-card"><div class="pp-titulo" style="font-size:1.3rem;margin-bottom:8px;">'+escHtml(gr.nm)+'</div>';
+    if(gr.lim){
+      [gr.lim.min, gr.lim.max].forEach(function(t){
+        var n=gr.c[t]||0;
+        h+='<div class="pp-dist"><span class="nm">Mexidas de '+t+' kg</span>'
+          +'<span style="display:flex;align-items:center;gap:10px;"><button class="pp-mex" style="min-width:52px;padding:10px;" onclick="_mxConta('+gi+','+t+',-1)">−</button>'
+          +'<b style="font-size:1.6rem;min-width:34px;text-align:center;">'+n+'</b>'
+          +'<button class="pp-mex" style="min-width:52px;padding:10px;" onclick="_mxConta('+gi+','+t+',1)">+</button></span></div>';
+      });
+    }
+    h+='<div class="pp-dist"><span class="nm">'+(gr.lim?'Outro peso (kg de '+escHtml(lbl)+')':'Total de '+escHtml(lbl)+' batido (kg)')+'</span>'
+      +'<input type="number" inputmode="decimal" min="0" step="0.5" value="'+(gr.outro||'')+'" placeholder="0" onchange="_mxOutro('+gi+',this.value)"></div>';
+    if(tot>0){
+      h+='<div class="pp-tot">= <b>'+_fmtNum(Math.round(tot*10)/10)+' kg</b> de '+escHtml(lbl)+' → <b>'+_fmtNum(Math.round(tot/gr.r*10)/10)+' kg</b> de massa</div>';
+      var d=_mxDistrib(gr);
+      h+='<div class="pp-nota" style="margin-top:4px;">'+d.map(function(x){ return escHtml(_nomeCurto(x.p.nome))+': '+_fmtNum(x.q)+' '+_ppUnd(x.p); }).join(' · ')+'</div>';
+    }
+    h+='</div>';
+  });
+  var algum=MX.grupos.some(function(gr){return _mxTotal(gr)>0;});
+  h+='</div><div class="pp-acoes"><button class="pp-ok" id="mxOk" onclick="_mxSalvar()"'+(algum?'':' disabled')+'>✓ Registrar</button></div>';
+  ov.innerHTML=h;
+}
+function _mxConta(gi,t,d){ var gr=MX.grupos[gi]; gr.c[t]=Math.max(0,(gr.c[t]||0)+d); _mxRender(); }
+function _mxOutro(gi,v){ MX.grupos[gi].outro=Math.max(0,parseFloat(String(v).replace(',','.'))||0); _mxRender(); }
+function _mxDistrib(gr){
+  var R=_mxTotal(gr)/gr.r;
+  var pl=gr.prods.map(function(p){ var mpu=_massaPorUnidProd(p); return {p:p, mpu:mpu, plano:(Number(getLoteProduto(p.nome,SETOR,MX.dsem,MX.hoje).qtd)||0)*mpu}; });
+  var M=pl.reduce(function(a,x){return a+x.plano;},0);
+  pl.forEach(function(x,i){ x.a = M>0 ? R*x.plano/M : (i===0?R:0); x.q = x.mpu>0 ? Math.round(x.a/x.mpu*100)/100 : 0; });
+  return pl;
+}
+async function _mxSalvar(){
+  var btn=document.getElementById('mxOk'); if(btn){ btn.disabled=true; btn.textContent='Salvando…'; }
+  var feitos=[], falhou=false;
+  for(var gi=0; gi<MX.grupos.length; gi++){
+    var gr=MX.grupos[gi], tot=_mxTotal(gr); if(!(tot>0)) continue;
+    var d=_mxDistrib(gr);
+    for(var i=0;i<d.length;i++){
+      var x=d[i]; if(!(x.q>0)) continue;
+      if(!PROD_HOJE_VALS[x.p.id]) PROD_HOJE_VALS[x.p.id]={};
+      PROD_HOJE_VALS[x.p.id].val=x.q; PROD_HOJE_VALS[x.p.id].done=true;
+      var ok=await _upsertProdItem(x.p.id, MX.hoje, {qtd_produzida:x.q, status:'confirmado'});
+      if(!ok){ falhou=true; PROD_HOJE_VALS[x.p.id].done=false; }
+    }
+    var lista=[]; Object.keys(gr.c).forEach(function(k){ for(var n=0;n<gr.c[k];n++) lista.push(Number(k)); });
+    if(gr.outro>0) lista.push(gr.outro);
+    try{
+      await sbDelete('producao_batidas','data=eq.'+MX.hoje+'&setor=eq.'+encodeURIComponent(SETOR)+'&massa=eq.'+encodeURIComponent(gr.nm));
+      await sbInsert('producao_batidas',{data:MX.hoje, setor:SETOR, massa:gr.nm, farinha_kg:Math.round(tot*100)/100,
+        mexidas:lista, massa_kg:Math.round(tot/gr.r*100)/100, responsavel:(GF_USER&&GF_USER.nome)||''});
+    }catch(e){ console.log('producao_batidas:', e.message); }
+    feitos.push(gr.nm);
+  }
+  if(falhou){ toast('⚠️ Alguns produtos não foram salvos. Tente de novo.','er'); if(btn){ btn.disabled=false; btn.textContent='✓ Registrar'; } return; }
+  toast('✅ Registrado: '+feitos.join(', '),'ok');
+  fecharMexidas();
+}
+function fecharMexidas(){
+  var ov=document.getElementById('ppOv'); if(ov){ ov.hidden=true; ov.innerHTML=''; }
+  MX=null;
+  var vw=document.getElementById('v-producao'); if(vw && PROD_VIEW==='hoje') _renderConfirmarHoje(vw);
+}
+
+// ══════════════════════════════════════════════════
+// MURAL DA BANCADA — folhas grandes para plastificar
+// 1 página por massa (receita da batida + o que sai dela) e depois as
+// receitas dos produtos, 2 por página, em letra grande.
+// ══════════════════════════════════════════════════
+async function imprimirMural(){
+  if (typeof carregarFichas === 'function') await carregarFichas();
+  var cats = (typeof carregarCategorias === 'function') ? await carregarCategorias() : {};
+  var dataStr=new Date().toLocaleDateString('pt-BR');
+  var AZ='#1D4ED8', VD='#1B4332', CZ='#6B7280';
+  var box='<span style="display:inline-block;width:18px;height:18px;border:2px solid #9CA3AF;border-radius:4px;margin-right:10px;vertical-align:-3px;"></span>';
+  var rod=function(){ return '<div style="margin-top:auto;padding-top:8px;font-size:11px;color:#A0A5A0;display:flex;justify-content:space-between;"><span>GestFood · valores das fichas técnicas</span><span>impresso em '+dataStr+'</span></div>'; };
+  var pag=function(conteudo){ return '<div style="height:186mm;display:flex;flex-direction:column;page-break-after:always;break-after:page;overflow:hidden;">'+conteudo+rod()+'</div>'; };
+  var h='<style>@media print{@page{size:A4 landscape;margin:10mm;} *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}}</style>'
+    +'<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;color:#1C1C1A;">';
+  // ── Massas ──
+  var massas=[], visto={};
+  Object.keys(FICHAS_NOME||{}).forEach(function(k){
+    var m=FICHAS_NOME[k];
+    if(k.indexOf('massa ')!==0 || k==='massa bolo de trigo' || visto[m.id]) return;
+    if(m.setor && SETOR && String(m.setor).toUpperCase()!==String(SETOR).toUpperCase()) return;
+    visto[m.id]=1; massas.push(m);
+  });
+  massas.sort(function(a,b){ return a.nome<b.nome?-1:1; });
+  massas.forEach(function(m){
+    var lim=_limiteBatida(m.nome);
+    var tam = (lim && m.baseKg>0) ? [lim.max, lim.min] : [m.baseKg>0 ? m.baseKg : 0];
+    var ing=(m.outrosIng||[]);
+    var th='padding:8px 12px;font-size:17px;font-weight:800;color:#fff;background:'+AZ+';text-align:right;';
+    var td='padding:7px 12px;font-size:22px;border-bottom:1px solid #E5E7EB;';
+    var c='<div style="display:flex;align-items:baseline;justify-content:space-between;border-bottom:4px solid '+AZ+';padding-bottom:6px;margin-bottom:10px;">'
+      +'<div style="font-size:34px;font-weight:900;color:'+AZ+';">'+escHtml(m.nome)+'</div>'
+      +'<div style="font-size:15px;color:'+CZ+';">receita da batida</div></div>';
+    c+='<table style="width:100%;border-collapse:collapse;"><tr><th style="'+th+'text-align:left;">Ingrediente</th>'
+      +tam.map(function(t){ return '<th style="'+th+'">'+(t>0?'Batida de '+_fmtNum(t)+' kg':'1 receita')+'</th>'; }).join('')+'</tr>';
+    ing.forEach(function(x,i){
+      c+='<tr style="'+(i%2?'background:#F5F8FF;':'')+'"><td style="'+td+'">'+box+_nomeInsumoCurto(x.nome,3)+'</td>'
+        +tam.map(function(t){ return '<td style="'+td+'text-align:right;font-weight:900;">'+_fmtQtdIng(x, t>0?t/m.baseKg:1)+'</td>'; }).join('')+'</tr>';
+    });
+    c+='<tr><td style="'+td+'color:'+CZ+';font-size:18px;">Rende (massa crua)</td>'
+      +tam.map(function(t){ return '<td style="'+td+'text-align:right;font-weight:900;color:'+AZ+';">'+_fmtNum(Math.round((m.rendimentoKg||0)*(t>0?t/m.baseKg:1)*10)/10)+' kg</td>'; }).join('')+'</tr></table>';
+    // Produtos que saem desta massa
+    var nmN=_normProdNome(m.nome);
+    var deriv=(TODOS_PRODS||[]).filter(function(p){ return _massaPorUnidProd(p)>0 && _normProdNome(_nomeMassaProd(p))===nmN; });
+    if(deriv.length){
+      c+='<div style="margin-top:12px;font-size:16px;font-weight:800;color:'+VD+';text-transform:uppercase;letter-spacing:.5px;">O que sai desta massa</div>'
+        +'<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 18px;margin-top:4px;">';
+      deriv.forEach(function(p){
+        var und=(p.unidade||'KG').toUpperCase(), ehUn=und==='UND', mpu=_massaPorUnidProd(p);
+        var txt = ehUn ? ('massa por peça: <b>'+Math.round(mpu*1000)+' g</b>')
+                       : ('10 kg de pão = <b>'+_fmtNum(Math.round(mpu*10*10)/10)+' kg</b> de massa');
+        c+='<div style="font-size:18px;padding:4px 0;border-bottom:1px dashed #D1D5DB;"><b>'+escHtml(_nomeCurto(p.nome))+'</b> · '+txt+'</div>';
+      });
+      c+='</div>';
+    }
+    h+=pag(c);
+  });
+  // ── Receitas dos produtos (2 por página) ──
+  var cards=[];
+  (TODOS_PRODS||[]).slice().sort(function(a,b){
+    return (((cats[a.categoria]||{}).ordem||98)-((cats[b.categoria]||{}).ordem||98)) || (a.nome<b.nome?-1:1);
+  }).forEach(function(p){
+    if(_normProdNome(p.nome).indexOf('massa ')===0) return;
+    if(_massaPorUnidProd(p)>0) return;                 // sai de massa compartilhada: está na página da massa
+    var und=(p.unidade||'KG').toUpperCase();
+    var fic=fichaDoProduto({cod:p.cod,nome:p.nome});
+    if(!fic || fic.sintetico || !(fic.outrosIng||[]).length) return;
+    var lote=_loteDaFicha(fic,und); if(!(lote>0)) return;
+    var fr=_fracaoLote(fic);
+    var c='<div style="border:3px solid '+VD+';border-radius:12px;padding:12px 16px;height:100%;box-sizing:border-box;overflow:hidden;">'
+      +'<div style="font-size:26px;font-weight:900;color:'+VD+';line-height:1.1;">'+escHtml(_nomeCurto(p.nome))+'</div>'
+      +'<div style="font-size:15px;color:'+CZ+';margin:2px 0 8px;">'+escHtml(p.categoria||'')+' · 1 lote'+(fr!==1?' ('+_txtFracao(fr)+')':'')+' rende <b style="color:'+VD+';">'+_fmtNum(Math.round(lote*100)/100)+' '+und.toLowerCase()+'</b></div>';
+    fic.outrosIng.forEach(function(x){
+      c+='<div style="font-size:19px;padding:5px 0;border-bottom:1px solid #EEE;display:flex;justify-content:space-between;gap:8px;"><span>'+box+_nomeInsumoCurto(x.nome,3)+'</span><b>'+_fmtQtdIng(x,fr)+'</b></div>';
+    });
+    c+='</div>';
+    cards.push(c);
+  });
+  for(var i=0;i<cards.length;i+=2){
+    h+=pag('<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;flex:1;min-height:0;">'+cards[i]+(cards[i+1]||'<div></div>')+'</div>');
+  }
+  if(!massas.length && !cards.length){ toast('Nenhuma ficha com receita neste setor','wa'); return; }
+  h+='</div>';
+  abrirPrintModal(h);
+  toast('🪧 Mural: '+massas.length+' massa'+(massas.length!==1?'s':'')+' + '+cards.length+' receitas · imprima só as páginas que quiser','ok');
+}
+
 // ── BATIDAS DA MASSEIRA ──
 // Limite de FARINHA por batida de cada massa (kg). Massa sem limite aqui
 // sai numa batida só, com a farinha do dia. Para incluir outra massa, use o
@@ -8529,7 +8860,8 @@ function _rateioMassasHoje(prods, hoje, dsem){
     var far = r>0 ? (_fmtFarinha(x.kg*r)+' de '+bn) : '';
     h+='<div style="background:#EEF2FF;border:1.5px solid #2563EB;border-radius:10px;padding:8px 10px;margin-bottom:8px;">'
       +'<div style="font-weight:800;color:#1D4ED8;font-size:.86rem;">🥖 '+escHtml(nm)+'</div>'
-      +'<div style="font-size:.8rem;margin:2px 0 6px;color:#1C1C1A;">'+(far?'Bater <b>'+far+'</b> · ':'')+'<b>'+_fmtNum(Math.round(x.kg*10)/10)+' kg de massa</b></div>';
+      +'<div style="font-size:.8rem;margin:2px 0 6px;color:#1C1C1A;">'+(far?'Bater <b>'+far+'</b> · ':'')+'<b>'+_fmtNum(Math.round(x.kg*10)/10)+' kg de massa</b></div>'
+      +(r>0?'<button class="pp-far-btn" data-m="'+escHtml(nm)+'" onclick="abrirPassoAPasso(this.dataset.m)">🌾 Registrar a produção pela '+(bn==='farinha'?'farinha':escHtml(bn))+'</button>':'');
     // Batidas da masseira + o que separar em cada uma
     if(r>0 && bn==='farinha'){
       var lim=_limiteBatida(nm), pb=_planoBatidas(x.kg*r, lim);
