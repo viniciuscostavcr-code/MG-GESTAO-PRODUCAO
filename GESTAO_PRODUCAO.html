@@ -112,6 +112,19 @@ body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif
 .pp-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
 .pp-chip{background:#EAF4EF;color:#1B4332;border-radius:999px;padding:6px 6px 6px 12px;font-weight:800;font-size:.95rem;display:inline-flex;align-items:center;gap:6px;}
 .pp-chip button{border:none;background:#fff;border-radius:999px;width:26px;height:26px;cursor:pointer;font-weight:900;color:#C0392B;}
+.cx-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+.cx-chip{background:#fff;border:1.5px solid #CFE3D7;color:#1B4332;border-radius:14px;padding:14px 16px;font-size:1.05rem;font-weight:800;cursor:pointer;text-transform:capitalize;}
+.cx-chip small{display:block;font-size:.72rem;font-weight:600;color:#6B7280;text-transform:none;}
+.cx-busca{width:100%;box-sizing:border-box;height:48px;min-height:48px;flex-shrink:0;border:1.5px solid #D1D5DB;border-radius:12px;padding:0 12px;font-size:1rem;margin:8px 0;}
+.cx-item{display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:none;border-top:1px solid #F0F0EE;padding:12px 2px;text-align:left;font-size:1rem;cursor:pointer;color:#111;}
+.cx-item:first-child{border-top:none;}
+.cx-item small{display:block;color:#6B7280;font-size:.78rem;font-weight:500;margin-top:2px;}
+.cx-lbl{display:block;margin-top:14px;font-size:.92rem;color:#374151;}
+.cx-num{width:100%;box-sizing:border-box;height:62px;font-size:1.7rem;font-weight:900;text-align:center;border:2px solid #CFE3D7;border-radius:14px;margin-top:6px;}
+.cx-ou{text-align:center;color:#9CA3AF;font-size:.8rem;margin-top:12px;}
+.cx-modo{display:flex;gap:8px;margin-top:14px;}
+.cx-modo button{flex:1;padding:12px 8px;border-radius:12px;border:1.5px solid #D1D5DB;background:#fff;font-weight:800;cursor:pointer;}
+.cx-modo button.on{background:#1B4332;color:#fff;border-color:#1B4332;}
 .pp-tot{margin-top:10px;font-size:1rem;color:#374151;}
 .pp-tot b{color:#1B4332;font-size:1.15rem;}
 .pp-dist{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 2px;border-top:1px solid #F0F0EE;}
@@ -5518,8 +5531,9 @@ function _renderConfirmarHoje(vw) {
     html += `<div class="phoje-aviso fech">🔒 Domingo — setor fechado.<br>Sem produção hoje.</div>`;
   } else {
     if (isDom) html += `<div class="phoje-aviso dom">⚠️ Domingo — equipe reduzida.<br>Somente pães básicos.</div>`;
-    html += `<button class="pp-start" onclick="abrirMexidas()">🌾 Registrar as mexidas de hoje</button>`
-         +  `<button class="pp-start" style="background:#fff;color:#1B4332;border:1.5px solid #CFE3D7;font-size:.9rem;padding:10px;" onclick="abrirPassoAPasso()">▶️ Passo a passo completo</button>`;
+    html += `<button class="pp-start" onclick="abrirMexidas()">🌾 Registrar a produção de hoje</button>`
+         +  `<button class="pp-start" style="background:#fff;color:#1B4332;border:1.5px solid #CFE3D7;font-size:.9rem;padding:10px;" onclick="abrirPassoAPasso()">▶️ Passo a passo completo</button>`
+         +  `<button class="pp-start" style="background:#fff;color:#1B4332;border:1.5px solid #CFE3D7;font-size:.9rem;padding:10px;" onclick="abrirCalc()">🧮 Calculadora: registrar por ingrediente</button>`;
     html += _rateioMassasHoje(prodsHoje, hoje, dsem);
 
     // Separar em dois grupos: com sugestão e sem sugestão
@@ -8620,8 +8634,20 @@ function abrirMexidas(){
     if(!g[nm]){ g[nm]={nm:nm, prods:[], r:_farinhaPorKgMassaNome(nm), bn:_baseNomeMassa(nm), lim:_limiteBatida(nm), c:{}, outro:0}; ordem.push(nm); }
     g[nm].prods.push(p);
   });
-  if(!ordem.length){ toast('Nenhuma massa planejada para hoje','wa'); return; }
-  MX={hoje:hoje, dsem:dsem, grupos:ordem.map(function(n){return g[n];})};
+  // Produtos de receita própria (bolachas, pão de queijo, mini pizza…):
+  // registrados pelo ingrediente principal da ficha (farinha, mistura pronta, discos…)
+  var outros=[];
+  (TODOS_PRODS||[]).forEach(function(p){
+    var l=getLoteProduto(p.nome, SETOR, dsem, hoje), it=PROD_ITENS[p.id+'_'+hoje];
+    if(!((Number(l.qtd)||0)>0) && !it) return;
+    if(_massaPorUnidProd(p)>0) return;          // já entra pela massa
+    var b=_baseDoProduto(p); if(!b) return;
+    var jaQ = (it && it.status==='confirmado') ? Number(it.qtd_produzida)||0 : 0;
+    outros.push({p:p, base:b, usado: jaQ>0 ? Math.round(jaQ*b.porUn*100)/100 : 0, meta:Number(l.qtd)||0});
+  });
+  outros.sort(function(a,b){ return _sortKeyProd(a.p)-_sortKeyProd(b.p); });
+  if(!ordem.length && !outros.length){ toast('Nada planejado para hoje — use a calculadora','wa'); abrirCalc(); return; }
+  MX={hoje:hoje, dsem:dsem, grupos:ordem.map(function(n){return g[n];}), outros:outros};
   sbSelect('producao_batidas','select=massa,mexidas&data=eq.'+hoje+'&setor=eq.'+encodeURIComponent(SETOR))
     .then(function(rows){
       if(!MX) return;
@@ -8645,8 +8671,9 @@ function _mxTotal(gr){
 }
 function _mxRender(){
   var ov=document.getElementById('ppOv'); if(!ov||!MX) return;
-  var h='<div class="pp-top"><b>Mexidas de hoje</b><button class="pp-x" onclick="fecharMexidas()">✕ Sair</button></div><div class="pp-body">'
-    +'<div class="pp-nota">Para cada massa, conte quantas mexidas foram batidas hoje. O app calcula a massa e registra os pães sozinho.</div>';
+  var h='<div class="pp-top"><b>Produção de hoje</b><button class="pp-x" onclick="fecharMexidas()">✕ Sair</button></div><div class="pp-body">'
+    +'<button class="pp-ok" style="background:#fff;color:#1B4332;border:1.5px solid #CFE3D7;font-size:.95rem;padding:12px;width:100%;margin-bottom:10px;" onclick="abrirCalc()">🧮 Fez algo fora do plano? Calculadora por ingrediente</button>'
+    +'<div class="pp-nota">Para cada massa, conte quantas mexidas foram batidas hoje. Nos outros produtos, informe quanto usou do ingrediente principal. O app calcula e registra o produto pronto.</div>';
   MX.grupos.forEach(function(gr,gi){
     var lbl=gr.bn==='farinha'?'farinha':gr.bn, tot=_mxTotal(gr);
     h+='<div class="pp-card"><div class="pp-titulo" style="font-size:1.3rem;margin-bottom:8px;">'+escHtml(gr.nm)+'</div>';
@@ -8668,9 +8695,34 @@ function _mxRender(){
     }
     h+='</div>';
   });
-  var algum=MX.grupos.some(function(gr){return _mxTotal(gr)>0;});
+  if(MX.outros.length){
+    h+='<div class="pp-eyebrow" style="margin-top:6px;">Outros produtos · quanto usou do ingrediente principal</div><div class="pp-card">';
+    MX.outros.forEach(function(o,oi){
+      var und=_ppUnd(o.p), q=o.usado>0 ? Math.round(o.usado/o.base.porUn*100)/100 : 0;
+      h+='<div class="pp-dist"><span class="nm">'+escHtml(_nomeCurto(o.p.nome))
+        +'<small>'+escHtml(o.base.nome)+' ('+o.base.un+')'+(q>0?' · = <b style="color:#1B4332;">'+_fmtNum(q)+' '+und+'</b>':(o.meta>0?' · meta '+_fmtNum(o.meta)+' '+und+' = '+_fmtNum(Math.round(o.meta*o.base.porUn*100)/100)+' '+o.base.un:''))+'</small></span>'
+        +'<input type="number" inputmode="decimal" min="0" step="'+(o.base.un==='un'?1:0.5)+'" value="'+(o.usado||'')+'" placeholder="0" onchange="_mxBase('+oi+',this.value)"></div>';
+    });
+    h+='</div>';
+  }
+  var algum=MX.grupos.some(function(gr){return _mxTotal(gr)>0;}) || MX.outros.some(function(o){return o.usado>0;});
   h+='</div><div class="pp-acoes"><button class="pp-ok" id="mxOk" onclick="_mxSalvar()"'+(algum?'':' disabled')+'>✓ Registrar</button></div>';
   ov.innerHTML=h;
+}
+function _mxBase(oi,v){ MX.outros[oi].usado=Math.max(0,parseFloat(String(v).replace(',','.'))||0); _mxRender(); }
+// Ingrediente principal da ficha de um produto e quanto dele vai em 1 kg (ou 1 un) do produto.
+// 1º a base seca (farinha ou mistura pronta); sem ela, peça pronta em unidades (ex.: disco de
+// pizza); sem ela, o ingrediente de maior peso.
+function _baseDoProduto(p){
+  var fic=fichaDoProduto(p); if(!fic || fic.sintetico) return null;
+  var ehUnd=String(p.unidade||'KG').toUpperCase()==='UND';
+  var rend=ehUnd ? fic.rendimentoUn : fic.rendimentoKg; if(!(rend>0)) return null;
+  if(fic.baseKg>0) return {nome:(fic.baseNome==='farinha'?'farinha de trigo':fic.baseNome), un:'kg', porUn:fic.baseKg/rend};
+  var ing=fic.outrosIng||[], x=null;
+  x=ing.find(function(i){ return /^(un|und|unid)/i.test(i.un||'') && /DISCO|BASE|MASSA/i.test(i.nome||''); });
+  if(!x){ ing.forEach(function(i){ if(!/^(un|und|unid)/i.test(i.un||'') && (!x || i.q>x.q)) x=i; }); }
+  if(!x || !(x.q>0)) return null;
+  return {nome:_nomeInsumoCurto(x.nome,3).toLowerCase(), un:(/^(un|und|unid)/i.test(x.un||'')?'un':'kg'), porUn:x.q/rend};
 }
 function _mxConta(gi,t,d){ var gr=MX.grupos[gi]; gr.c[t]=Math.max(0,(gr.c[t]||0)+d); _mxRender(); }
 function _mxOutro(gi,v){ MX.grupos[gi].outro=Math.max(0,parseFloat(String(v).replace(',','.'))||0); _mxRender(); }
@@ -8703,6 +8755,14 @@ async function _mxSalvar(){
     }catch(e){ console.log('producao_batidas:', e.message); }
     feitos.push(gr.nm);
   }
+  for(var oi=0; oi<MX.outros.length; oi++){
+    var o=MX.outros[oi]; if(!(o.usado>0)) continue;
+    var qo=Math.round(o.usado/o.base.porUn*100)/100;
+    if(!PROD_HOJE_VALS[o.p.id]) PROD_HOJE_VALS[o.p.id]={};
+    PROD_HOJE_VALS[o.p.id].val=qo; PROD_HOJE_VALS[o.p.id].done=true;
+    var oko=await _upsertProdItem(o.p.id, MX.hoje, {qtd_produzida:qo, status:'confirmado'});
+    if(!oko){ falhou=true; PROD_HOJE_VALS[o.p.id].done=false; } else feitos.push(_nomeCurto(o.p.nome));
+  }
   if(falhou){ toast('⚠️ Alguns produtos não foram salvos. Tente de novo.','er'); if(btn){ btn.disabled=false; btn.textContent='✓ Registrar'; } return; }
   toast('✅ Registrado: '+feitos.join(', '),'ok');
   fecharMexidas();
@@ -8711,6 +8771,139 @@ function fecharMexidas(){
   var ov=document.getElementById('ppOv'); if(ov){ ov.hidden=true; ov.innerHTML=''; }
   MX=null;
   var vw=document.getElementById('v-producao'); if(vw && PROD_VIEW==='hoje') _renderConfirmarHoje(vw);
+}
+
+// ══════════════════════════════════════════════════
+// CALCULADORA DE REGISTRO — escolhe o ingrediente (ou busca o produto),
+// digita quanto usou (ou quanto produziu), confere o resultado e confirma.
+// Massas compartilhadas: farinha → massa → produto (pela ficha da massa).
+// Receita própria: ingrediente principal da ficha (farinha, mistura, disco…).
+// ══════════════════════════════════════════════════
+var CX=null;
+function _semAcento(s){ return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+function _cxCandidatos(){
+  var L=[];
+  (TODOS_PRODS||[]).forEach(function(p){
+    var mpu=_massaPorUnidProd(p);
+    if(mpu>0){
+      var nm=_nomeMassaProd(p), r=nm?_farinhaPorKgMassaNome(nm):0;
+      if(r>0){ var bn=_baseNomeMassa(nm);
+        L.push({p:p, ing:(bn==='farinha'?'farinha de trigo':String(bn).toLowerCase()), un:'kg', porUn:mpu*r, via:nm}); return; }
+    }
+    var b=_baseDoProduto(p); if(b) L.push({p:p, ing:b.nome, un:b.un, porUn:b.porUn, via:''});
+  });
+  L.sort(function(a,b){ return _sortKeyProd(a.p)-_sortKeyProd(b.p); });
+  return L;
+}
+function _cxJa(p){
+  var v=PROD_HOJE_VALS[p.id]; if(v && v.done) return Number(v.val)||0;
+  var it=PROD_ITENS[p.id+'_'+CX.hoje]; return (it && it.status==='confirmado') ? Number(it.qtd_produzida)||0 : 0;
+}
+function abrirCalc(){
+  var hoje=_today();
+  CX={hoje:hoje, dsem:_diaSemNum(hoje), cands:_cxCandidatos(), ing:null, sel:null, busca:'', q:0, modo:'somar', feitos:[], voltaMX:!!MX};
+  if(!CX.cands.length){ toast('Nenhum produto deste setor tem ficha com rendimento para calcular','wa'); CX=null; return; }
+  var ov=document.getElementById('ppOv');
+  if(!ov){ ov=document.createElement('div'); ov.id='ppOv'; ov.className='pp-ov'; document.body.appendChild(ov); }
+  ov.hidden=false;
+  _cxRender();
+}
+function fecharCalc(){
+  var volta=CX && CX.voltaMX; CX=null;
+  if(volta && MX){ _mxRender(); return; }
+  var ov=document.getElementById('ppOv'); if(ov){ ov.hidden=true; ov.innerHTML=''; }
+  var vw=document.getElementById('v-producao'); if(vw && PROD_VIEW==='hoje') _renderConfirmarHoje(vw);
+}
+function _cxIng(k){ CX.ing=CX.ingList[k]; CX.sel=null; CX.busca=''; _cxRender(); }
+function _cxEscolhe(ci){ CX.sel=ci; CX.q=0; CX.modo=_cxJa(CX.cands[ci].p)>0?'somar':'substituir'; _cxRender(); var el=document.getElementById('cxQ'); if(el) el.focus(); }
+function _cxVoltar(){ if(CX.sel!=null){ CX.sel=null; } else { CX.ing=null; } _cxRender(); }
+function _cxBusca(v){ CX.busca=v; var box=document.getElementById('cxLista'); if(box) box.innerHTML=_cxListaHTML(); }
+function _cxListaHTML(){
+  var t=_semAcento(CX.busca||'').toLowerCase().trim(), h='', n=0;
+  CX.cands.forEach(function(c,ci){
+    if(CX.ing!=null && c.ing!==CX.ing) return;
+    if(t && _semAcento(c.p.nome).toLowerCase().indexOf(t)<0) return;
+    n++; var ja=_cxJa(c.p);
+    h+='<button class="cx-item" onclick="_cxEscolhe('+ci+')"><span><b>'+escHtml(_nomeCurto(c.p.nome))+'</b>'
+      +'<small>'+escHtml(c.ing)+(c.via?' · '+escHtml(_nomeCurto(c.via).toLowerCase()):'')+(ja>0?' · <span style="color:#1B4332;">já registrado '+_fmtNum(ja)+' '+_ppUnd(c.p)+'</span>':'')+'</small></span><span>›</span></button>';
+  });
+  return n ? h : '<div class="pp-nota" style="padding:10px;">Nenhum produto encontrado.</div>';
+}
+function _cxConta(campo, v){
+  var c=CX.cands[CX.sel], x=Math.max(0,parseFloat(String(v).replace(',','.'))||0);
+  CX.q = campo==='ing' ? x : x*c.porUn;
+  var prod=c.porUn>0 ? Math.round(CX.q/c.porUn*100)/100 : 0;
+  if(_ppUnd(c.p)==='un' && campo==='ing') prod=Math.floor(prod+0.0001);
+  CX.prod=prod;
+  var o=document.getElementById(campo==='ing'?'cxP':'cxQ');
+  if(o) o.value = campo==='ing' ? (prod||'') : (Math.round(CX.q*1000)/1000||'');
+  _cxResumo();
+}
+function _cxModo(m){ CX.modo=m; _cxRender(); }
+function _cxResumo(){
+  var c=CX.cands[CX.sel], el=document.getElementById('cxRes'), btn=document.getElementById('cxOk'); if(!el) return;
+  var und=_ppUnd(c.p), ja=_cxJa(c.p), p=CX.prod||0, fin=CX.modo==='somar'?ja+p:p;
+  el.innerHTML = p>0
+    ? (ja>0 ? 'Já registrado hoje: '+_fmtNum(ja)+' '+und+' → vai ficar <b>'+_fmtNum(Math.round(fin*100)/100)+' '+und+'</b>'
+            : 'Vai registrar <b>'+_fmtNum(p)+' '+und+'</b> de '+escHtml(_nomeCurto(c.p.nome)))
+    : '';
+  if(btn) btn.disabled=!(p>0);
+}
+function _cxRender(){
+  var ov=document.getElementById('ppOv'); if(!ov||!CX) return;
+  var h='<div class="pp-top">'+(CX.ing!=null||CX.sel!=null?'<button class="pp-x" onclick="_cxVoltar()">‹ Voltar</button>':'')
+    +'<b>🧮 Calculadora de produção</b><button class="pp-x" onclick="fecharCalc()">✕ '+(CX.voltaMX?'Fechar':'Sair')+'</button></div><div class="pp-body">';
+  if(CX.feitos.length) h+='<div class="pp-nota" style="background:#ECFDF3;border-radius:10px;padding:8px 10px;color:#1B4332;">✅ Registrado agora: '+CX.feitos.map(escHtml).join(' · ')+'</div>';
+  if(CX.sel==null){
+    if(CX.ing==null){
+      var ings={}, ord=[];
+      CX.cands.forEach(function(c){ if(!ings[c.ing]){ ings[c.ing]=0; ord.push(c.ing); } ings[c.ing]++; });
+      ord.sort(function(a,b){ return ings[b]-ings[a]; }); CX.ingList=ord;
+      h+='<div class="pp-eyebrow">1 · Qual ingrediente você usou?</div><div class="cx-chips">'
+        +ord.map(function(i,k){ return '<button class="cx-chip" onclick="_cxIng('+k+')">'+escHtml(i)+' <small>'+ings[i]+' produto'+(ings[i]>1?'s':'')+'</small></button>'; }).join('')+'</div>'
+        +'<div class="pp-eyebrow" style="margin-top:14px;">ou procure o produto</div>';
+    } else {
+      h+='<div class="pp-eyebrow">2 · Qual produto saiu da '+escHtml(CX.ing)+'?</div>';
+    }
+    h+='<input class="cx-busca" placeholder="🔎 Digite o nome do produto" value="'+escHtml(CX.busca)+'" oninput="_cxBusca(this.value)">'
+      +'<div class="pp-card" id="cxLista" style="padding:4px 10px;">'+_cxListaHTML()+'</div>';
+    h+='</div><div class="pp-acoes"><button class="pp-ok" style="background:#fff;color:#1B4332;border:1.5px solid #CFE3D7;" onclick="fecharCalc()">'+(CX.voltaMX?'‹ Voltar ao registro':'Concluir')+'</button></div>';
+    ov.innerHTML=h; return;
+  }
+  var c=CX.cands[CX.sel], und=_ppUnd(c.p), ja=_cxJa(c.p);
+  var meta=Number(getLoteProduto(c.p.nome,SETOR,CX.dsem,CX.hoje).qtd)||0;
+  var pu=c.porUn, ref = und==='un' ? '1 '+c.un+' de '+c.ing+' rende '+_fmtNum(Math.round(1/pu*10)/10)+' un'
+                                   : '1 kg do produto usa '+_fmtNum(Math.round(pu*1000)/1000)+' '+c.un+' de '+c.ing;
+  h+='<div class="pp-card"><div class="pp-titulo" style="font-size:1.3rem;">'+escHtml(_nomeCurto(c.p.nome))+'</div>'
+    +'<div class="pp-nota">'+(c.via?'pela '+escHtml(_nomeCurto(c.via).toLowerCase())+' · ':'')+ref+(meta>0?' · meta hoje '+_fmtNum(meta)+' '+und:'')+'</div>'
+    +'<label class="cx-lbl">Quanto de <b>'+escHtml(c.ing)+'</b> usou? ('+c.un+')</label>'
+    +'<input id="cxQ" class="cx-num" type="number" inputmode="decimal" min="0" step="'+(c.un==='un'?1:0.5)+'" placeholder="0" oninput="_cxConta(\'ing\',this.value)">'
+    +'<div class="cx-ou">— ou digite quanto produziu —</div>'
+    +'<label class="cx-lbl">'+escHtml(_nomeCurto(c.p.nome))+' produzido ('+und+')</label>'
+    +'<input id="cxP" class="cx-num" type="number" inputmode="decimal" min="0" step="'+(und==='un'?1:0.1)+'" placeholder="0" oninput="_cxConta(\'prod\',this.value)">';
+  if(ja>0) h+='<div class="cx-modo"><button class="'+(CX.modo==='somar'?'on':'')+'" onclick="_cxModo(\'somar\')">➕ Somar ao já registrado</button>'
+      +'<button class="'+(CX.modo==='substituir'?'on':'')+'" onclick="_cxModo(\'substituir\')">✏️ Substituir</button></div>';
+  h+='<div class="pp-tot" id="cxRes"></div></div>';
+  h+='</div><div class="pp-acoes"><button class="pp-ok" id="cxOk" onclick="_cxSalvar()" disabled>✓ Confirmar e registrar</button></div>';
+  ov.innerHTML=h;
+  if(CX.q>0){ document.getElementById('cxQ').value=Math.round(CX.q*1000)/1000; _cxConta('ing',CX.q); }
+}
+async function _cxSalvar(){
+  var c=CX.cands[CX.sel], p=CX.prod||0; if(!(p>0)) return;
+  var btn=document.getElementById('cxOk'); if(btn){ btn.disabled=true; btn.textContent='Salvando…'; }
+  var fin=Math.round((CX.modo==='somar'?_cxJa(c.p)+p:p)*100)/100;
+  var ok=await _upsertProdItem(c.p.id, CX.hoje, {qtd_produzida:fin, status:'confirmado'});
+  if(!ok){ toast('⚠️ Não salvou. Tente de novo.','er'); if(btn){ btn.disabled=false; btn.textContent='✓ Confirmar e registrar'; } return; }
+  if(!PROD_HOJE_VALS[c.p.id]) PROD_HOJE_VALS[c.p.id]={};
+  PROD_HOJE_VALS[c.p.id].val=fin; PROD_HOJE_VALS[c.p.id].done=true;
+  // se a tela de mexidas está aberta, o produto passa a aparecer lá com o valor certo
+  if(MX && !c.via && !MX.outros.some(function(o){return o.p.id===c.p.id;})){
+    var b=_baseDoProduto(c.p); if(b) MX.outros.push({p:c.p, base:b, usado:Math.round(fin*b.porUn*100)/100, meta:0});
+  } else if(MX){ MX.outros.forEach(function(o){ if(o.p.id===c.p.id) o.usado=Math.round(fin*o.base.porUn*100)/100; }); }
+  toast('✅ '+_nomeCurto(c.p.nome)+': '+_fmtNum(fin)+' '+_ppUnd(c.p),'ok');
+  CX.feitos.push(_nomeCurto(c.p.nome)+' '+_fmtNum(fin)+' '+_ppUnd(c.p));
+  CX.sel=null; CX.ing=null; CX.busca=''; CX.q=0; CX.prod=0;
+  _cxRender();
 }
 
 // ══════════════════════════════════════════════════
