@@ -5684,7 +5684,7 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
   // separada — o número que o padeiro pesou. Grava convertido para o produto.
   const _mpu = _massaPorUnidProd(p);
   const temLote = loteSize > 0 && !(_mpu > 0);
-  const modoAtual = PROD_HOJE_MODE[p.id] || ((temLote && REGISTRO_HOJE_PADRAO === 'lote') ? 'lote' : 'peso');
+  const modoAtual = PROD_HOJE_MODE[p.id] || ((temLote && (REGISTRO_HOJE_PADRAO === 'lote' || SETOR === 'PADARIA')) ? 'lote' : 'peso');   // padaria: conta receitas, o app converte
   const pesoBase = (valAtual !== '' && valAtual !== null && valAtual !== undefined) ? (parseFloat(valAtual)||0) : (lote.qtd||0);
   const lotesAtual = temLote ? Math.max(0, _ehLoteUnidade(_fic) ? Math.round(pesoBase / loteSize)
                                                                 : Math.round((pesoBase / loteSize) * 2) / 2) : 0;
