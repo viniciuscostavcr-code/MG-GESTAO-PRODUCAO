@@ -350,6 +350,10 @@ input:focus,select:focus{border-color:var(--grn);background:#fff;}
         </select>
       </div>
     </div>
+    <div class="fg" style="margin-top:8px;"><label>Grupo de produção</label>
+      <input type="text" id="mpCat" list="mpCatList" placeholder="Escolha ou digite um grupo novo (ex.: MASSA DE BATATA)" autocomplete="off" style="text-transform:uppercase;">
+      <datalist id="mpCatList"></datalist>
+    </div>
     <div class="modal-btns">
       <button class="btn btn-gray" style="flex:1" onclick="fecharModalProd()">Cancelar</button>
       <button class="btn btn-grn" style="flex:2" onclick="salvarProd()">✅ Salvar</button>
@@ -812,6 +816,7 @@ function abrirNovoProd(){
   document.getElementById('mpMax').value='';
   document.getElementById('mpVal').value='1';
   document.getElementById('mpAbc').value='C';
+  document.getElementById('mpCat').value=''; _preencherGrupos();
   _preencherSetorSelect('mpSetor','PADARIA');
   document.getElementById('mpUnd').value='kg';
   document.getElementById('embSection').style.display='none';
@@ -837,6 +842,7 @@ function editarProd(id){
   document.getElementById('mpMax').value=p.max_estoque||0;
   document.getElementById('mpVal').value=p.validade||1;
   document.getElementById('mpAbc').value=p.abc||'C';
+  document.getElementById('mpCat').value=p.categoria||''; _preencherGrupos();
   document.getElementById('mpUnd').value=(p.unidade||'kg').toLowerCase();
   _preencherSetorSelect('mpSetor',p.setor);
   document.getElementById('modalProd').classList.add('on');
@@ -861,6 +867,26 @@ function fecharModalProd(){
   _editId=null; _embProdId=null; _embProdSetor='';
 }
 
+// Grupos de produção: lista para escolher (os que já existem) e criação de
+// grupo novo quando o nome digitado ainda não está em categorias_producao.
+var _GRUPOS_PROD=null;
+async function _preencherGrupos(){
+  var dl=document.getElementById('mpCatList'); if(!dl) return;
+  var nomes={};
+  (PRODS||[]).forEach(function(p){ if(p.categoria) nomes[String(p.categoria).toUpperCase()]=1; });
+  if(!_GRUPOS_PROD){ try{ _GRUPOS_PROD=(await sbSelect('categorias_producao','select=nome&order=ordem.asc'))||[]; }catch(e){ _GRUPOS_PROD=[]; } }
+  _GRUPOS_PROD.forEach(function(g){ if(g.nome) nomes[String(g.nome).toUpperCase()]=1; });
+  dl.innerHTML=Object.keys(nomes).sort().map(function(n){ return '<option value="'+n.replace(/"/g,'&quot;')+'">'; }).join('');
+}
+async function _garantirGrupo(nome){
+  if(!nome) return;
+  if((_GRUPOS_PROD||[]).some(function(g){ return String(g.nome||'').toUpperCase()===nome; })) return;
+  try{
+    var r=await fetch(SUPA_URL+'/rest/v1/categorias_producao',{method:'POST',headers:{...H,'Prefer':'return=minimal'},
+      body:JSON.stringify({nome:nome, cor:'#6B7280', ordem:99, ativo:true})});
+    if(r.ok){ (_GRUPOS_PROD=_GRUPOS_PROD||[]).push({nome:nome}); toast('Grupo novo criado: '+nome,'ok'); }
+  }catch(e){ console.log('categorias_producao:', e.message); }
+}
 async function salvarProd(){
   const nome=document.getElementById('mpNome').value.trim().toUpperCase();
   if(!nome){toast('⚠️ Nome obrigatório','er');return;}
@@ -876,9 +902,10 @@ async function salvarProd(){
   // Categoria (grupo de produção) é definida na organização dos grupos, não
   // aqui. Produto NOVO começa sem grupo; produto EDITADO mantém o que tinha —
   // antes este campo ia sempre vazio e apagava o grupo a cada edição.
-  if(!_editId) dados.categoria='';
+  dados.categoria=document.getElementById('mpCat').value.trim().toUpperCase();
   try{
     await sbUpsert('produtos',dados);
+    await _garantirGrupo(dados.categoria);
     if(_editId){
       const idx=PRODS.findIndex(p=>p.id===_editId);
       if(idx>=0)PRODS[idx]={...PRODS[idx],...dados};

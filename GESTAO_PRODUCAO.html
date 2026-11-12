@@ -118,6 +118,13 @@ body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif
 .pm-btn.on{background:#1B4332;border-color:#1B4332;color:#fff;}
 .pm-btn:disabled{opacity:.35;}
 .pm-conv{font-size:.9rem;font-weight:800;color:#1B4332;text-align:center;min-height:1.2em;margin-bottom:6px;}
+.mh-head{margin:14px 12px 8px;background:#F4FAF6;border-color:#2D6A4F;}
+.mh-btns{display:flex;gap:8px;margin:8px 0 0;}
+.mh-btns button{flex:1;background:#1B4332;color:#fff;border:none;border-radius:10px;padding:12px 6px;font-weight:800;font-size:.9rem;cursor:pointer;font-family:inherit;}
+.mh-btns input{width:110px;height:44px;border:1.5px solid #D1D5DB;border-radius:10px;text-align:center;font-size:1rem;font-weight:800;box-sizing:border-box;}
+.mh-btns input + button{background:#fff;color:#1B4332;border:1.5px solid #CFE3D7;}
+.mh-feitas a{color:#6B7280;font-size:.76rem;margin-left:6px;}
+.mh-sub{font-size:.74rem;color:#6B7280;margin-top:8px;text-align:center;}
 .mh-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-top:1px dashed #E5E7EB;font-size:.88rem;}
 .mh-row:first-of-type{border-top:none;}
 .mh-row small{display:block;color:#6B7280;font-size:.76rem;}
@@ -5565,8 +5572,7 @@ function _renderConfirmarHoje(vw) {
   } else {
     if (isDom) html += `<div class="phoje-aviso dom">⚠️ Domingo — equipe reduzida.<br>Somente pães básicos.</div>`;
     if (_modoMassa) {
-      if (_todosDoDia.some(p => _viaMassa(p)))
-        html += `<button class="pp-start" style="background:#fff;color:#1B4332;border:1.5px solid #CFE3D7;font-size:.9rem;padding:10px;" onclick="abrirMexidas()">🌾 Registrar massas por mexidas</button>`;
+      if (!BATIDAS_HOJE || BATIDAS_HOJE.data !== hoje || BATIDAS_HOJE.setor !== SETOR) _carregarBatidasHoje(hoje);
     } else {
       html += `<button class="pp-start" onclick="abrirMexidas()">🌾 Registrar a produção de hoje</button>`;
       html += _rateioMassasHoje(prodsHoje, hoje, dsem);
@@ -5574,7 +5580,29 @@ function _renderConfirmarHoje(vw) {
 
     // Separar em dois grupos: com sugestão e sem sugestão
     let _secaoComSug = false, _secaoSemSug = false;
-    prodsHoje.forEach((p, i) => {
+    if (_modoMassa) {
+      // Mesma ordem da folha impressa: cada MASSA BASE (registrada pela farinha)
+      // seguida dos produtos que saem dela (registrados pela massa); depois os demais.
+      const _grp = {}, _ordM = [], _soltos = [];
+      prodsHoje.forEach(p => {
+        if (!_viaMassa(p)) { _soltos.push(p); return; }
+        const nm = _nomeMassaProd(p);
+        if (!_grp[nm]) { _grp[nm] = []; _ordM.push(nm); }
+        _grp[nm].push(p);
+      });
+      HOJE_MASSAS = _ordM.map(nm => ({ nm, prods: _grp[nm] }));
+      HOJE_CTX = { hoje, dsem };
+      let _i = 0;
+      HOJE_MASSAS.forEach((g, gi) => {
+        html += `<div id="mh-${gi}">${_massaHeaderHTML(gi)}</div>`;
+        g.prods.forEach(p => { html += _buildPhojeCard(p, hoje, dsem, _i++); });
+      });
+      if (_soltos.length) {
+        html += `<div class="phoje-sec-lbl" style="margin-top:12px;">📋 Outros produtos</div>`;
+        _soltos.forEach(p => { html += _buildPhojeCard(p, hoje, dsem, _i++); });
+      }
+    }
+    if (!_modoMassa) prodsHoje.forEach((p, i) => {
       const lote = getLoteProduto(p.nome, SETOR, dsem, hoje);
       const temSug = lote.qtd > 0 || !!(PROD_ITENS[`${p.id}_${hoje}`]);
       if (temSug && !_secaoComSug) {
@@ -6032,6 +6060,7 @@ async function confirmarItemHoje(prodId, qtdSug) {
     qtd_produzida: val,
     status: 'confirmado',
   });
+  _mhRefresh();
 }
 
 async function finalizarHoje() {
@@ -9233,11 +9262,12 @@ function _carregarBatidasHoje(hoje){
     .then(function(rows){
       if(!BATIDAS_HOJE || BATIDAS_HOJE.data!==hoje || BATIDAS_HOJE.setor!==setor) return;
       (rows||[]).forEach(function(r){
-        var x=BATIDAS_HOJE.m[r.massa]||(BATIDAS_HOJE.m[r.massa]={n:0,kg:0});
-        x.n+=(r.mexidas||[]).length; x.kg+=Number(r.farinha_kg)||0;
+        var x=BATIDAS_HOJE.m[r.massa]||(BATIDAS_HOJE.m[r.massa]={n:0,kg:0,lista:[]});
+        (r.mexidas||[]).map(Number).forEach(function(k){ if(k>0){ x.lista.push(k); x.kg+=k; } });
+        x.n=x.lista.length;
       });
       BATIDAS_HOJE.carregando=false;
-      var vw=document.getElementById('v-producao'); if(vw && PROD_VIEW==='hoje' && !MX) _renderConfirmarHoje(vw);
+      _mhRefresh();
     }).catch(function(){ if(BATIDAS_HOJE) BATIDAS_HOJE.carregando=false; });
 }
 // Meta de farinha em mexidas inteiras do tamanho da masseira: o máximo
@@ -9249,6 +9279,92 @@ function _comboMexidas(far, lim){
   if(n>0) out.unshift({t:lim.max,n:n});
   if(!out.length) out.push({t:lim.min,n:1});
   return out;
+}
+// ── Tela Hoje (padaria): cabeçalho de cada MASSA BASE ──
+// A massa é registrada pela FARINHA (mexidas da masseira ou kg); os produtos
+// logo abaixo são registrados pela massa. Mostra quanto de massa já foi
+// dividido entre os produtos e quanto ainda falta.
+var HOJE_MASSAS=[], HOJE_CTX=null;
+function _mhDados(gi){
+  var g=HOJE_MASSAS[gi], c=HOJE_CTX, nm=g.nm;
+  var r=_farinhaPorKgMassaNome(nm), bn=_baseNomeMassa(nm), lim=(bn==='farinha')?_limiteBatida(nm):null;
+  var plano=0, dividido=0;
+  g.prods.forEach(function(p){
+    var mpu=_massaPorUnidProd(p);
+    plano+=(Number(getLoteProduto(p.nome,SETOR,c.dsem,c.hoje).qtd)||0)*mpu;
+    var v=PROD_HOJE_VALS[p.id], it=PROD_ITENS[p.id+'_'+c.hoje];
+    var q=(v && v.done) ? Number(v.val)||0 : ((!v && it && it.status==='confirmado') ? Number(it.qtd_produzida)||0 : 0);
+    dividido+=q*mpu;
+  });
+  var b=(BATIDAS_HOJE && BATIDAS_HOJE.data===c.hoje && BATIDAS_HOJE.m[nm]) || {n:0,kg:0,lista:[]};
+  return {nm:nm, r:r, bn:bn, lim:lim, far:plano*r, b:b, massa:r>0?b.kg/r:0, dividido:dividido};
+}
+function _massaHeaderHTML(gi){
+  var d=_mhDados(gi), lbl=d.bn==='farinha'?'farinha':d.bn, h='<div class="mh-card mh-head">';
+  h+='<div class="mh-tit">🥖 '+escHtml(_nomeCurto(d.nm))+'</div>';
+  if(d.far>0){
+    var metaTxt = d.lim ? _comboMexidas(d.far,d.lim).map(function(c){ return c.n+' mexida'+(c.n>1?'s':'')+' de '+c.t+' kg'; }).join(' + ')
+                        : _fmtFarinha(d.far)+' de '+escHtml(lbl);
+    h+='<div class="mh-meta">Meta: <b>'+metaTxt+'</b></div>';
+  }
+  if(d.lim){
+    h+='<div class="mh-btns"><button onclick="_bhAdd('+gi+','+d.lim.max+')">+ mexida de '+d.lim.max+' kg</button>'
+      +'<button onclick="_bhAdd('+gi+','+d.lim.min+')">+ mexida de '+d.lim.min+' kg</button></div>';
+  }
+  h+='<div class="mh-btns"><input type="number" inputmode="decimal" min="0" step="0.5" id="mh-kg-'+gi+'" placeholder="'+(d.lim?'outro peso':'kg de '+escHtml(lbl))+'">'
+    +'<button onclick="_bhAddCampo('+gi+')">+ somar kg de '+escHtml(lbl)+'</button></div>';
+  if(d.b.n>0){
+    var falta=Math.round((d.massa-d.dividido)*10)/10;
+    h+='<div class="mh-feitas">✅ Batido hoje: <b>'+d.b.lista.map(function(k){return _fmtNum(k);}).join(' + ')+' = '+_fmtNum(Math.round(d.b.kg*10)/10)+' kg de '+escHtml(lbl)+'</b>'
+      +' → <b>'+_fmtNum(Math.round(d.massa*10)/10)+' kg de massa</b> <a href="#" onclick="_bhUndo('+gi+');return false;">desfazer última</a></div>'
+      +'<div class="mh-feitas" style="color:'+(Math.abs(falta)<0.5?'#1B4332':'#B45309')+';">Registrado nos produtos: '+_fmtNum(Math.round(d.dividido*10)/10)+' kg de massa'
+      +(falta>=0.5?' · <b>faltam '+_fmtNum(falta)+' kg</b>':(falta<=-0.5?' · <b>'+_fmtNum(-falta)+' kg a mais que o batido</b>':' · ✔ fechou'))+'</div>';
+  } else h+='<div class="mh-feitas">Nenhuma mexida registrada hoje</div>';
+  var tams = d.lim ? [d.lim.max, d.lim.min] : (d.bn==='farinha' && d.far>0 ? [Math.ceil(d.far*2-0.05)/2] : []);
+  tams.forEach(function(t){
+    var ingH=_ingredientesBatidaHTML(d.nm, t); if(!ingH) return;
+    h+='<details class="mh-rec"><summary>📋 '+(d.lim?'Receita de 1 mexida de '+_fmtNum(t)+' kg':'Receita da massa de hoje ('+_fmtNum(t)+' kg de farinha)')+'</summary>'+ingH+'</details>';
+  });
+  return h+'<div class="mh-sub">Produtos desta massa ↓ (registre pela massa)</div></div>';
+}
+function _mhRefresh(){
+  if(!HOJE_CTX || PROD_VIEW!=='hoje') return;
+  HOJE_MASSAS.forEach(function(g,gi){
+    var el=document.getElementById('mh-'+gi); if(!el) return;
+    var abertos=[].map.call(el.querySelectorAll('details'),function(x){return x.open;});
+    el.innerHTML=_massaHeaderHTML(gi);
+    [].forEach.call(el.querySelectorAll('details'),function(x,i){ if(abertos[i]) x.open=true; });
+  });
+}
+async function _bhSalvar(gi){
+  var d=_mhDados(gi), b=d.b, hoje=HOJE_CTX.hoje;
+  _mhRefresh();
+  try{
+    await sbDelete('producao_batidas','data=eq.'+hoje+'&setor=eq.'+encodeURIComponent(SETOR)+'&massa=eq.'+encodeURIComponent(d.nm));
+    if(b.lista.length) await sbInsert('producao_batidas',{data:hoje, setor:SETOR, massa:d.nm, farinha_kg:Math.round(b.kg*100)/100,
+      mexidas:b.lista, massa_kg:Math.round(d.massa*100)/100, responsavel:(GF_USER&&GF_USER.nome)||''});
+  }catch(e){ toast('⚠️ Não salvou a mexida. Confira a internet e tente de novo.','er'); console.log('producao_batidas:', e.message); }
+}
+function _bhGet(gi){
+  var nm=HOJE_MASSAS[gi].nm, hoje=HOJE_CTX.hoje;
+  if(!BATIDAS_HOJE || BATIDAS_HOJE.data!==hoje) BATIDAS_HOJE={data:hoje, setor:SETOR, carregando:false, m:{}};
+  return BATIDAS_HOJE.m[nm] || (BATIDAS_HOJE.m[nm]={n:0,kg:0,lista:[]});
+}
+function _bhAdd(gi,kg){
+  kg=Math.max(0,Number(kg)||0); if(!(kg>0)) return;
+  if(BATIDAS_HOJE && BATIDAS_HOJE.carregando){ toast('Carregando as mexidas de hoje… tente de novo','wa'); return; }
+  var b=_bhGet(gi); b.lista.push(kg); b.n=b.lista.length; b.kg+=kg;
+  _bhSalvar(gi);
+}
+function _bhAddCampo(gi){
+  var el=document.getElementById('mh-kg-'+gi), v=el?parseFloat(String(el.value).replace(',','.'))||0:0;
+  if(!(v>0)){ toast('Digite os kg','wa'); return; }
+  _bhAdd(gi,v);
+}
+function _bhUndo(gi){
+  var b=_bhGet(gi); if(!b.lista.length) return;
+  var k=b.lista.pop(); b.n=b.lista.length; b.kg=Math.max(0,b.kg-k);
+  _bhSalvar(gi);
 }
 function _massasHojeHTML(prods, hoje, dsem){
   var g={}, ord=[];
