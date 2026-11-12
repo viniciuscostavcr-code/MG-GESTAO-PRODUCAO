@@ -112,6 +112,17 @@ body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif
 .pp-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
 .pp-chip{background:#EAF4EF;color:#1B4332;border-radius:999px;padding:6px 6px 6px 12px;font-weight:800;font-size:.95rem;display:inline-flex;align-items:center;gap:6px;}
 .pp-chip button{border:none;background:#fff;border-radius:999px;width:26px;height:26px;cursor:pointer;font-weight:900;color:#C0392B;}
+.mx-add{width:100%;height:48px;border:1.5px dashed #2D6A4F;border-radius:12px;padding:0 10px;font-size:1rem;font-weight:700;color:#1B4332;background:#F4FAF6;}
+.pm-modos{display:flex;gap:6px;margin:6px 0 8px;}
+.pm-btn{flex:1;padding:9px 4px;border:1.5px solid #D1D5DB;border-radius:10px;background:#fff;font-weight:800;font-size:.82rem;color:#374151;cursor:pointer;font-family:inherit;}
+.pm-btn.on{background:#1B4332;border-color:#1B4332;color:#fff;}
+.pm-btn:disabled{opacity:.35;}
+.pm-conv{font-size:.9rem;font-weight:800;color:#1B4332;text-align:center;min-height:1.2em;margin-bottom:6px;}
+.mh-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-top:1px dashed #E5E7EB;font-size:.88rem;}
+.mh-row:first-of-type{border-top:none;}
+.mh-row small{display:block;color:#6B7280;font-size:.76rem;}
+.mh-row .ok{color:#1B4332;white-space:nowrap;}
+.mh-row .pend{color:#9CA3AF;}
 .mh-card{background:#fff;border:1.5px solid #CFE3D7;border-radius:12px;padding:10px 12px;margin-bottom:10px;}
 .mh-tit{font-weight:900;color:#1B4332;font-size:1rem;}
 .mh-meta{font-size:.88rem;margin:4px 0 6px;color:#1C1C1A;}
@@ -5508,9 +5519,7 @@ function _renderConfirmarHoje(vw) {
   const _modoMassa = SETOR === 'PADARIA';
   const _todosDoDia = prodsHoje;
   if (_modoMassa) {
-    if (!BATIDAS_HOJE || BATIDAS_HOJE.data !== hoje || BATIDAS_HOJE.setor !== SETOR) _carregarBatidasHoje(hoje);
     prodsHoje = prodsHoje.filter(p => {
-      if (_viaMassa(p)) return false;
       const l = getLoteProduto(p.nome, SETOR, dsem, hoje);
       return l.qtd > 0 || !!PROD_ITENS[`${p.id}_${hoje}`] || !!PROD_HOJE_VALS[p.id]?.done;
     });
@@ -5556,8 +5565,8 @@ function _renderConfirmarHoje(vw) {
   } else {
     if (isDom) html += `<div class="phoje-aviso dom">⚠️ Domingo — equipe reduzida.<br>Somente pães básicos.</div>`;
     if (_modoMassa) {
-      const _mh = _massasHojeHTML(_todosDoDia, hoje, dsem);
-      if (_mh) html += `<button class="pp-start" onclick="abrirMexidas()">🌾 Registrar mexidas</button>` + _mh;
+      if (_todosDoDia.some(p => _viaMassa(p)))
+        html += `<button class="pp-start" style="background:#fff;color:#1B4332;border:1.5px solid #CFE3D7;font-size:.9rem;padding:10px;" onclick="abrirMexidas()">🌾 Registrar massas por mexidas</button>`;
     } else {
       html += `<button class="pp-start" onclick="abrirMexidas()">🌾 Registrar a produção de hoje</button>`;
       html += _rateioMassasHoje(prodsHoje, hoje, dsem);
@@ -5569,7 +5578,7 @@ function _renderConfirmarHoje(vw) {
       const lote = getLoteProduto(p.nome, SETOR, dsem, hoje);
       const temSug = lote.qtd > 0 || !!(PROD_ITENS[`${p.id}_${hoje}`]);
       if (temSug && !_secaoComSug) {
-        html += `<div class="phoje-sec-lbl">📋 ${_modoMassa?'Outros produtos do dia':'Produção do dia'}</div>`;
+        html += `<div class="phoje-sec-lbl">📋 Produção do dia</div>`;
         _secaoComSug = true;
       }
       if (!temSug && !_secaoSemSug) {
@@ -5684,7 +5693,26 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
   // separada — o número que o padeiro pesou. Grava convertido para o produto.
   const _mpu = _massaPorUnidProd(p);
   const temLote = loteSize > 0 && !(_mpu > 0);
-  const modoAtual = PROD_HOJE_MODE[p.id] || ((temLote && (REGISTRO_HOJE_PADRAO === 'lote' || SETOR === 'PADARIA')) ? 'lote' : 'peso');   // padaria: conta receitas, o app converte
+  // 3 jeitos de registrar o mesmo produto: LOTE · KG/UN · INGREDIENTE PRINCIPAL
+  // (farinha/mistura da ficha, ou a massa de que o produto é feito). O que é
+  // gravado é sempre a quantidade do produto; o app converte pela ficha.
+  const _ing = _ingPrincipal(p);
+  const _padraoModo = (SETOR === 'PADARIA') ? (_ing ? 'ing' : (temLote ? 'lote' : 'peso'))
+                                             : ((temLote && REGISTRO_HOJE_PADRAO === 'lote') ? 'lote' : 'peso');
+  let modoAtual = PROD_HOJE_MODE[p.id] || _padraoModo;
+  if (modoAtual === 'lote' && !temLote) modoAtual = 'peso';
+  if (modoAtual === 'ing' && !_ing) modoAtual = 'peso';
+  const _undTxt = String(und).toUpperCase()==='UND' ? 'un' : 'kg';
+  const _btnM = (m, txt, ok) => '<button type="button" class="pm-btn'+(modoAtual===m?' on':'')+'" data-m="'+m+'"'+(ok?'':' disabled')
+    +' onclick="_setModoHoje(\''+p.id+'\',\''+m+'\')">'+txt+'</button>';
+  const modosHtml = '<div class="pm-modos" id="pm-modos-'+p.id+'">'+_btnM('lote','Lote',temLote)+_btnM('peso',_undTxt==='un'?'Unidades':'Kg',true)
+    +_btnM('ing', _ing ? escHtml(_ing.rotulo) : 'Ingrediente', !!_ing)+'</div>';
+  const _ingVal = (_ing && valAtual !== '' && valAtual != null) ? Math.round((parseFloat(valAtual)||0)*_ing.porUn*100)/100 : '';
+  const ingHtml = _ing ? '<div class="phoje-inp-row" id="phoje-ing-row-'+p.id+'"'+(modoAtual==='ing'?'':' style="display:none;"')+'>'
+    +'<input class="phoje-inp" type="number" inputmode="decimal" min="0" step="'+(_ing.un==='un'?1:0.5)+'" id="phoje-ing-'+p.id+'" value="'+(isDone?_ingVal:'')+'" placeholder="'+(Math.round((lote.qtd||0)*_ing.porUn*10)/10)+'"'
+    +' oninput="_onIngHoje(\''+p.id+'\',this.value)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();confirmarItemHoje(\''+p.id+'\');}">'
+    +'<span class="phoje-inp-und">'+_ing.un+'</span></div>'
+    +'<div class="pm-conv" id="pm-conv-'+p.id+'"'+(modoAtual==='ing'?'':' style="display:none;"')+'>'+(isDone&&_ingVal!==''?'= '+_fmtNum(parseFloat(valAtual)||0)+' '+_undTxt:'<span style="font-weight:600;color:#6B7280;">'+(_ing.un==='un'?'quantidade':'kg')+' de '+escHtml(_ing.nome)+' que usou</span>')+'</div>' : '';
   const pesoBase = (valAtual !== '' && valAtual !== null && valAtual !== undefined) ? (parseFloat(valAtual)||0) : (lote.qtd||0);
   const lotesAtual = temLote ? Math.max(0, _ehLoteUnidade(_fic) ? Math.round(pesoBase / loteSize)
                                                                 : Math.round((pesoBase / loteSize) * 2) / 2) : 0;
@@ -5700,7 +5728,6 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
       + '</div>'
       + '<button type="button" class="phoje-lote-btn" onclick="_loteStep(\'' + p.id + '\',0.5)">+</button>'
       + '</div>'
-      + '<span class="phoje-lote-alt" onclick="_togglePesoLivre(\'' + p.id + '\')">✏️ registrar peso exato</span>'
       + '</div>';
   }
 
@@ -5746,29 +5773,28 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
 
   return `<div class="phoje-card ${cardCls}" id="phoje-card-${p.id}" data-nome="${escHtml(p.nome)}">
   <div class="phoje-card-nm"><span class="prod-num">${idx + 1}</span>${urgE} ${abcBadge} ${escHtml(p.nome)}</div>
-  ${_mpu>0
-    ? '<div class="phoje-sug" style="color:#1D4ED8;">Massa crua a separar: <strong>'+_fmtNum(Math.round((lote.qtd||0)*_mpu*10)/10)+' kg</strong> <span style="color:#8A9590;">(≈ '+_fmtNum(lote.qtd||0)+und.toLowerCase()+' de produto)</span></div>'
-    : '<div class="phoje-sug">Sugestão: <strong>'+lote.qtd+und.toLowerCase()+'</strong>'+(lote.sazonalidade!==1?' · sazon. ×'+lote.sazonalidade:'')+'</div>'}
+  <div class="phoje-sug">Sugestão: <strong>${lote.qtd}${und.toLowerCase()}</strong>${_ing&&lote.qtd>0?' <span style="color:#8A9590;">(≈ '+_fmtNum(Math.round(lote.qtd*_ing.porUn*10)/10)+' '+_ing.un+' de '+escHtml(_ing.nome)+')</span>':''}${lote.sazonalidade!==1?' · sazon. ×'+lote.sazonalidade:''}</div>
   ${sugDadosHtml}
   ${alertHtml}
+  ${modosHtml}
   ${loteHtml}
-  <div class="phoje-inp-row" id="phoje-inp-row-${p.id}"${(temLote && modoAtual==='lote')?' style="display:none;"':''}>
+  <div class="phoje-inp-row" id="phoje-inp-row-${p.id}"${modoAtual==='peso'?'':' style="display:none;"'}>
     <input class="phoje-inp" type="number" inputmode="decimal" min="0" step="0.5"
       id="phoje-inp-${p.id}"
-      value="${_mpu>0 ? (valAtual===''?'':Math.round((parseFloat(valAtual)||0)*_mpu*10)/10) : valAtual}"
-      placeholder="${_mpu>0 ? Math.round((lote.qtd||0)*_mpu*10)/10 : (lote.qtd||0)}"
+      value="${valAtual}"
+      placeholder="${lote.qtd||0}"
       data-prodid="${p.id}"
       data-idx="${idx}"
       data-und="${und}"
-      data-mpu="${_mpu>0?_mpu:''}"
+      data-mpu=""
       onchange="onPhojeChange('${p.id}',this.value)"
       onkeydown="onPhojeKey(event,'${p.id}')">
-    <span class="phoje-inp-und">${_mpu>0 ? 'kg de massa' : und.toLowerCase()}</span>
+    <span class="phoje-inp-und">${und.toLowerCase()}</span>
   </div>
-  ${temLote ? '<span class="phoje-lote-alt" id="phoje-lote-back-'+p.id+'"'+(modoAtual==='lote'?' style="display:none;"':'')+' onclick="_toggleLoteModo(\''+p.id+'\')">🔢 registrar em lotes</span>' : ''}
+  ${ingHtml}
   <button class="phoje-conf-btn${isDone?' done':''}" id="phoje-btn-${p.id}"
     onclick="confirmarItemHoje('${p.id}',${lote.qtd})">
-    ${isDone ? '✅ Confirmado' : (_mpu>0 ? '✅ Confirmar '+_fmtNum(Math.round((lote.qtd||0)*_mpu*10)/10)+' kg de massa' : '✅ Confirmar '+lote.qtd+und.toLowerCase())}
+    ${isDone ? '✅ Confirmado' : '✅ Confirmar '+lote.qtd+und.toLowerCase()}
   </button>
 </div>`;
 }
@@ -5837,6 +5863,43 @@ function _loteStep(prodId, delta) {
 // Sai do modo lote e mostra o campo de peso livre — usado quando o produto
 // não tem ficha (chamado automaticamente, ver _buildPhojeCard) ou quando o
 // operador precisa fugir do lote padrão por algum motivo.
+// Ingrediente principal de um produto e quanto dele vai em 1 kg/1 un:
+// produto feito de massa batida → kg da massa; senão → base da ficha
+// (farinha, mistura pronta, disco…).
+function _ingPrincipal(p){
+  var mpu=_massaPorUnidProd(p);
+  if(mpu>0){ var nm=_nomeMassaProd(p); if(nm){ var c=_nomeCurto(nm).toLowerCase(); return {nome:c, rotulo:'Massa', un:'kg', porUn:mpu}; } }
+  var b=_baseDoProduto(p); if(!b) return null;
+  return {nome:b.nome, rotulo:(/farinha/i.test(b.nome)?'Farinha':b.nome.charAt(0).toUpperCase()+b.nome.slice(1,14)), un:b.un, porUn:b.porUn};
+}
+function _setModoHoje(prodId, modo){
+  PROD_HOJE_MODE[prodId]=modo;
+  var show=function(id,on,disp){ var e=document.getElementById(id); if(e) e.style.display = on ? (disp||'') : 'none'; };
+  if(modo==='lote') _toggleLoteModo(prodId);   // sincroniza o contador com o valor atual
+  show('phoje-lote-row-'+prodId, modo==='lote', 'block');
+  show('phoje-inp-row-'+prodId,  modo==='peso', 'flex');
+  show('phoje-ing-row-'+prodId,  modo==='ing',  'flex');
+  show('pm-conv-'+prodId,        modo==='ing',  'block');
+  var box=document.getElementById('pm-modos-'+prodId);
+  if(box) box.querySelectorAll('.pm-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.m===modo); });
+  var inp=document.getElementById('phoje-inp-'+prodId);
+  if(modo==='ing'){
+    var p=(TODOS_PRODS||[]).find(function(x){ return x.id===prodId; }), g=p?_ingPrincipal(p):null, ie=document.getElementById('phoje-ing-'+prodId);
+    if(g && ie){ var v=parseFloat(inp&&inp.value)||0; ie.value = (PROD_HOJE_VALS[prodId] && v>0) ? Math.round(v*g.porUn*100)/100 : ''; _onIngHoje(prodId, ie.value, true); ie.focus(); }
+  } else if(modo==='peso' && inp){ inp.focus(); inp.select(); }
+}
+// Digitou o ingrediente (kg de farinha/massa, nº de discos) → quantidade do produto
+function _onIngHoje(prodId, raw, soMostra){
+  var p=(TODOS_PRODS||[]).find(function(x){ return x.id===prodId; }), g=p?_ingPrincipal(p):null; if(!g) return;
+  var v=Math.max(0,parseFloat(String(raw).replace(',','.'))||0);
+  var ehUn=String(p.unidade||'KG').toUpperCase()==='UND';
+  var q=g.porUn>0 ? v/g.porUn : 0; q = ehUn ? Math.floor(q+0.0001) : Math.round(q*100)/100;
+  var cv=document.getElementById('pm-conv-'+prodId);
+  if(cv) cv.textContent = v>0 ? '= '+_fmtNum(q)+' '+(ehUn?'un':'kg')+' de '+_nomeCurto(p.nome) : (g.un==='un'?'quantidade':'kg')+' de '+g.nome+' que usou';
+  if(soMostra) return;
+  var inp=document.getElementById('phoje-inp-'+prodId); if(inp) inp.value=q;
+  onPhojeChange(prodId, q);
+}
 function _togglePesoLivre(prodId) {
   PROD_HOJE_MODE[prodId] = 'peso';
   var loteRow = document.getElementById('phoje-lote-row-'+prodId);
@@ -8658,7 +8721,7 @@ function abrirMexidas(){
     var mpu=_massaPorUnidProd(p); if(!(mpu>0)) return;
     var nm=_nomeMassaProd(p); if(!nm) return;
     if(!(_farinhaPorKgMassaNome(nm)>0)) return;
-    if(!g[nm]){ g[nm]={nm:nm, prods:[], r:_farinhaPorKgMassaNome(nm), bn:_baseNomeMassa(nm), lim:_limiteBatida(nm), c:{}, outro:0}; ordem.push(nm); }
+    if(!g[nm]){ g[nm]={nm:nm, prods:[], r:_farinhaPorKgMassaNome(nm), bn:_baseNomeMassa(nm), lim:_limiteBatida(nm), c:{}, outro:0, mk:0, man:{}}; ordem.push(nm); }
     g[nm].prods.push(p);
   });
   // Produtos de receita própria (bolachas, pão de queijo, mini pizza…):
@@ -8673,15 +8736,23 @@ function abrirMexidas(){
     outros.push({p:p, base:b, usado: jaQ>0 ? Math.round(jaQ*b.porUn*100)/100 : 0, meta:Number(l.qtd)||0});
   });
   outros.sort(function(a,b){ return _sortKeyProd(a.p)-_sortKeyProd(b.p); });
-  if(!ordem.length && !outros.length){ toast('Nada planejado para hoje — use a calculadora','wa'); abrirCalc(); return; }
+
   MX={hoje:hoje, dsem:dsem, grupos:ordem.map(function(n){return g[n];}), outros:outros};
   sbSelect('producao_batidas','select=massa,mexidas&data=eq.'+hoje+'&setor=eq.'+encodeURIComponent(SETOR))
     .then(function(rows){
       if(!MX) return;
       (rows||[]).forEach(function(r){
-        var gr=MX.grupos.find(function(x){return x.nm===r.massa;}); if(!gr) return;
+        var gr=MX.grupos.find(function(x){return x.nm===r.massa;});
+        if(!gr){ _mxAddMassa(r.massa); gr=MX.grupos.find(function(x){return x.nm===r.massa;}); }
+        if(!gr) return;
         (r.mexidas||[]).map(Number).forEach(function(k){
           if(gr.lim && (k===gr.lim.min || k===gr.lim.max)) gr.c[k]=(gr.c[k]||0)+1; else gr.outro+=k;
+        });
+        // Divisão já registrada hoje volta como está (para não ser desfeita ao salvar de novo)
+        if(gr.prods.length>1) gr.prods.forEach(function(p){
+          var v=PROD_HOJE_VALS[p.id], it=PROD_ITENS[p.id+'_'+MX.hoje];
+          var q=(v && v.done) ? Number(v.val)||0 : ((it && it.status==='confirmado') ? Number(it.qtd_produzida)||0 : 0);
+          if(q>0) gr.man[String(p.id)]=Math.round(q*_massaPorUnidProd(p)*100)/100;
         });
       });
       _mxRender();
@@ -8692,6 +8763,7 @@ function abrirMexidas(){
   _mxRender();
 }
 function _mxTotal(gr){
+  if(gr.mk>0) return gr.mk*gr.r;   // pesou a massa pronta: farinha equivalente pela ficha
   var t=gr.outro||0;
   Object.keys(gr.c).forEach(function(k){ t+=Number(k)*gr.c[k]; });
   return t;
@@ -8699,12 +8771,11 @@ function _mxTotal(gr){
 function _mxRender(){
   var ov=document.getElementById('ppOv'); if(!ov||!MX) return;
   var h='<div class="pp-top"><b>Produção de hoje</b><button class="pp-x" onclick="fecharMexidas()">✕ Sair</button></div><div class="pp-body">'
-    +'<button class="pp-ok" style="background:#fff;color:#1B4332;border:1.5px solid #CFE3D7;font-size:.95rem;padding:12px;width:100%;margin-bottom:10px;" onclick="abrirCalc()">🧮 Fez algo fora do plano? Calculadora por ingrediente</button>'
-    +'<div class="pp-nota">Para cada massa, conte quantas mexidas foram batidas hoje. Nos outros produtos, informe quanto usou do ingrediente principal. O app calcula e registra o produto pronto.</div>';
+    +'<div class="pp-nota">Informe quanto bateu de cada massa (mexidas, kg de farinha ou kg de massa) e divida entre os produtos. Nos outros produtos, digite os kg de farinha.</div>';
   MX.grupos.forEach(function(gr,gi){
     var lbl=gr.bn==='farinha'?'farinha':gr.bn, tot=_mxTotal(gr);
-    h+='<div class="pp-card"><div class="pp-titulo" style="font-size:1.3rem;margin-bottom:8px;">'+escHtml(gr.nm)+'</div>';
-    if(gr.lim){
+    h+='<div class="pp-card"><div class="pp-titulo" style="font-size:1.3rem;margin-bottom:8px;">🥖 '+escHtml(_nomeCurto(gr.nm))+'</div>';
+    if(gr.lim && !(gr.mk>0)){
       [gr.lim.min, gr.lim.max].forEach(function(t){
         var n=gr.c[t]||0;
         h+='<div class="pp-dist"><span class="nm">Mexidas de '+t+' kg</span>'
@@ -8713,28 +8784,89 @@ function _mxRender(){
           +'<button class="pp-mex" style="min-width:52px;padding:10px;" onclick="_mxConta('+gi+','+t+',1)">+</button></span></div>';
       });
     }
-    h+='<div class="pp-dist"><span class="nm">'+(gr.lim?'Outro peso (kg de '+escHtml(lbl)+')':'Total de '+escHtml(lbl)+' batido (kg)')+'</span>'
-      +'<input type="number" inputmode="decimal" min="0" step="0.5" value="'+(gr.outro||'')+'" placeholder="0" onchange="_mxOutro('+gi+',this.value)"></div>';
+    if(!(gr.mk>0)){
+      h+='<div class="pp-dist"><span class="nm">'+(gr.lim?'Outro peso (kg de '+escHtml(lbl)+')':'kg de '+escHtml(lbl)+' batido')+'</span>'
+        +'<input type="number" inputmode="decimal" min="0" step="0.5" value="'+(gr.outro||'')+'" placeholder="0" onchange="_mxOutro('+gi+',this.value)"></div>';
+    }
+    h+='<div class="pp-dist"><span class="nm">'+(gr.mk>0?'kg de massa':'<small style="font-weight:600;color:#6B7280;">ou pesou a massa pronta? (kg de massa)</small>')+'</span>'
+      +'<input type="number" inputmode="decimal" min="0" step="0.5" value="'+(gr.mk||'')+'" placeholder="0" onchange="_mxMassa('+gi+',this.value)"></div>';
     if(tot>0){
-      h+='<div class="pp-tot">= <b>'+_fmtNum(Math.round(tot*10)/10)+' kg</b> de '+escHtml(lbl)+' → <b>'+_fmtNum(Math.round(tot/gr.r*10)/10)+' kg</b> de massa</div>';
-      var d=_mxDistrib(gr);
-      h+='<div class="pp-nota" style="margin-top:4px;">'+d.map(function(x){ return escHtml(_nomeCurto(x.p.nome))+': '+_fmtNum(x.q)+' '+_ppUnd(x.p); }).join(' · ')+'</div>';
+      var R=Math.round(tot/gr.r*10)/10;
+      h+='<div class="pp-tot">= <b>'+_fmtNum(R)+' kg de massa</b>'+(gr.mk>0?'':' ('+_fmtNum(Math.round(tot*10)/10)+' kg de '+escHtml(lbl)+')')+'</div>';
+      var d=_mxDistrib(gr), falta=_mxFalta(gr);
+      h+='<div class="pp-eyebrow" style="margin-top:12px;">'+(d.length>1?'Quanto de massa foi para cada produto?':'Produto')+'</div>';
+      d.forEach(function(x){
+        var pid=String(x.p.id), man=gr.man.hasOwnProperty(pid);
+        h+='<div class="pp-dist"><span class="nm">'+escHtml(_nomeCurto(x.p.nome))
+          +'<small>'+(x.a>0?'= <b style="color:#1B4332;">'+_fmtNum(x.q)+' '+_ppUnd(x.p)+'</b>':'')
+          +(x.resto&&d.length>1?' · o restante':'')+(man&&d.length>1?' · <a href="#" onclick="_mxManLimpa('+gi+',\''+escHtml(pid)+'\');return false;">limpar</a>':'')
+          +(x.plano>0?(x.a>0?' · ':'')+'plano '+_fmtNum(Math.round(x.plano*10)/10)+' kg':'')+'</small></span>'
+          +'<span style="display:flex;align-items:center;gap:6px;"><input type="number" inputmode="decimal" min="0" step="0.5" value="'+(man||x.resto&&d.length>1?(Math.round(x.a*10)/10):'')+'" placeholder="'+(d.length>1?'?':_fmtNum(Math.round(x.a*10)/10))+'" onchange="_mxMan('+gi+',\''+escHtml(pid)+'\',this.value)" style="width:90px;'+(man?'border-color:#1B4332;':'')+'"'+(d.length>1?'':' disabled')+'><small>kg</small></span></div>';
+      });
+      if(Math.abs(falta)>=0.1){
+        h+='<div class="pp-nota" style="color:'+(falta>0?'#B45309':'#B91C1C')+';font-weight:700;margin-top:6px;">'+(falta>0?'⚠️ Faltam '+_fmtNum(falta)+' kg de massa para dividir':'⚠️ Passou '+_fmtNum(-falta)+' kg do total da massa')+'</div>';
+        if(falta>0 && d.some(function(x){return x.plano>0;})) h+='<button class="pp-ok" style="background:#fff;color:#1B4332;border:1.5px solid #CFE3D7;font-size:.9rem;padding:10px;width:100%;margin-top:6px;" onclick="_mxComoPlano('+gi+')">📋 Saiu igual ao plano? Dividir como o plano</button>';
+      }
+    }
+    var fora=(TODOS_PRODS||[]).filter(function(p){ return _viaMassa(p) && _nomeMassaProd(p)===gr.nm && !gr.prods.some(function(q){return q.id===p.id;}); });
+    if(fora.length){
+      h+='<div class="pp-dist"><select class="mx-add" onchange="_mxAddProdMassa('+gi+',this.value)"><option value="">➕ Outro produto desta massa</option>'
+        +fora.map(function(p){ return '<option value="'+escHtml(String(p.id))+'">'+escHtml(_nomeCurto(p.nome))+'</option>'; }).join('')+'</select></div>';
     }
     h+='</div>';
   });
-  if(MX.outros.length){
-    h+='<div class="pp-eyebrow" style="margin-top:6px;">Outros produtos · quanto usou do ingrediente principal</div><div class="pp-card">';
+  var _massasFora={};
+  (TODOS_PRODS||[]).forEach(function(p){ if(!_viaMassa(p)) return; var nm=_nomeMassaProd(p); if(!MX.grupos.some(function(g){return g.nm===nm;})) _massasFora[nm]=1; });
+  var _mf=Object.keys(_massasFora).sort();
+  if(_mf.length){
+    h+='<select class="mx-add" style="margin-bottom:10px;" onchange="_mxAddMassa(this.value)"><option value="">➕ Bateu outra massa? Escolha aqui</option>'
+      +_mf.map(function(n){ return '<option value="'+escHtml(n)+'">'+escHtml(_nomeCurto(n))+'</option>'; }).join('')+'</select>';
+  }
+  var _naoList=(TODOS_PRODS||[]).filter(function(p){
+    return !(_massaPorUnidProd(p)>0) && !MX.outros.some(function(o){return o.p.id===p.id;}) && _baseDoProduto(p);
+  });
+  if(MX.outros.length || _naoList.length){
+    h+='<div class="pp-eyebrow" style="margin-top:6px;">Outros produtos · quantos kg de farinha (ou do ingrediente principal) usou</div><div class="pp-card">';
     MX.outros.forEach(function(o,oi){
       var und=_ppUnd(o.p), q=o.usado>0 ? Math.round(o.usado/o.base.porUn*100)/100 : 0;
       h+='<div class="pp-dist"><span class="nm">'+escHtml(_nomeCurto(o.p.nome))
         +'<small>'+escHtml(o.base.nome)+' ('+o.base.un+')'+(q>0?' · = <b style="color:#1B4332;">'+_fmtNum(q)+' '+und+'</b>':(o.meta>0?' · meta '+_fmtNum(o.meta)+' '+und+' = '+_fmtNum(Math.round(o.meta*o.base.porUn*100)/100)+' '+o.base.un:''))+'</small></span>'
         +'<input type="number" inputmode="decimal" min="0" step="'+(o.base.un==='un'?1:0.5)+'" value="'+(o.usado||'')+'" placeholder="0" onchange="_mxBase('+oi+',this.value)"></div>';
     });
+    if(_naoList.length){
+      h+='<div class="pp-dist"><select class="mx-add" onchange="_mxAddOutro(this.value)"><option value="">➕ Fez outro produto? Escolha aqui</option>'
+        +_naoList.map(function(p){ return '<option value="'+escHtml(String(p.id))+'">'+escHtml(_nomeCurto(p.nome))+'</option>'; }).join('')+'</select></div>';
+    }
     h+='</div>';
   }
   var algum=MX.grupos.some(function(gr){return _mxTotal(gr)>0;}) || MX.outros.some(function(o){return o.usado>0;});
-  h+='</div><div class="pp-acoes"><button class="pp-ok" id="mxOk" onclick="_mxSalvar()"'+(algum?'':' disabled')+'>✓ Registrar</button></div>';
+  var pend=MX.grupos.filter(function(gr){ return Math.abs(_mxFalta(gr))>=0.1; });
+  h+='</div><div class="pp-acoes">'+(pend.length?'<div class="pp-nota" style="text-align:center;color:#B45309;font-weight:700;">Divida a massa de '+pend.map(function(g){return escHtml(_nomeCurto(g.nm).toLowerCase());}).join(', ')+' para registrar</div>':'')
+    +'<button class="pp-ok" id="mxOk" onclick="_mxSalvar()"'+(algum&&!pend.length?'':' disabled')+'>✓ Registrar</button></div>';
   ov.innerHTML=h;
+}
+function _mxMassa(gi,v){ MX.grupos[gi].mk=Math.max(0,parseFloat(String(v).replace(',','.'))||0); _mxRender(); }
+function _mxMan(gi,pid,v){ var gr=MX.grupos[gi]; gr.man[pid]=Math.max(0,parseFloat(String(v).replace(',','.'))||0); _mxRender(); }
+function _mxManLimpa(gi,pid){ delete MX.grupos[gi].man[pid]; _mxRender(); }
+function _mxAddProdMassa(gi,id){
+  if(!id) return; var gr=MX.grupos[gi];
+  var p=(TODOS_PRODS||[]).find(function(x){ return String(x.id)===String(id); }); if(!p) return;
+  gr.prods.push(p); _mxRender();
+}
+function _mxAddMassa(nm){
+  if(!nm) return;
+  var prods=(TODOS_PRODS||[]).filter(function(p){ return _viaMassa(p) && _nomeMassaProd(p)===nm; });
+  if(!prods.length) return;
+  MX.grupos.push({nm:nm, prods:prods, r:_farinhaPorKgMassaNome(nm), bn:_baseNomeMassa(nm), lim:_limiteBatida(nm), c:{}, outro:0, mk:0, man:{}});
+  _mxRender();
+}
+function _mxAddOutro(id){
+  if(!id) return;
+  var p=(TODOS_PRODS||[]).find(function(x){ return String(x.id)===String(id); }); if(!p) return;
+  var b=_baseDoProduto(p); if(!b) return;
+  MX.outros.push({p:p, base:b, usado:0, meta:0});
+  _mxRender();
+  var ins=document.querySelectorAll('#ppOv input[onchange^="_mxBase"]'); if(ins.length) ins[ins.length-1].focus();
 }
 function _mxBase(oi,v){ MX.outros[oi].usado=Math.max(0,parseFloat(String(v).replace(',','.'))||0); _mxRender(); }
 // Ingrediente principal da ficha de um produto e quanto dele vai em 1 kg (ou 1 un) do produto.
@@ -8754,13 +8886,37 @@ function _baseDoProduto(p){
 function _mxConta(gi,t,d){ var gr=MX.grupos[gi]; gr.c[t]=Math.max(0,(gr.c[t]||0)+d); _mxRender(); }
 function _mxOutro(gi,v){ MX.grupos[gi].outro=Math.max(0,parseFloat(String(v).replace(',','.'))||0); _mxRender(); }
 function _mxDistrib(gr){
-  var R=_mxTotal(gr)/gr.r;
-  var pl=gr.prods.map(function(p){ var mpu=_massaPorUnidProd(p); return {p:p, mpu:mpu, plano:(Number(getLoteProduto(p.nome,SETOR,MX.dsem,MX.hoje).qtd)||0)*mpu}; });
-  var M=pl.reduce(function(a,x){return a+x.plano;},0);
-  pl.forEach(function(x,i){ x.a = M>0 ? R*x.plano/M : (i===0?R:0); x.q = x.mpu>0 ? Math.round(x.a/x.mpu*100)/100 : 0; });
+  // Massa do dia dividida entre os produtos PELO QUE O PADEIRO DIGITOU (gr.man,
+  // kg de massa). Se só UM produto ficou sem valor, ele recebe o restante.
+  // Com 2+ sem valor, nada é inventado: fica "faltam X kg" e não registra.
+  // (O plano só entra se ele tocar em "Dividir como o plano".)
+  var R=_mxTotal(gr)/gr.r, man=gr.man||{};
+  var pl=gr.prods.map(function(p){ var mpu=_massaPorUnidProd(p); return {p:p, mpu:mpu, plano:(Number(getLoteProduto(p.nome,SETOR,MX.dsem,MX.hoje).qtd)||0)*mpu, m:man.hasOwnProperty(String(p.id))}; });
+  var usado=pl.reduce(function(a,x){ return a+(x.m?Number(man[String(x.p.id)])||0:0); },0);
+  var resto=Math.max(0,R-usado), livres=pl.filter(function(x){return !x.m;});
+  pl.forEach(function(x){
+    if(x.m) x.a=Number(man[String(x.p.id)])||0;
+    else if(livres.length===1){ x.a=resto; x.resto=true; }
+    else x.a=0;
+    x.q = x.mpu>0 ? Math.round(x.a/x.mpu*100)/100 : 0;
+  });
   return pl;
 }
+// kg de massa ainda sem dono (positivo) ou passando do total (negativo)
+function _mxFalta(gr){
+  var tot=_mxTotal(gr); if(!(tot>0)) return 0;
+  var d=_mxDistrib(gr), s=d.reduce(function(a,x){return a+x.a;},0);
+  return Math.round((tot/gr.r-s)*10)/10;
+}
+function _mxComoPlano(gi){
+  var gr=MX.grupos[gi], R=_mxTotal(gr)/gr.r; gr.man={};
+  var pl=gr.prods.map(function(p){ return {id:String(p.id), v:(Number(getLoteProduto(p.nome,SETOR,MX.dsem,MX.hoje).qtd)||0)*_massaPorUnidProd(p)}; });
+  var M=pl.reduce(function(a,x){return a+x.v;},0); if(!(M>0)){ toast('Sem plano para estes produtos hoje — divida à mão','wa'); return; }
+  pl.forEach(function(x){ gr.man[x.id]=Math.round(R*x.v/M*10)/10; });
+  _mxRender();
+}
 async function _mxSalvar(){
+  if(MX.grupos.some(function(gr){ return Math.abs(_mxFalta(gr))>=0.1; })){ toast('⚠️ Falta dividir a massa entre os produtos','wa'); return; }
   var btn=document.getElementById('mxOk'); if(btn){ btn.disabled=true; btn.textContent='Salvando…'; }
   var feitos=[], falhou=false;
   for(var gi=0; gi<MX.grupos.length; gi++){
@@ -8773,8 +8929,8 @@ async function _mxSalvar(){
       var ok=await _upsertProdItem(x.p.id, MX.hoje, {qtd_produzida:x.q, status:'confirmado'});
       if(!ok){ falhou=true; PROD_HOJE_VALS[x.p.id].done=false; }
     }
-    var lista=[]; Object.keys(gr.c).forEach(function(k){ for(var n=0;n<gr.c[k];n++) lista.push(Number(k)); });
-    if(gr.outro>0) lista.push(gr.outro);
+    var lista=[]; if(!(gr.mk>0)) Object.keys(gr.c).forEach(function(k){ for(var n=0;n<gr.c[k];n++) lista.push(Number(k)); });
+    if(gr.mk>0) lista.push(Math.round(tot*100)/100); else if(gr.outro>0) lista.push(gr.outro);
     try{
       await sbDelete('producao_batidas','data=eq.'+MX.hoje+'&setor=eq.'+encodeURIComponent(SETOR)+'&massa=eq.'+encodeURIComponent(gr.nm));
       await sbInsert('producao_batidas',{data:MX.hoje, setor:SETOR, massa:gr.nm, farinha_kg:Math.round(tot*100)/100,
@@ -9136,6 +9292,32 @@ function _massasHojeHTML(prods, hoje, dsem){
     h+='</div>';
   });
   return h+'</div>';
+}
+
+// Produtos de receita própria (bolachas, pão de queijo…): o padeiro pensa em
+// "quantos kg de farinha bati de cada um". Mostra a meta nessa unidade e o
+// que já foi registrado; o registro é no mesmo botão das mexidas.
+function _outrosFarinhaHTML(prods, hoje, dsem){
+  var L=[];
+  prods.forEach(function(p){
+    if(_viaMassa(p)) return;
+    var b=_baseDoProduto(p); if(!b) return;
+    var q=Number(getLoteProduto(p.nome, SETOR, dsem, hoje).qtd)||0;
+    var it=PROD_ITENS[p.id+'_'+hoje], v=PROD_HOJE_VALS[p.id];
+    var feito=(v && v.done) ? Number(v.val)||0 : ((it && it.status==='confirmado') ? Number(it.qtd_produzida)||0 : 0);
+    if(!(q>0) && !(feito>0)) return;
+    L.push({p:p, b:b, q:q, feito:feito});
+  });
+  if(!L.length) return '';
+  L.sort(function(a,b){ return _sortKeyProd(a.p)-_sortKeyProd(b.p); });
+  var h='<div style="margin:0 12px 10px;"><div class="mh-card"><div class="mh-tit">🍪 Outros produtos · pela farinha</div>';
+  L.forEach(function(x){
+    var und=_ppUnd(x.p), bq=Math.round(x.q*x.b.porUn*10)/10, bf=Math.round(x.feito*x.b.porUn*10)/10;
+    h+='<div class="mh-row"><span><b>'+escHtml(_nomeCurto(x.p.nome))+'</b>'
+      +(x.q>0?'<small>meta: '+_fmtNum(bq)+' '+x.b.un+' de '+escHtml(x.b.nome)+' (≈ '+_fmtNum(x.q)+' '+und+')</small>':'')+'</span>'
+      +(x.feito>0?'<b class="ok">✅ '+_fmtNum(bf)+' '+x.b.un+'</b>':'<span class="pend">—</span>')+'</div>';
+  });
+  return h+'</div></div>';
 }
 
 // Quadro do topo da tela Hoje: para cada massa do dia, quanto bater e quanto
