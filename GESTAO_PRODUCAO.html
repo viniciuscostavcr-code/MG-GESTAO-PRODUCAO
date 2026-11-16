@@ -113,6 +113,8 @@ body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif
 .pp-chip{background:#EAF4EF;color:#1B4332;border-radius:999px;padding:6px 6px 6px 12px;font-weight:800;font-size:.95rem;display:inline-flex;align-items:center;gap:6px;}
 .pp-chip button{border:none;background:#fff;border-radius:999px;width:26px;height:26px;cursor:pointer;font-weight:900;color:#C0392B;}
 .mx-add{width:100%;height:48px;border:1.5px dashed #2D6A4F;border-radius:12px;padding:0 10px;font-size:1rem;font-weight:700;color:#1B4332;background:#F4FAF6;}
+.phoje-card.hojeplan{border-left:6px solid #2D6A4F;}
+.phoje-plan{display:inline-block;background:#DCFCE7;color:#166534;font-size:.66rem;font-weight:800;border-radius:20px;padding:2px 8px;margin-left:4px;vertical-align:middle;white-space:nowrap;}
 .pm-modos{display:flex;gap:6px;margin:6px 0 8px;}
 .pm-btn{flex:1;padding:9px 4px;border:1.5px solid #D1D5DB;border-radius:10px;background:#fff;font-weight:800;font-size:.82rem;color:#374151;cursor:pointer;font-family:inherit;}
 .pm-btn.on{background:#1B4332;border-color:#1B4332;color:#fff;}
@@ -4505,6 +4507,12 @@ function _filtrarHoje() {
     const nome = normalizar(card.dataset.nome || '');
     card.style.display = (!q || nome.includes(q)) ? '' : 'none';
   });
+  (typeof HOJE_MASSAS!=='undefined' ? HOJE_MASSAS : []).forEach((g, gi) => {
+    const el = document.getElementById('mh-'+gi); if (!el) return;
+    const algum = g.prods.some(p => { const c = document.getElementById('phoje-card-'+p.id); return c && c.style.display !== 'none'; });
+    el.style.display = (!q || algum || normalizar(g.nm).includes(q)) ? '' : 'none';
+  });
+  document.querySelectorAll('#phojeBody .phoje-sec-lbl').forEach(l => { l.style.display = q ? 'none' : ''; });
 }
 
 // ── Wrappers chamados pelos botões HTML da tabela ──
@@ -5525,12 +5533,8 @@ function _renderConfirmarHoje(vw) {
   // entra pelo botão "Produto não listado".
   const _modoMassa = SETOR === 'PADARIA';
   const _todosDoDia = prodsHoje;
-  if (_modoMassa) {
-    prodsHoje = prodsHoje.filter(p => {
-      const l = getLoteProduto(p.nome, SETOR, dsem, hoje);
-      return l.qtd > 0 || !!PROD_ITENS[`${p.id}_${hoje}`] || !!PROD_HOJE_VALS[p.id]?.done;
-    });
-  }
+  // A tela mostra TODOS os produtos do setor (dá para registrar qualquer um
+  // sem "adicionar"); os planejados para hoje vêm primeiro e marcados.
 
   // Ordenar: 1º com sugestão/confirmado (por urgência), 2º sem sugestão (alfabético)
   prodsHoje.sort((a, b) => {
@@ -5559,7 +5563,7 @@ function _renderConfirmarHoje(vw) {
   </div>
   <div class="phoje-prog">${nConf}/${nTotal}</div>
 </div>
-<div class="ck-search" style="margin:8px 12px;${_modoMassa?'display:none;':''}">
+<div class="ck-search" style="margin:8px 12px;">
   <span>🔍</span>
   <input type="text" id="buscaHojeInp" placeholder="Buscar produto..." autocomplete="off"
     style="font-size:16px;"
@@ -5597,9 +5601,15 @@ function _renderConfirmarHoje(vw) {
         html += `<div id="mh-${gi}">${_massaHeaderHTML(gi)}</div>`;
         g.prods.forEach(p => { html += _buildPhojeCard(p, hoje, dsem, _i++); });
       });
-      if (_soltos.length) {
-        html += `<div class="phoje-sec-lbl" style="margin-top:12px;">📋 Outros produtos</div>`;
-        _soltos.forEach(p => { html += _buildPhojeCard(p, hoje, dsem, _i++); });
+      const _ehPlan = p => getLoteProduto(p.nome, SETOR, dsem, hoje).qtd > 0 || !!PROD_ITENS[`${p.id}_${hoje}`];
+      const _sp = _soltos.filter(_ehPlan), _sf = _soltos.filter(p => !_ehPlan(p));
+      if (_sp.length) {
+        html += `<div class="phoje-sec-lbl" style="margin-top:12px;">📋 Outros produtos de hoje</div>`;
+        _sp.forEach(p => { html += _buildPhojeCard(p, hoje, dsem, _i++); });
+      }
+      if (_sf.length) {
+        html += `<div class="phoje-sec-lbl" style="margin-top:12px;">➕ Demais produtos do setor (fora do plano de hoje)</div>`;
+        _sf.forEach(p => { html += _buildPhojeCard(p, hoje, dsem, _i++); });
       }
     }
     if (!_modoMassa) prodsHoje.forEach((p, i) => {
@@ -5773,7 +5783,8 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
     alertHtml = `<div class="phoje-alert">⚠️ Crítico no checklist: ${ckVal}${und.toLowerCase()}</div>`;
   }
 
-  const cardCls = isDone ? 'done' : urg==='cr'?'cr':urg==='at'?'at':'';
+  const _planHoje = (Number(lote.qtd)||0) > 0;
+  const cardCls = (isDone ? 'done' : urg==='cr'?'cr':urg==='at'?'at':'') + (_planHoje ? ' hojeplan' : '');
   const urgE = _urgEmojiProd(p.id);
   const classe = _getClasse(p.id);
   const abcBadge = '<span class="phoje-abc abc-' + classe.toLowerCase() + '">' + classe + '</span>';
@@ -5800,8 +5811,8 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
   }
 
   return `<div class="phoje-card ${cardCls}" id="phoje-card-${p.id}" data-nome="${escHtml(p.nome)}">
-  <div class="phoje-card-nm"><span class="prod-num">${idx + 1}</span>${urgE} ${abcBadge} ${escHtml(p.nome)}</div>
-  <div class="phoje-sug">Sugestão: <strong>${lote.qtd}${und.toLowerCase()}</strong>${_ing&&lote.qtd>0?' <span style="color:#8A9590;">(≈ '+_fmtNum(Math.round(lote.qtd*_ing.porUn*10)/10)+' '+_ing.un+' de '+escHtml(_ing.nome)+')</span>':''}${lote.sazonalidade!==1?' · sazon. ×'+lote.sazonalidade:''}</div>
+  <div class="phoje-card-nm"><span class="prod-num">${idx + 1}</span>${urgE} ${abcBadge} ${escHtml(p.nome)}${_planHoje?' <span class="phoje-plan">📌 Hoje</span>':''}</div>
+  <div class="phoje-sug">${_planHoje?'Planejado para hoje':'Fora do plano de hoje'}: <strong>${lote.qtd}${und.toLowerCase()}</strong>${_ing&&lote.qtd>0?' <span style="color:#8A9590;">(≈ '+_fmtNum(Math.round(lote.qtd*_ing.porUn*10)/10)+' '+_ing.un+' de '+escHtml(_ing.nome)+')</span>':''}${lote.sazonalidade!==1?' · sazon. ×'+lote.sazonalidade:''}</div>
   ${sugDadosHtml}
   ${alertHtml}
   ${modosHtml}
@@ -5809,7 +5820,7 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
   <div class="phoje-inp-row" id="phoje-inp-row-${p.id}"${modoAtual==='peso'?'':' style="display:none;"'}>
     <input class="phoje-inp" type="number" inputmode="decimal" min="0" step="0.5"
       id="phoje-inp-${p.id}"
-      value="${valAtual}"
+      value="${(!_planHoje && !item && !rascunho) ? '' : valAtual}"
       placeholder="${lote.qtd||0}"
       data-prodid="${p.id}"
       data-idx="${idx}"
@@ -5822,7 +5833,7 @@ function _buildPhojeCard(p, hoje, dsem, idx) {
   ${ingHtml}
   <button class="phoje-conf-btn${isDone?' done':''}" id="phoje-btn-${p.id}"
     onclick="confirmarItemHoje('${p.id}',${lote.qtd})">
-    ${isDone ? '✅ Confirmado' : '✅ Confirmar '+lote.qtd+und.toLowerCase()}
+    ${isDone ? '✅ Confirmado' : (_planHoje ? '✅ Confirmar '+lote.qtd+und.toLowerCase() : '✅ Confirmar')}
   </button>
 </div>`;
 }

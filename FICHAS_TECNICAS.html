@@ -361,6 +361,13 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
         <button type="button" class="btn btn-grn btn-sm" onclick="substituirReceitaProduto()">Usar como receita nova</button>
       </div>
     </div>
+    <!-- Aposentar a receita: fica guardada como ANTIGO, sem o código do produto -->
+    <div id="boxAntiga" style="display:none;background:#F3F4F6;border:1.5px solid #D1D5DB;border-radius:10px;padding:10px 12px;margin-bottom:12px;">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;font-size:.75rem;color:#6B7280;line-height:1.4;"><b style="color:#374151;font-size:.85rem;">📦 Esta receita não é mais usada?</b><br>Ela fica guardada para consulta com <b>ANTIGO</b> no nome, no grupo RECEITAS ANTIGAS, e sai dos custos e do registro.</div>
+        <button type="button" class="btn btn-sec btn-sm" onclick="marcarComoAntiga()">Marcar como receita antiga</button>
+      </div>
+    </div>
     <div class="fg-row">
       <div class="fg">
         <label>Nome do produto *</label>
@@ -1464,6 +1471,7 @@ function abrirModalFicha(id){
   ingredientesModal=[];
   popularDropdownProdutos();
   var _bxS=document.getElementById('boxSubstituir'); if(_bxS) _bxS.style.display='none';
+  var _bxA=document.getElementById('boxAntiga'); if(_bxA) _bxA.style.display='none';
   document.getElementById('fichaId').value='';
   document.getElementById('fichaProdutoSel').value='';
   document.getElementById('fichaNome').value='';
@@ -1523,6 +1531,9 @@ function abrirModalFicha(id){
       document.getElementById('fotoPreviewWrap').style.display='block';
       document.getElementById('fotoPlaceholder').style.display='none';
     }
+    // Ficha existente que ainda não é ANTIGO: pode ser aposentada
+    var bxA=document.getElementById('boxAntiga');
+    if(bxA) bxA.style.display=/ANTIG[OA]\b/i.test(f.produto_nome||'')?'none':'block';
     // Ficha sem código de produto: oferece transformá-la na receita nova de um produto
     var bx=document.getElementById('boxSubstituir');
     if(bx){
@@ -1548,6 +1559,35 @@ function editarFicha(id){abrirModalFicha(id);}
 // A ficha aberta (sem código) vira a receita do produto escolhido. A ficha que
 // o produto usava é renomeada para "... ANTIGO", perde o código e vai para o
 // grupo RECEITAS ANTIGAS — continua no app para consulta, fora dos custos.
+// Aposenta a ficha aberta: nome + " ANTIGO", sem código, grupo RECEITAS ANTIGAS.
+// Massa/preparo com insumo de mesmo nome: o insumo acompanha o nome novo, para
+// as fichas antigas que usam essa massa continuarem ligadas a ela.
+async function marcarComoAntiga(){
+  var id=document.getElementById('fichaId').value;
+  var f=FICHAS.find(function(x){return x.id===id;});
+  if(!f){toast('⚠️ Salve a ficha antes','er');return;}
+  var nc=function(c){return String(c||'').trim().replace(/^0+/,'');};
+  var cod=nc(f.cod);
+  var outra=cod && FICHAS.some(function(x){return x.id!==f.id && nc(x.cod)===cod;});
+  var msg='"'+f.produto_nome+'" vai ficar guardada como receita antiga.'
+    +(cod && !outra?'\n\nATENÇÃO: o produto de código '+cod+' fica SEM ficha técnica até outra receita receber esse código (sem custo pela ficha e sem registro por lote ou ingrediente).':'')
+    +'\n\nConfirmar?';
+  if(!confirm(msg))return;
+  var hoje=new Date().toLocaleDateString('pt-BR');
+  var nomeAnt=String(f.produto_nome||'').trim()+' ANTIGO';
+  if(FICHAS.some(function(x){return x.produto_nome===nomeAnt;})) nomeAnt+=' '+hoje;
+  try{
+    await sbPatch('fichas_tecnicas',f.id,{produto_nome:nomeAnt,cod:null,grupo:'RECEITAS ANTIGAS',
+      indicacao:'Marcada como receita antiga em '+hoje+(cod?' (era o cód. '+cod+')':'')});
+    var ins=INSUMOS.find(function(i){return String(i.nome||'').trim().toUpperCase()===String(f.produto_nome||'').trim().toUpperCase()
+                                        && /Produção própria \(ficha\)/.test(i.fornecedor||'');});
+    if(ins){ try{ await sbPatch('insumos',ins.id,{nome:nomeAnt.toUpperCase()}); }catch(e){} }
+    fecharModalFull();
+    toast('📦 Guardada como "'+nomeAnt+'"','ok');
+    await carregarTudo();
+  }catch(e){ console.error(e); toast('❌ Erro ao marcar como antiga: '+String(e.message||e).slice(0,80),'er'); }
+}
+
 async function substituirReceitaProduto(){
   var id=document.getElementById('fichaId').value;
   var nova=FICHAS.find(function(x){return x.id===id;});
