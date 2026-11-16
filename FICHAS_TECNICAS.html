@@ -643,6 +643,14 @@ async function carregarTudo(){
         FICHA_ITENS[it.ficha_id].push(it);
       });
     }
+    // Preço de venda ATUAL de cada produto (último mês importado do caixa).
+    // A aba CMV usa este preço; o da ficha fica só como reserva.
+    PRECO_ATUAL={};
+    try{
+      (await sbGet('preco_venda_atual','select=cod,mes_ref,preco_unit,base')||[]).forEach(function(r){
+        var c=String(r.cod||'').trim().replace(/^0+/,''); if(c && parseFloat(r.preco_unit)>0) PRECO_ATUAL[c]=r;
+      });
+    }catch(e){ console.log('preco_venda_atual indisponível:', e.message); }
     renderInsumos();
     renderFichas();
     renderProducao();
@@ -2063,15 +2071,38 @@ function filtrarCMV(setor,el){
   renderCMV();
 }
 
+var PRECO_ATUAL={};
+// Receita antiga, massa ou preparo (sem código de produto) não é vendida:
+// fica fora do CMV.
+function _fichaForaDoCMV(f){
+  return /ANTIG[OA]\b/i.test(f.produto_nome||'') || String(f.grupo||'').toUpperCase()==='RECEITAS ANTIGAS'
+      || !String(f.cod||'').trim();
+}
+// Ficha com o preço de venda atual do caixa no lugar do preço cadastrado nela
+function _fichaComPrecoAtual(f){
+  var c=String(f.cod||'').trim().replace(/^0+/,''), p=PRECO_ATUAL[c];
+  if(!p) return {f:f, fonte:'ficha'};
+  var g=Object.assign({}, f), v=parseFloat(p.preco_unit);
+  if(p.base==='un'){
+    if(!(parseFloat(f.rendimento_unid)>0)) return {f:f, fonte:'ficha'};   // vende por unidade, ficha sem rendimento em un
+    g.preco_venda_und=v; g.preco_venda_kg=0;
+  } else { g.preco_venda_kg=v; }
+  var antes = p.base==='un' ? parseFloat(f.preco_venda_und)||0 : parseFloat(f.preco_venda_kg)||0;
+  return {f:g, fonte:'caixa', mes:p.mes_ref, base:p.base, atual:v, ficha:antes};
+}
 function renderCMV(){
   const lista=FICHAS.filter(function(f){
     if(filtroCMV!=='TODOS'&&f.setor!==filtroCMV)return false;
+    if(_fichaForaDoCMV(f))return false;
     return true;
   });
   // KPIs consolidados
   let totalFat=0,totalCusto=0,count=0;
-  const cmvItems=lista.map(function(f){
-    const c=calcCMV(f);
+  let nCaixa=0;
+  const cmvItems=lista.map(function(f0){
+    const pa=_fichaComPrecoAtual(f0), f=pa.f;
+    if(pa.fonte==='caixa') nCaixa++;
+    const c=calcCMV(f); c._pa=pa;
     // Usa o CMV disponível: por kg (se tem preço/kg) ou por unidade (se tem preço/und)
     if(c.preco>0&&c.rendimento>0){
       totalFat+=c.preco*c.rendimento;
@@ -2092,7 +2123,10 @@ function renderCMV(){
     +'<div class="kpi-sub">'+(filtroCMV==='TODOS'?'Todos setores':filtroCMV)+'</div></div>'
     +'<div class="kpi-card"><div class="kpi-label">Fichas com CMV</div>'
     +'<div class="kpi-val">'+count+'</div>'
-    +'<div class="kpi-sub">de '+lista.length+' fichas</div></div>';
+    +'<div class="kpi-sub">de '+lista.length+' fichas</div></div>'
+    +'<div class="kpi-card"><div class="kpi-label">Preço usado</div>'
+    +'<div class="kpi-val" style="font-size:1.1rem;">'+nCaixa+' caixa</div>'
+    +'<div class="kpi-sub">'+(lista.length-nCaixa)+' pelo preço da ficha</div></div>';
   // Ordena por CMV efetivo (usa kg, ou und se não tiver kg) — pior primeiro
   function cmvEfetivo(c){
     if(c.cmv!==null)return c.cmv;
@@ -2128,7 +2162,12 @@ function renderCMV(){
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'
       +'<div style="flex:1">'
       +'<div style="font-size:.85rem;font-weight:700;color:var(--brown);">'+f.produto_nome+tagUnid+'</div>'
-      +'<div style="font-size:.7rem;color:var(--gray);">'+f.setor+'</div>'
+      +'<div style="font-size:.7rem;color:var(--gray);">'+f.setor
+      +(c._pa.fonte==='caixa'
+        ? ' · preço atual do caixa ('+c._pa.mes+')'+(c._pa.ficha>0 && Math.abs(c._pa.atual-c._pa.ficha)/c._pa.atual>0.02
+            ? ' <span style="color:#B45309;font-weight:700;">· na ficha está R$ '+fmtBR(c._pa.ficha,2)+', hoje R$ '+fmtBR(c._pa.atual,2)+'</span>' : '')
+        : ' · <span style="color:#B45309;">preço da ficha (sem venda importada)</span>')
+      +'</div>'
       +'</div>'
       +'<div style="text-align:right;">'
       +'<div style="font-size:1rem;font-weight:800;color:'+cor+'">'+cmvStr+'</div>'
