@@ -209,14 +209,22 @@ function parseXLSX(buf){
   // Agrupado por "Dia: 1" (só o dia do mês) em vez de "Data: 01/10/2026"
   var porDia=rows.some(function(rw){ return typeof (rw||[])[0]==='string' && /^\s*Dia:\s*\d+\s*$/i.test(rw[0]); });
   var temData=rows.some(function(rw){ return typeof (rw||[])[0]==='string' && /Data:\s*\d{1,2}\/\d{1,2}\/\d{4}/i.test(rw[0]); });
-  var mesUnico=null;
-  if(porDia && !temData){
-    if(!pIni || !pFim || pIni.slice(0,7)!==pFim.slice(0,7)){
-      showStatus('❌ O relatório está agrupado por "Dia" (1, 2, 3…) e o período pega mais de um mês: o dia 1 de outubro e o dia 1 de novembro saem somados. '
-        +'Exporte agrupado por DATA, ou um mês de cada vez.','err'); return;
-    }
-    mesUnico=pIni.slice(0,7);
+  // Agrupado por "Dia: N" + "Dia da Semana: n - nome": a data sai do período,
+  // do número do dia e do dia da semana (o dia 1 de outubro e o de novembro
+  // caem em dias da semana diferentes). Se ficar ambíguo, não importa.
+  var porDiaSemana = porDia && !temData;
+  if(porDiaSemana && (!pIni || !pFim)){
+    showStatus('❌ Não achei o período do relatório (linha "Período: … até …"). Exporte agrupado por DATA.','err'); return;
   }
+  function _resolverData(diaN, semN){
+    var achou=[], d=new Date(pIni+'T12:00:00'), fim=new Date(pFim+'T12:00:00');
+    for(; d<=fim; d.setDate(d.getDate()+1)){
+      if(d.getDate()===diaN && (semN===null || d.getDay()===semN-1))
+        achou.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
+    }
+    return achou.length===1 ? achou[0] : null;
+  }
+  var diaNum=null, ambiguo=0;
   dadosParsed=[];
   var dataAtual=null, diaAtual='';
   for(var r2=hi+1;r2<rows.length;r2++){
@@ -226,10 +234,16 @@ function parseXLSX(buf){
       if(/total/i.test(c0)) continue;
       var md=c0.match(/Data:\s*(\d{1,2}\/\d{1,2}\/\d{4})/i);
       if(md){ dataAtual=dataBR(md[1]); continue; }
-      var mdia=mesUnico && c0.match(/^\s*Dia:\s*(\d{1,2})\s*$/i);
-      if(mdia){ dataAtual=mesUnico+'-'+String(mdia[1]).padStart(2,'0'); continue; }
+      var mdia=porDiaSemana && c0.match(/^\s*Dia:\s*(\d{1,2})\s*$/i);
+      if(mdia){ diaNum=parseInt(mdia[1],10); dataAtual=_resolverData(diaNum,null); continue; }
       var mw=c0.match(/Dia da Semana:\s*\d*\s*-?\s*(.+)$/i);
-      if(mw){ diaAtual=mw[1].trim(); continue; }
+      if(mw){ diaAtual=mw[1].trim();
+        if(porDiaSemana && diaNum!==null){
+          var sn=(c0.match(/Dia da Semana:\s*(\d)/i)||[])[1];
+          dataAtual=_resolverData(diaNum, sn?parseInt(sn,10):null);
+          if(!dataAtual) ambiguo++;
+        }
+        continue; }
       continue;
     }
     if(typeof c0!=='number' || !dataAtual) continue;
@@ -246,6 +260,7 @@ function parseXLSX(buf){
       revenda:_ehRevenda(cod,desc), sistema:'novo'
     });
   }
+  if(ambiguo){ dadosParsed=[]; showStatus('❌ Não deu para saber a data de '+ambiguo+' grupo(s) do relatório (o período é longo demais para separar pelo dia da semana). Exporte agrupado por DATA ou um mês de cada vez.','err'); return; }
   if(!dadosParsed.length){ showStatus('❌ Nenhuma venda encontrada no arquivo.','err'); return; }
   _mostrarPrevia('Excel do sistema novo');
 }
@@ -348,10 +363,13 @@ async function importar(){
     var setoresDel='setor=in.('+encodeURIComponent('"'+setor+'","REVENDA '+setor+'"')+')';
     // 0. Dia da troca: apaga só o que veio do sistema novo (a parte antiga fica e soma)
     var ehNovo=dados.some(function(d){return d.sistema==='novo';});
-    if(ehNovo && dias[DIA_TROCA]){
-      var rT=await fetch(SUPA_URL+'/rest/v1/vendas_abc?'+setoresDel+'&data=eq.'+DIA_TROCA+'&sistema=eq.novo',{method:'DELETE',headers:SH});
+    // Vale também para os dias ANTES da troca que tenham venda do sistema novo
+    // (ex.: testes no dia 14/10): a venda do sistema antigo desses dias fica.
+    var diasTroca = ehNovo ? lista.filter(function(k){return k<=DIA_TROCA;}) : [];
+    if(diasTroca.length){
+      var rT=await fetch(SUPA_URL+'/rest/v1/vendas_abc?'+setoresDel+'&data=in.('+diasTroca.join(',')+')&sistema=eq.novo',{method:'DELETE',headers:SH});
       if(!rT.ok && rT.status!==404){ throw new Error('Falha ao limpar o dia da troca: '+await rT.text()+' — rode antes o SQL que cria a coluna "sistema".'); }
-      lista=lista.filter(function(k){return k!==DIA_TROCA;});
+      lista=lista.filter(function(k){return k>DIA_TROCA;});
     }
     // 1. Apaga SÓ os dias que vêm no arquivo (em blocos de 20 dias)
     for(var i=0;i<lista.length;i+=20){
@@ -379,7 +397,7 @@ async function importar(){
     }
     var todos=Object.keys(dias).sort();
     showStatus('✅ Importação concluída! '+inseridos+' vendas de '+setor+' em '+todos.length+' dias ('+_fmtBR(todos[0])+' a '+_fmtBR(todos[todos.length-1])+').'
-      +(ehNovo&&dias[DIA_TROCA]?' <br>🔄 '+_fmtBR(DIA_TROCA)+' (dia da troca): somado com a venda do sistema antigo.':''),'ok');
+      +(diasTroca.length?' <br>🔄 '+diasTroca.map(_fmtBR).join(', ')+' (troca de sistema): somado com a venda do sistema antigo.':''),'ok');
   }catch(err){
     showStatus('❌ Erro: '+err.message,'err');
   }
