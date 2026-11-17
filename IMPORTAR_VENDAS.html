@@ -197,6 +197,26 @@ function parseXLSX(buf){
       if(sec.indexOf('PASTEL')===0) sec='CONFEITARIA';
       for(var o=0;o<sel.options.length;o++) if(sel.options[o].value===sec) sel.value=sec; }
   }
+  // Período ("Período: 01/10/2026 até 17/11/2026") e opções do rodapé
+  var texto=rows.map(function(rw){return (rw||[]).filter(function(x){return typeof x==='string';}).join(' ');}).join('\n');
+  var mp=texto.match(/Per[ií]odo:\s*(\d{1,2}\/\d{1,2}\/\d{4})\s*at[eé]\s*(\d{1,2}\/\d{1,2}\/\d{4})/i);
+  var pIni=mp?dataBR(mp[1]):null, pFim=mp?dataBR(mp[2]):null;
+  // Código interno do sistema novo NÃO é o código do produto usado no GestFood
+  if(/C[oó]digo de Produto:\s*Interno/i.test(texto)){
+    showStatus('❌ O relatório saiu com o CÓDIGO INTERNO (ex.: pão = 184). O GestFood usa o código do produto (pão = 708). '
+      +'No sistema, nas opções do relatório, troque "Código de Produto: Interno" pela outra opção e exporte de novo.','err'); return;
+  }
+  // Agrupado por "Dia: 1" (só o dia do mês) em vez de "Data: 01/10/2026"
+  var porDia=rows.some(function(rw){ return typeof (rw||[])[0]==='string' && /^\s*Dia:\s*\d+\s*$/i.test(rw[0]); });
+  var temData=rows.some(function(rw){ return typeof (rw||[])[0]==='string' && /Data:\s*\d{1,2}\/\d{1,2}\/\d{4}/i.test(rw[0]); });
+  var mesUnico=null;
+  if(porDia && !temData){
+    if(!pIni || !pFim || pIni.slice(0,7)!==pFim.slice(0,7)){
+      showStatus('❌ O relatório está agrupado por "Dia" (1, 2, 3…) e o período pega mais de um mês: o dia 1 de outubro e o dia 1 de novembro saem somados. '
+        +'Exporte agrupado por DATA, ou um mês de cada vez.','err'); return;
+    }
+    mesUnico=pIni.slice(0,7);
+  }
   dadosParsed=[];
   var dataAtual=null, diaAtual='';
   for(var r2=hi+1;r2<rows.length;r2++){
@@ -206,6 +226,8 @@ function parseXLSX(buf){
       if(/total/i.test(c0)) continue;
       var md=c0.match(/Data:\s*(\d{1,2}\/\d{1,2}\/\d{4})/i);
       if(md){ dataAtual=dataBR(md[1]); continue; }
+      var mdia=mesUnico && c0.match(/^\s*Dia:\s*(\d{1,2})\s*$/i);
+      if(mdia){ dataAtual=mesUnico+'-'+String(mdia[1]).padStart(2,'0'); continue; }
       var mw=c0.match(/Dia da Semana:\s*\d*\s*-?\s*(.+)$/i);
       if(mw){ diaAtual=mw[1].trim(); continue; }
       continue;
