@@ -853,6 +853,7 @@ function renderGeral(){
   h+='</div>';
 
   h+=avisosDadosHTML();
+  h+='<div class="card" id="ateHojeGeral"><div class="card-title">📅 Até a data de hoje × ano passado</div><div style="font-size:.78rem;color:var(--gray)">Carregando…</div></div>';
   if(varLuc>varFat)h+='<div class="insight"><strong>📈 Crescimento com eficiência:</strong> faturamento +'+varFat.toFixed(1)+'%, mas lucro +'+varLuc.toFixed(1)+'%. Cada real vendido rende mais que em 2025.</div>';
 
   // OS 2 VAZAMENTOS
@@ -871,6 +872,7 @@ function renderGeral(){
   h+='<div class="card"><div class="card-title">🏭 Faturamento por Setor</div><div class="chart-box"><canvas id="chGeralSetor"></canvas></div></div>';
 
   document.getElementById('geralBox').innerHTML=h;
+  setTimeout(function(){drawAteHoje('ateHojeGeral');},40);
 }
 function drawGeralCharts(){
   destroyChart('chGeralSetor');
@@ -1162,12 +1164,14 @@ async function faturamentoMensalAno(ano){
 
 // Cache da série completa (evita re-varrer o banco) + dias por mês (detecta parcial)
 let SERIE_CACHE=null;
+let FAT_DIA={};   // {'2026-11-17': {PADARIA: fat, CONFEITARIA: fat}} — para "até hoje × ano anterior"
 let DIAS_POR_MES={};
 
 // Busca TODOS os meses disponíveis no banco (qualquer ano) com faturamento, lucro e custo
 // Usada pela "Linha do Tempo da Gestão" e pelo seletor de mês — se preenche conforme mais meses são importados
 async function serieMensalCompleta(forcar){
   if(SERIE_CACHE&&!forcar)return SERIE_CACHE;
+  FAT_DIA={};
   var porMes={}; // {'2025-03': {fat:0,luc:0,cus:0}, ...}
   var diasSet={};
   var ruptAgg={}; // {mes: {produto: {fat, dias}}}
@@ -1193,6 +1197,11 @@ async function serieMensalCompleta(forcar){
       var st=(v.setor||'OUTROS').toUpperCase();
       if(ehSetorSoPreco(st))return;   // fora das análises
       porMes[m].setores[st]=(porMes[m].setores[st]||0)+fatV;
+      if(v.data){
+        var dK=String(v.data).slice(0,10), sK=(st==='PASTELARIA')?'CONFEITARIA':st;
+        if(!FAT_DIA[dK])FAT_DIA[dK]={};
+        FAT_DIA[dK][sK]=(FAT_DIA[dK][sK]||0)+fatV;
+      }
       porMes[m].qtdSetores[st]=(porMes[m].qtdSetores[st]||0)+(Number(v.quantidade)||0);
       if(v.data){
         if(!diasSet[m])diasSet[m]={};
@@ -1502,6 +1511,7 @@ function renderComparativo(){
   const v=totaisVendas();
   var tem25=(ABC._tem25!==false);
   let h='';
+  h+='<div class="card" id="ateHojeBox"><div class="card-title">📅 Até a data de hoje × mesmo período do ano passado</div><div style="font-size:.78rem;color:var(--gray)">Carregando…</div></div>';
   if(tem25){
     h+='<div class="insight"><strong>📅 '+nomeMesAtual()+' vs mesmo mês de '+anoAntComp()+'</strong> — mesmo mês, um ano depois.</div>';
   }else{
@@ -1542,9 +1552,55 @@ function renderComparativo(){
     +'</div>';
   document.getElementById('compBox').innerHTML=h;
   setTimeout(drawCompChart,50);
+  setTimeout(drawAteHoje,60);
   setTimeout(drawEvolucaoChart,80);
   setTimeout(drawLinhaTempoGestao,110);
   setTimeout(drawSetoresEvolucao,150);
+}
+
+// ════════ ATÉ A DATA DE HOJE × MESMO PERÍODO DO ANO PASSADO ════════
+// "Hoje" = último dia com venda importada (o dia corrente ainda não fecha).
+// Mês: 01/mm até o dia; Ano: 01/01 até o dia — e as mesmas datas um ano antes.
+async function drawAteHoje(id){
+  var box=document.getElementById(id||'ateHojeBox'); if(!box)return;
+  await serieMensalCompleta();
+  var dias=Object.keys(FAT_DIA).sort(); if(!dias.length){box.innerHTML='<div class="card-title">📅 Até a data de hoje</div><div style="font-size:.8rem;color:var(--gray)">Sem vendas importadas.</div>';return;}
+  var D=dias[dias.length-1], A=+D.slice(0,4), M=D.slice(5,7), dd=+D.slice(8,10);
+  var Aa=A-1, ddA=(M==='02'&&dd===29)?28:dd;
+  var fimAnt=Aa+'-'+M+'-'+String(ddA).padStart(2,'0');
+  function soma(ini,fim){
+    var r={PADARIA:0,CONFEITARIA:0,dias:0};
+    dias.forEach(function(k){
+      if(k<ini||k>fim)return;
+      var x=FAT_DIA[k], tem=false;
+      ['PADARIA','CONFEITARIA'].forEach(function(s){ if(x[s]){ r[s]+=x[s]; tem=true; } });
+      if(tem)r.dias++;
+    });
+    r.TOTAL=r.PADARIA+r.CONFEITARIA; return r;
+  }
+  function qtdDias(ini,fim){ return Math.round((new Date(fim+'T12:00:00')-new Date(ini+'T12:00:00'))/864e5)+1; }
+  function br(iso){ return iso.slice(8,10)+'/'+iso.slice(5,7)+'/'+iso.slice(0,4); }
+  var blocos=[
+    {tit:'No mês', ini:A+'-'+M+'-01', fim:D, iniA:Aa+'-'+M+'-01', fimA:fimAnt},
+    {tit:'No ano', ini:A+'-01-01', fim:D, iniA:Aa+'-01-01', fimA:fimAnt}
+  ];
+  var h='<div class="card-title">📅 Até '+br(D)+' × mesmo período de '+Aa+' <span class="sub">último dia com venda importada</span></div>';
+  blocos.forEach(function(b){
+    var at=soma(b.ini,b.fim), an=soma(b.iniA,b.fimA), n=qtdDias(b.ini,b.fim);
+    h+='<div style="font-weight:800;font-size:.85rem;margin:12px 0 2px;color:var(--grn2)">'+b.tit+' <span style="font-weight:400;color:var(--gray);font-size:.72rem">'
+      +br(b.ini).slice(0,5)+' a '+br(b.fim).slice(0,5)+' · '+A+' × '+Aa+'</span></div>';
+    h+='<div class="comp-row" style="font-size:.7rem;color:var(--gray)"><span class="comp-label"></span><span class="comp-25">'+Aa+'</span><span class="comp-26">'+A+'</span><span class="comp-var">Var.</span></div>';
+    h+=cRow('Padaria',at.PADARIA,an.PADARIA);
+    h+=cRow('Confeitaria',at.CONFEITARIA,an.CONFEITARIA);
+    h+=cRowB('TOTAL',at.TOTAL,an.TOTAL);
+    var aviso='';
+    if(an.dias===0) aviso='⚠️ Não há venda de '+Aa+' nesse período no banco. Importe '+br(b.iniA)+' a '+br(b.fimA)+' para comparar.';
+    else if(an.dias < at.dias*0.85) aviso='⚠️ '+Aa+' tem só '+an.dias+' dias com venda nesse período, contra '+at.dias+' em '+A+'. Falta importar dias do ano passado — a comparação fica desigual.';
+    else if(at.dias < n*0.8) aviso='⚠️ '+A+' tem '+at.dias+' dias com venda em '+n+' dias corridos. Confira se falta importar algum dia.';
+    h+='<div style="font-size:.72rem;color:'+(aviso?'#B45309':'var(--gray)')+';margin-top:4px">'+(aviso||('Dias com venda: '+at.dias+' em '+A+' · '+an.dias+' em '+Aa+'.'))+'</div>';
+  });
+  h+='<div style="font-size:.7rem;color:var(--gray);margin-top:8px">Só produção da casa (padaria e confeitaria); revenda e terceirizados ficam fora.</div>';
+  box.innerHTML=h;
 }
 
 // Desenha o gráfico de evolução mês a mês (2 linhas: 2025 e 2026)
